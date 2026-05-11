@@ -1,5 +1,5 @@
 import matplotlib.pyplot as plt
-from pyGSM.coordinate_systems import Angle, Dihedral, Distance, OutOfPlane
+from pygsm.coordinate_systems import Angle, Dihedral, Distance, OutOfPlane
 
 def get_driving_coord_prim(dc):
     prim = None

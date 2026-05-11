@@ -7,7 +7,7 @@ import sys
 
 import pytest
 
-import pyGSM
+import pygsm
 
 
 def test_pyGSM_imported():

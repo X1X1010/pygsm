@@ -11,17 +11,17 @@ try:
 except ModuleNotFoundError:
     pass
 
-from pyGSM.coordinate_systems.delocalized_coordinates import DelocalizedInternalCoordinates
-from pyGSM.coordinate_systems.primitive_internals import PrimitiveInternalCoordinates
-from pyGSM.coordinate_systems.topology import Topology
-from pyGSM.growing_string_methods import DE_GSM
-from pyGSM.level_of_theories.ase import ASELoT
-from pyGSM.optimizers.eigenvector_follow import eigenvector_follow
-from pyGSM.optimizers.lbfgs import lbfgs
-from pyGSM.potential_energy_surfaces import PES
-from pyGSM.utilities import nifty
-from pyGSM.utilities.elements import ElementData
-from pyGSM.wrappers.molecule import Molecule
+from pygsm.coordinate_systems.delocalized_coordinates import DelocalizedInternalCoordinates
+from pygsm.coordinate_systems.primitive_internals import PrimitiveInternalCoordinates
+from pygsm.coordinate_systems.topology import Topology
+from pygsm.growing_string_methods import DE_GSM
+from pygsm.level_of_theories.ase import ASELoT
+from pygsm.optimizers.eigenvector_follow import eigenvector_follow
+from pygsm.optimizers.lbfgs import lbfgs
+from pygsm.potential_energy_surfaces import PES
+from pygsm.utilities import nifty
+from pygsm.utilities.elements import ElementData
+from pygsm.wrappers.molecule import Molecule
 from .main import post_processing, cleanup_scratch
 
 

@@ -1,16 +1,16 @@
 import pytest
 
-from pyGSM.coordinate_systems.delocalized_coordinates import (
+from pygsm.coordinate_systems.delocalized_coordinates import (
     DelocalizedInternalCoordinates,
 )
-from pyGSM.coordinate_systems.primitive_internals import PrimitiveInternalCoordinates
-from pyGSM.coordinate_systems.topology import Topology
-from pyGSM.level_of_theories.xtb_lot import xTB_lot
-from pyGSM.molecule.molecule import Molecule
-from pyGSM.optimizers import eigenvector_follow
-from pyGSM.potential_energy_surfaces.penalty_pes import Penalty_PES
-from pyGSM.potential_energy_surfaces.pes import PES
-from pyGSM.utilities import elements, manage_xyz, nifty
+from pygsm.coordinate_systems.primitive_internals import PrimitiveInternalCoordinates
+from pygsm.coordinate_systems.topology import Topology
+from pygsm.level_of_theories.xtb_lot import xTB_lot
+from pygsm.molecule.molecule import Molecule
+from pygsm.optimizers import eigenvector_follow
+from pygsm.potential_energy_surfaces.penalty_pes import Penalty_PES
+from pygsm.potential_energy_surfaces.pes import PES
+from pygsm.utilities import elements, manage_xyz, nifty
 
 
 def test_basic_penalty_opt():

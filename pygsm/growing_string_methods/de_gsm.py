@@ -8,7 +8,7 @@ from utilities import manage_xyz, nifty
 sys.path.append(path.dirname(path.dirname(path.abspath(__file__))))
 
 
-from pyGSM.molecule import Molecule
+from pygsm.molecule import Molecule
 
 try:
     from .main_gsm import MainGSM
