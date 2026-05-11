@@ -1,27 +1,17 @@
 from __future__ import print_function
 import numpy as np
-import sys
 import os
-from os import path
 
-# local application imports
-sys.path.append(path.dirname(path.dirname(path.abspath(__file__))))
-
-try:
-    from .gsm import GSM
-except:
-    from gsm import GSM
-
-from molecule.molecule import Molecule
-from utilities.nifty import printcool
-from utilities.manage_xyz import xyz_to_np
-from utilities import units
-from utilities import block_matrix
-from coordinate_systems import rotate
-from optimizers import eigenvector_follow
+from pygsm.molecule.molecule import Molecule
+from pygsm.utilities.nifty import printcool
+from pygsm.utilities.manage_xyz import xyz_to_np
+from pygsm.utilities import units, block_matrix
+from pygsm.coordinate_systems import rotate
+from pygsm.optimizers import eigenvector_follow
 import multiprocessing as mp
 from itertools import chain
-from copy import deepcopy
+
+from .gsm import GSM
 
 def worker(arg):
     obj, methname = arg[:2]
@@ -906,14 +896,6 @@ class MainGSM(GSM):
         com0 = self.nodes[iR].center_of_mass
         com1 = self.nodes[iN].center_of_mass
         masses = self.nodes[iR].mass_amu
-
-        # From the old GSM code doesn't work
-        # com1 = mfrac*(com2-com0)
-        # print("com1")
-        # print(com1)
-        # # align centers of mass
-        # xyz1 += com1
-        # Eckart_align(xyz1,xyz2,masses,mfrac)
 
         # rotate to be in maximal coincidence with 0
         # assumes iP i.e. 2 is also in maximal coincidence

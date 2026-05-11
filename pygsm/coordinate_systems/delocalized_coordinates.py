@@ -5,18 +5,14 @@ from pygsm.utilities import nifty, block_matrix, math_utils
 from sys import exit
 from time import time
 
-# third party
-import networkx as nx
-from collections import OrderedDict, defaultdict
 from numpy.linalg import multi_dot
 import numpy as np
 np.set_printoptions(precision=4, suppress=True)
 
 # local application imports
-from . internal_coordinates import InternalCoordinates
-from . primitive_internals import PrimitiveInternalCoordinates
-from . topology import Topology
-from . slots import *
+from .internal_coordinates import InternalCoordinates
+from .primitive_internals import PrimitiveInternalCoordinates
+from .slots import RotationA, RotationB, RotationC
 
 
 class DelocalizedInternalCoordinates(InternalCoordinates):
@@ -603,7 +599,7 @@ class DelocalizedInternalCoordinates(InternalCoordinates):
             # Sort eigenvalues and eigenvectors in descending order (for cleanliness)
             L = L[::-1]
             Q = Q[:, ::-1]
-            time_eig = click()
+            time_eig = nifty.click()
             # print "Build G: %.3f Eig: %.3f" % (time_G, time_eig)
             # Figure out which eigenvectors from the G submatrix to include
             LargeVals = 0

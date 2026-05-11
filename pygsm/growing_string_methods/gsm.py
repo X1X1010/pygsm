@@ -1,20 +1,18 @@
-from __future__ import print_function
-# standard library imports
-import sys
 import os
-from os import path
-sys.path.append(path.dirname(path.dirname(path.abspath(__file__))))
-from coordinate_systems import Distance, Angle, Dihedral, OutOfPlane
-from utilities import nifty, options, block_matrix
-from pygsm.molecule import Molecule
-from utilities.manage_xyz import write_molden_geoms
-
-# third party
-import numpy as np
+import math
 import multiprocessing as mp
 from collections import Counter
-from copy import copy
 from itertools import chain
+from copy import copy
+from typing import List
+
+import numpy as np
+
+from pygsm.coordinate_systems import Distance, Angle, Dihedral, OutOfPlane
+from pygsm.utilities import nifty, options, block_matrix
+from pygsm.molecule import Molecule
+from pygsm.utilities.manage_xyz import write_molden_geoms
+
 
 
 def worker(arg):
@@ -339,7 +337,8 @@ class GSM(object):
         self._gradrmss = []
         for ico in self.nodes:
             if ico is not None:
-                self._gradrmss.append(ico.gradrms)
+                gradrms = ico.gradrms if isinstance(ico.gradrms, float) else ico.gradrms.item()
+                self._gradrmss.append(gradrms)
         return self._gradrmss
 
     @property
@@ -347,7 +346,8 @@ class GSM(object):
         self._dEs = []
         for ico in self.nodes:
             if ico is not None:
-                self._dEs.append(ico.difference_energy)
+                dE = ico.difference_energy if isinstance(ico.difference_energy, float) else ico.difference_energy.item()
+                self._dEs.append(dE)
         return self._dEs
 
     @property
@@ -1096,24 +1096,21 @@ class GSM(object):
     #    return theta
 
     @staticmethod
-    def calc_optimization_metrics(nodes):
-        '''
-        '''
+    def calc_optimization_metrics(nodes: List[Molecule]):
 
         nnodes = len(nodes)
-        rn3m6 = np.sqrt(3*nodes[0].natoms-6)
-        totalgrad = 0.0
-        gradrms = 0.0
-        sum_gradrms = 0.0
+        rn3m6 = math.sqrt(3 * nodes[0].natoms - 6)
+        totalgrad, gradrms, sum_gradrms = 0.0, 0.0, 0.0
         for i, ico in enumerate(nodes[1:nnodes-1]):
-            if ico != None:
-                print(" node: {:02d} gradrms: {:.6f}".format(i, float(ico.gradrms)), end='')
-                if i % 5 == 0:
-                    print()
-                totalgrad += ico.gradrms*rn3m6
-                gradrms += ico.gradrms*ico.gradrms
-                sum_gradrms += ico.gradrms
-        print('')
-        # TODO wrong for growth
-        gradrms = np.sqrt(gradrms/(nnodes-2))
+            if ico is None:
+                continue
+            ico_gradrms = ico.gradrms.item() if hasattr(ico.gradrms, 'item') else ico.gradrms
+            print(f" node: {i:02d} gradrms: {ico_gradrms:.6f}", end='')
+            if i % 5 == 0:
+                print()
+            totalgrad += ico_gradrms * rn3m6
+            gradrms += ico_gradrms**2
+            sum_gradrms += ico_gradrms
+        print()
+        gradrms = math.sqrt(gradrms / (nnodes - 2))
         return totalgrad, gradrms, sum_gradrms

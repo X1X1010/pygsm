@@ -196,7 +196,7 @@ def orthogonalize(vecs, numCvecs=0):
     # count=numCvecs-1
     count = 0
     for v in vecs.T:
-        w = v - np.sum(np.dot(v, b)*b for b in basis.T)
+        w = v - basis @ (basis.T @ v)
         wnorm = np.linalg.norm(w)
         # print("wnorm {} count {}".format(wnorm,count))
         if wnorm > 1e-3 and (abs(w) > 1e-6).any():

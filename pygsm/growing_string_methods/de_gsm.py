@@ -1,19 +1,9 @@
 from __future__ import print_function
 # standard library imports
-import sys
 from os import path
-from utilities import manage_xyz, nifty
-
-# local application imports
-sys.path.append(path.dirname(path.dirname(path.abspath(__file__))))
-
-
+from pygsm.utilities import manage_xyz, nifty
 from pygsm.molecule import Molecule
-
-try:
-    from .main_gsm import MainGSM
-except:
-    from main_gsm import MainGSM
+from .main_gsm import MainGSM
 
 
 class DE_GSM(MainGSM):

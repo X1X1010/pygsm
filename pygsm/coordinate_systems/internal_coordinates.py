@@ -286,7 +286,7 @@ class InternalCoordinates(object):
             title = "%20s : %20s" % ("IC %i/%i" % (i+1, Analytical.shape[0]), self.Internals[i])
             lines = [title]
             if verbose:
-                logger.info(title+'\n')
+                print(title+'\n')
             maxerr = 0.0
             numerr = 0
             for j in range(Analytical.shape[1]):
@@ -301,14 +301,14 @@ class InternalCoordinates(object):
                             if np.abs(error) > 1e-5:
                                 numerr += 1
                             if (ana != 0.0 or fin != 0.0) and verbose:
-                                logger.info(message+'\n')
+                                print(message+'\n')
                             lines.append(message)
                             if maxerr < np.abs(error):
                                 maxerr = np.abs(error)
             if maxerr > 1e-5 and not verbose:
-                logger.info('\n'.join(lines)+'\n')
-            logger.info("%s : Max Error = % 12.5e (%i above threshold)\n" % (title, maxerr, numerr))
-        logger.info("Finite-difference Finished\n")
+                print('\n'.join(lines)+'\n')
+            print("%s : Max Error = % 12.5e (%i above threshold)\n" % (title, maxerr, numerr))
+        print("Finite-difference Finished\n")
         return FiniteDifference
 
     def calcGrad(self, xyz, gradx, frozen_atoms=None):

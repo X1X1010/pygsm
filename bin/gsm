@@ -11,16 +11,16 @@ import textwrap
 import numpy as np
 
 # local application imports
-from pyGSM.coordinate_systems import DelocalizedInternalCoordinates, Distance, PrimitiveInternalCoordinates, Topology
-from pyGSM.growing_string_methods import DE_GSM, SE_Cross, SE_GSM
-from pyGSM.level_of_theories.ase import ASELoT
-from pyGSM.level_of_theories.xtb_lot import xTB_lot
-from pyGSM.optimizers import beales_cg, conjugate_gradient, eigenvector_follow, lbfgs
-from pyGSM.potential_energy_surfaces import Avg_PES, PES, Penalty_PES
-from pyGSM.utilities import elements, manage_xyz, nifty
-from pyGSM.utilities.manage_xyz import XYZ_WRITERS
-from pyGSM.molecule import Molecule
-from pyGSM.utilities.cli_utils import get_driving_coord_prim, plot
+from pygsm.coordinate_systems import DelocalizedInternalCoordinates, Distance, PrimitiveInternalCoordinates, Topology
+from pygsm.growing_string_methods import DE_GSM, SE_Cross, SE_GSM
+from pygsm.level_of_theories.ase import ASELoT
+from pygsm.level_of_theories.xtb_lot import xTB_lot
+from pygsm.optimizers import beales_cg, conjugate_gradient, eigenvector_follow, lbfgs
+from pygsm.potential_energy_surfaces import Avg_PES, PES, Penalty_PES
+from pygsm.utilities import elements, manage_xyz, nifty
+from pygsm.utilities.manage_xyz import XYZ_WRITERS
+from pygsm.molecule import Molecule
+from pygsm.utilities.cli_utils import get_driving_coord_prim, plot
 
 
 def parse_arguments(verbose=True):

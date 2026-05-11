@@ -1,14 +1,9 @@
-from __future__ import division
-
-# standard library imports
 import sys
 
-# third party
 import numpy as np
 from numpy.linalg import multi_dot
 
-# local application imports
-from utilities import nifty, manage_xyz
+from pygsm.utilities import nifty, manage_xyz, units
 
 
 """
@@ -512,7 +507,7 @@ def get_q_der(x, y, second=False, fdcheck=False, use_loops=False):
     if fdcheck:
         # If fdcheck = True, then return finite difference derivatives
         h = 1e-6
-        logger.info("-=# Now checking first derivatives of superposition quaternion w/r.t. Cartesians #=-\n")
+        print("-=# Now checking first derivatives of superposition quaternion w/r.t. Cartesians #=-\n")
         FDiffQ = np.zeros((x.shape[0], 3, 4), dtype=float)
         for u in range(x.shape[0]):
             for w in range(3):
@@ -523,11 +518,11 @@ def get_q_der(x, y, second=False, fdcheck=False, use_loops=False):
                 x[u, w] += h
                 FDiffQ[u, w] = (QPlus-QMinus)/(2*h)
                 maxerr = np.max(np.abs(dq[u, w]-FDiffQ[u, w]))
-                logger.info("atom %3i %s : maxerr = %.3e %s\n" % (u, 'xyz'[w], maxerr, 'X' if maxerr > 1e-6 else ''))
+                print("atom %3i %s : maxerr = %.3e %s\n" % (u, 'xyz'[w], maxerr, 'X' if maxerr > 1e-6 else ''))
         dq = FDiffQ
         if second:
             h = 1.0e-3
-            logger.info("-=# Now checking second derivatives of superposition quaternion w/r.t. Cartesians #=-\n")
+            print("-=# Now checking second derivatives of superposition quaternion w/r.t. Cartesians #=-\n")
             Q0 = get_quat(x, y)
             FDiffQ2 = np.zeros((x.shape[0], 3, y.shape[0], 3, 4), dtype=float)
             for u in range(x.shape[0]):
@@ -556,7 +551,7 @@ def get_q_der(x, y, second=False, fdcheck=False, use_loops=False):
                                 FDiffQ2[u, w, a, b] /= (4*h**2)
                             maxerr = np.max(np.abs(dq2[u, w, a, b]-FDiffQ2[u, w, a, b]))
                             if maxerr > 1e-8:
-                                logger.info("atom %3i %s, %3i %s : maxerr = %.3e %s\n" % (u, 'xyz'[w], a, 'xyz'[b], maxerr, 'X' if maxerr > 1e-6 else ''))
+                                print("atom %3i %s, %3i %s : maxerr = %.3e %s\n" % (u, 'xyz'[w], a, 'xyz'[b], maxerr, 'X' if maxerr > 1e-6 else ''))
             dq2 = FDiffQ2
     if second:
         return dq, dq2
@@ -711,8 +706,8 @@ def get_expmap_der(x, y, second=False, fdcheck=False, use_loops=False):
                     FDiffV2 /= h**2
                     maxerr = np.max(np.abs(dvdq2[p, r]-FDiffV2))
                     if maxerr > 1e-7:
-                        logger.info("q %3i %3i : maxerr = %.3e %s\n" % (p, r, maxerr, 'X' if maxerr > 1e-5 else ''))
-                    # logger.info("q %3i %3i : analytic %s numerical %s maxerr = %.3e %s" % (i, j, str(dvdq2[i, j]), str(FDiffV2), maxerr, 'X' if maxerr > 1e-4 else ''))
+                        print("q %3i %3i : maxerr = %.3e %s\n" % (p, r, maxerr, 'X' if maxerr > 1e-5 else ''))
+                    # print("q %3i %3i : analytic %s numerical %s maxerr = %.3e %s" % (i, j, str(dvdq2[i, j]), str(FDiffV2), maxerr, 'X' if maxerr > 1e-4 else ''))
 
     # Dimensionality: Number of atoms, number of dimensions (3), number of elements in q (4)
     if second:
@@ -753,7 +748,7 @@ def get_expmap_der(x, y, second=False, fdcheck=False, use_loops=False):
     # print(time.time()-t0)
     if fdcheck:
         h = 1e-3
-        logger.info("-=# Now checking first derivatives of exponential map w/r.t. Cartesians #=-\n")
+        print("-=# Now checking first derivatives of exponential map w/r.t. Cartesians #=-\n")
         FDiffV = np.zeros((x.shape[0], 3, 3), dtype=float)
         for u in range(x.shape[0]):
             for w in range(3):
@@ -764,10 +759,10 @@ def get_expmap_der(x, y, second=False, fdcheck=False, use_loops=False):
                 x[u, w] += h
                 FDiffV[u, w] = (VPlus-VMinus)/(2*h)
                 maxerr = np.max(np.abs(dvdx[u, w]-FDiffV[u, w]))
-                logger.info("atom %3i %s : maxerr = %.3e %s\n" % (u, 'xyz'[w], maxerr, 'X' if maxerr > 1e-6 else ''))
+                print("atom %3i %s : maxerr = %.3e %s\n" % (u, 'xyz'[w], maxerr, 'X' if maxerr > 1e-6 else ''))
         dvdx = FDiffV
         if second:
-            logger.info("-=# Now checking second derivatives of exponential map w/r.t. Cartesians #=-\n")
+            print("-=# Now checking second derivatives of exponential map w/r.t. Cartesians #=-\n")
             FDiffV2 = np.zeros((x.shape[0], 3, y.shape[0], 3, 3), dtype=float)
             for u in range(x.shape[0]):
                 for w in range(3):
@@ -795,7 +790,7 @@ def get_expmap_der(x, y, second=False, fdcheck=False, use_loops=False):
                                 FDiffV2[u, w, a, b] /= (4*h**2)
                             maxerr = np.max(np.abs(dvdx2[u, w, a, b]-FDiffV2[u, w, a, b]))
                             if maxerr > 1e-8:
-                                logger.info("atom %3i %s, %3i %s : maxerr = %.3e %s\n" % (u, 'xyz'[w], a, 'xyz'[b], maxerr, 'X' if maxerr > 1e-6 else ''))
+                                print("atom %3i %s, %3i %s : maxerr = %.3e %s\n" % (u, 'xyz'[w], a, 'xyz'[b], maxerr, 'X' if maxerr > 1e-6 else ''))
             dvdx2 = FDiffV2
 
     if second:
@@ -844,111 +839,6 @@ def eckart_frame(
     geom2 = manage_xyz.np_to_xyz(geom, np.dot((manage_xyz.xyz_to_np(geom) - np.outer(np.ones((len(masses),)), COM)), O))
 
     return COM, L, O, geom2
-
-
-def eckart_align(geom1, geom2, masses, rfrac, max_iter=200):
-
-    COMreact = np.sum(manage_xyz.xyz_to_np(geom1) * np.outer(masses, [1.0]*3), 0) / np.sum(masses)
-
-    COMproduct = np.sum(manage_xyz.xyz_to_np(geom2) * np.outer(masses, [1.0]*3), 0) / np.sum(masses)
-
-    xyzreact = manage_xyz.xyz_to_np(geom1)
-    xyzproduct = manage_xyz.xyz_to_np(geom2)
-
-    # Convert to MW coordinates
-    mwcreact = xyzreact*units.ANGSTROM_TO_AU*np.outer(np.sqrt(masses), [1.0]*3)
-    mwcproduct = xyzproduct*units.ANGSTROM_TO_AU*np.outer(np.sqrt(masses), [1.0]*3)
-    thetas = np.zeros(3)
-    total_thetas = np.zeros(3)
-    rot_mat = np.zeros((3, 3))
-
-    if rfrac < 1.:
-        max_iter = 1
-
-    for i in range(maxiter):
-
-        # get gradmag
-        grad = np.zeros(3)
-        for atom1, atom2 in zip(mwcreact, mwcproduct):
-            grad[0] += 2*(atom1[1]*atom2[2]-atom1[2]*atom2[1])
-            grad[1] += 2*(atom1[2]*atom2[0]-atom1[0]*atom2[2])
-            grad[2] += 2*(atom1[0]*atom2[1]-atom1[1]*atom2[0])
-        gradmag = np.linalg(grad)
-        print(" the gradient of the Eckart distance is %5.4f" % gradmag)
-
-        # get hessian
-        dot = np.dot(mwcreact.flatten(), mwcproduct.flatten())
-        xd = np.zeros((3, 3))
-        for atom1, atom2 in zip(mwcreact, mwcproduct):
-            xd[0, 0] += atom1[0]*atom2[0]
-            xd[1, 1] += atom1[1]*atom2[1]
-            xd[2, 2] += atom1[2]*atom2[2]
-            xd[1, 0] += atom1[1]*atom2[0]
-            xd[2, 0] += atom1[2]*atom2[0]
-            xd[2, 1] += atom1[2]*atom2[1]
-        xd[0, 1] = xd[1, 0]
-        xd[0, 2] = xd[2, 0]
-        xd[1, 2] = xd[2, 1]
-        hess = np.zeros((3, 3))
-        hess[0, 0] = 2*(dot-xd[0, 0])
-        hess[1, 1] = 2*(dot-xd[1, 1])
-        hess[2, 2] = 2*(dot-xd[2, 2])
-        hess[1, 0] = -2*xd[1, 0]
-        hess[2, 0] = -2*xd[2, 0]
-        hess[2, 1] = -2*xd[2, 1]
-        hess[0, 1] = hess[1, 0]
-        hess[0, 2] = hess[2, 0]
-        hess[1, 2] = hess[2, 1]
-
-        hess_evals, hess_evecs = np.linalg.eigh(hess)
-
-        mag_thetas = np.linalg.norm(thetas)
-
-        if gradmag < tol and all(hess_evals > 0.):
-            break
-
-        temp = 0.
-        vec_index = 0
-        for j in range(3):
-            if hess_evals[j] < temp and abs(hess_evals[j]) > 0.01:
-                temp = hess_evals[j]
-                vec_index = j
-
-        if vec_index != 0:
-            # Rotate around structure
-            RotMat = np.zeros((3, 3))
-            vec = hess_evecs[vec_index]
-            RotMat[0, 0] = 2*vec[0]*vec[0] - 1
-            RotMat[1, 1] = 2*vec[1]*vec[1] - 1
-            RotMat[2, 2] = 2*vec[2]*vec[2] - 1
-            RotMat[1, 0] = 2*vec[0]*vec[1]
-            RotMat[2, 0] = 2*vec[2]*vec[0]
-            RotMat[2, 1] = 2*vec[2]*vec[1]
-            RotMat[0, 1] = RotMat[1, 0]
-            RotMat[0, 2] = RotMat[2, 0]
-            RotMat[1, 2] = RotMat[2, 1]
-
-            # rotate product
-            mwcprod = np.dot(mwcprod, RotMat)
-
-        hess_inverse = np.linalg.inv(hess)
-
-        thetas = np.dot(hess_inverse, grad)
-        thetas -= np.ones(3)*rfrac
-        total_thetas += thetas
-
-        x = thetas[0]
-        y = thetas[1]
-        z = thetas[2]
-        rot_mat[0, 0] = np.cos(y)*np.cos(z)
-        rot_mat[0, 1] = -np.cos(y)*np.sin(z)
-        rot_mat[0, 2] = np.sin(y)
-        rot_mat[1, 0] = np.sin(x)*np.sin(y)*np.cos(z) + np.cos(x)*np.sin(z)
-        rot_mat[1, 1] = -np.sin(x)*np.sin(y)*np.sin(z) + np.cos(x)*np.cos(z)
-        rot_mat[1, 2] = -np.sin(x)*np.cos(y)
-        rot_mat[2, 0] = -np.cos(x)*np.sin(y)*np.cos(z) + np.sin(x)*np.sin(z)
-        rot_mat[2, 1] = np.cos(x)*np.sin(y)*np.sin(z) + np.sin(x)*np.cos(z)
-        rot_mat[2, 2] = np.cos(x)*np.cos(y)
 
 
 def vibrational_basis(
@@ -1031,18 +921,3 @@ def calc_rot_vec_diff(v1_in, v2_in):
     #     print("out: v1= % 8.4f % 8.4f % 8.4f v2= % 8.4f % 8.4f % 8.4f" % (v1[0], v1[1], v1[2], v2[0], v2[1], v2[2]))
         # print()
     return v1-v2
-
-
-def main():
-    M = Molecule(sys.argv[1])
-    # The target structure
-    Y = M.xyzs[0]
-    # The structure being rotated
-    X = M.xyzs[1]
-    # Copy the structure being rotated
-    Z = X.copy()
-    get_expmap_der(X, Y)
-
-
-if __name__ == "__main__":
-    main()

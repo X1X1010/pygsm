@@ -1,6 +1,5 @@
-from __future__ import print_function
 from copy import deepcopy, copy
-from pygsm.utilities import manage_xyz, nifty, block_matrix, block_tensor
+from pygsm.utilities import nifty, block_matrix, block_tensor
 from collections import OrderedDict, defaultdict
 import itertools
 import networkx as nx
@@ -8,31 +7,21 @@ import numpy as np
 
 # standard library imports
 import time
-import sys
-from os import path
-
-# i don't know what this is doing
-sys.path.append(path.dirname(path.dirname(path.abspath(__file__))))
 
 # third party
 from copy import deepcopy,copy
 import numpy as np
 import networkx as nx
-np.set_printoptions(precision=4,suppress=True)
+np.set_printoptions(precision=4, suppress=True)
 import itertools
 from collections import OrderedDict, defaultdict
 from scipy.linalg import block_diag
 
 # local application imports
 
-try:
-    from .internal_coordinates import InternalCoordinates
-    from .topology import Topology, MyG
-    from .slots import Distance, Angle, Dihedral, OutOfPlane, RotationA, RotationB, RotationC, TranslationX, TranslationY, TranslationZ, CartesianX, CartesianY, CartesianZ, LinearAngle
-except:
-    from internal_coordinates import InternalCoordinates
-    from topology import Topology, MyG
-    from slots import Distance, Angle, Dihedral, OutOfPlane, RotationA, RotationB, RotationC, TranslationX, TranslationY, TranslationZ, CartesianX, CartesianY, CartesianZ, LinearAngle
+from .internal_coordinates import InternalCoordinates
+from .topology import Topology, MyG
+from .slots import Distance, Angle, Dihedral, OutOfPlane, RotationA, RotationB, RotationC, TranslationX, TranslationY, TranslationZ, CartesianX, CartesianY, CartesianZ, LinearAngle
 
 CacheWarning = False
 
@@ -306,14 +295,14 @@ class PrimitiveInternalCoordinates(InternalCoordinates):
                             self.add(Dihedral(a, b, c, d))
 
     # overwritting parent internal coordinate wilsonB with a block matrix representation
-    def wilsonB(self, xyz):
+    def wilsonB(self, xyz: np.ndarray) -> block_matrix:
         """
         Given Cartesian coordinates xyz, return the Wilson B-matrix
         given by dq_i/dx_j where x is flattened (i.e. x1, y1, z1, x2, y2, z2)
         """
         global CacheWarning
         t0 = time.time()
-        xhash = hash(xyz.tostring())
+        xhash = hash(xyz.tobytes())
         ht = time.time() - t0
         if xhash in self.stored_wilsonB:
             # print(" returning stored")
@@ -1480,140 +1469,3 @@ def get_driving_coord_prim(dc):
         # else:
         #    prim = OutOfPlane(dc[4]-1,dc[3]-1,dc[2]-1,dc[1]-1)
     return prim
-
-
-if __name__ == '__main__' and __package__ is None:
-    from os import sys, path
-    sys.path.append(path.dirname(path.dirname(path.abspath(__file__))))
-
-    #filepath='../../data/butadiene_ethene.xyz'
-    #filepath='crystal.xyz'
-    filepath1 = 'multi1.xyz'
-    filepath2 = 'multi2.xyz'
-    geom1 = manage_xyz.read_xyz(filepath1)
-    geom2 = manage_xyz.read_xyz(filepath2)
-    atom_symbols = manage_xyz.get_atoms(geom1)
-    xyz1 = manage_xyz.xyz_to_np(geom1)
-    xyz2 = manage_xyz.xyz_to_np(geom2)
-
-    ELEMENT_TABLE = elements.ElementData()
-    atoms = [ELEMENT_TABLE.from_symbol(atom) for atom in atom_symbols]
-
-    test_prims = False
-    if test_prims:
-        # testing Cartesian
-        prim = CartesianX(0, w=1.0)
-        print(xyz[0, :])
-        print(xyz[0, :].shape)
-        der = prim.derivative(xyz[0, :])
-        print(der)
-        print(der.shape)
-
-        # testing Translation
-        print("testing translation")
-        i = list(range(10, 16))
-        prim = TranslationX(i, w=np.ones(len(i))/len(i))
-        print(xyz[10:16, :])
-        print(xyz[10:16, :].shape)
-        der = prim.derivative(xyz[10:16, :], start_idx=10)
-        print(der)
-        print(der.shape)
-
-        print("testing rotation")
-        Rotators = OrderedDict()
-        i = list(range(10, 16))
-        sel = xyz.reshape(-1, 3)[i, :]
-        sel -= np.mean(sel, axis=0)
-        rg = np.sqrt(np.mean(np.sum(sel**2, axis=1)))
-        rotation = RotationA(i, xyz, Rotators, w=rg)
-
-        der1 = prim.derivative(xyz[10:16, :], start_idx=10)
-        print(der1)
-        print(der1.shape)
-        der2 = prim.derivative(xyz)
-        print(der2)
-        print(der2.shape)
-
-        print('testing distance')
-        prim = Distance(10, 11)
-        print(prim)
-        der1 = prim.derivative(xyz[10:16, :], start_idx=10)
-        print(der1)
-        print(der1.shape)
-        der2 = prim.derivative(xyz)
-        print(der2)
-        print(der2.shape)
-
-        print('testing angle')
-        prim = Angle(10, 11, 14)
-        print(prim)
-        der1 = prim.derivative(xyz[10:16, :], start_idx=10)
-        print(der1)
-        print(der1.shape)
-        der2 = prim.derivative(xyz)
-        print(der2)
-        print(der2.shape)
-
-        print('testing dihedral')
-        prim = Dihedral(12, 10, 11, 14)
-        print(prim)
-        der1 = prim.derivative(xyz[10:16, :], start_idx=10)
-        print(der1)
-        print(der1.shape)
-        der2 = prim.derivative(xyz)
-        print(der2)
-        print(der2.shape)
-
-    hybrid_indices = list(range(0, 5)) + list(range(21, 26))
-    #hybrid_indices = list(range(0,74)) + list(range(3348, 3358))
-    #hybrid_indices = None
-    #print(hybrid_indices)
-    #with open('frozen.txt') as f:
-    #    hybrid_indices = f.read().splitlines()
-    #hybrid_indices = [int(x) for x in hybrid_indices]
-    #print(hybrid_indices)
-
-    print(" Making topology")
-    G1 = Topology.build_topology(xyz1, atoms, hybrid_indices=hybrid_indices)
-    G2 = Topology.build_topology(xyz2, atoms, hybrid_indices=hybrid_indices)
-
-    for bond in G2.edges():
-        if bond in G1.edges:
-            pass
-        elif (bond[1], bond[0]) in G1.edges():
-            pass
-        else:
-            print(" Adding bond {} to top1".format(bond))
-            if bond[0] > bond[1]:
-                G1.add_edge(bond[0], bond[1])
-            else:
-                G1.add_edge(bond[1], bond[0])
-
-    print(" Making prim")
-    p1 = PrimitiveInternalCoordinates.from_options(
-        xyz=xyz1,
-        atoms=atoms,
-        addtr=True,
-        topology=G1,
-        #extra_kwargs = {  'hybrid_indices' : hybrid_indices},
-    )
-
-    p2 = PrimitiveInternalCoordinates.from_options(
-        xyz=xyz2,
-        atoms=atoms,
-        addtr=True,
-        topology=G1,
-        #extra_kwargs = {  'hybrid_indices' : hybrid_indices},
-    )
-
-    #print("Does p1 equal p2? ", p1==p2)
-
-    #print(" Adding Angle 7-6-11 to p1")
-    #angle = Angle(6,5,10)
-    #print(angle)
-    #p1.append_prim_to_block(angle)
-
-    #print(p.calculate(xyz))
-    #print(len(p.Internals))
-
-    p1.add_union_primitives(p2)

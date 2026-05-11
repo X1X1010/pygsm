@@ -2,24 +2,14 @@
 This class is the combination of Martinez group and Lee Ping's molecule class.
 """
 
-# local application imports
-import sys
 import os
-from os import path
-sys.path.append(path.dirname(path.dirname(path.abspath(__file__))))
-
-# standard library imports
-from coordinate_systems import CartesianCoordinates
-from coordinate_systems import DelocalizedInternalCoordinates
-from potential_energy_surfaces import Penalty_PES
-from potential_energy_surfaces import Avg_PES
-from potential_energy_surfaces import PES
-from utilities import manage_xyz, elements, options, block_matrix
 from time import time
 
-# third party
 import numpy as np
-from collections import Counter
+
+from pygsm.coordinate_systems import CartesianCoordinates
+from pygsm.utilities import manage_xyz, elements, options, block_matrix, units
+
 
 ELEMENT_TABLE = elements.ElementData()
 
@@ -185,10 +175,7 @@ class Molecule(object):
             'copy_wavefunction': copy_wavefunction,
         }))
 
-    def __init__(self,
-                 options,
-                 **kwargs
-                 ):
+    def __init__(self, options, **kwargs):
 
         self.Data = options
 
@@ -604,14 +591,3 @@ class Molecule(object):
         self.Data['node_id'] = value
         self.PES.lot.node_id = value
 
-
-if __name__ == '__main__':
-    from level_of_theories import Molpro
-    filepath = '../../data/ethylene.xyz'
-    molpro = Molpro.from_options(states=[(1, 0)], fnm=filepath, lot_inp_file='../../data/ethylene_molpro.com')
-
-    pes = PES.from_options(lot=molpro, ad_idx=0, multiplicity=1)
-
-    reactant = Molecule.from_options(fnm=filepath, PES=pes, coordinate_type="TRIC", Form_Hessian=False)
-
-    print(reactant.coord_basis)

@@ -175,12 +175,11 @@ def write_molden_geoms(
             f.write('{}\n'.format(energy-V0))
         f.write("max-force\n")
         for grad in gradrms:
-            f.write('{}\n'.format(float(grad)))
+            f.write(f"{grad:.6f}\n")
         # rint(" WARNING: Printing dE as max-step in molden output ")
         f.write("max-step\n")
         for dE in dEs:
-            f.write('{}\n'.format(float(dE)))
-
+            f.write(f"{dE:.6f}\n")
 
 def get_atoms(
         geom,
