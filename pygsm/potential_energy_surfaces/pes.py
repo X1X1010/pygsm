@@ -1,15 +1,9 @@
-# standard library imports
-import sys
-from os import path
-
 # third party
 import numpy as np
 
 # local application imports
-sys.path.append(path.dirname(path.dirname(path.abspath(__file__))))
-from coordinate_systems import rotate
-
-from utilities import *
+from ..coordinate_systems import rotate
+from ..utilities import elements, manage_xyz, nifty, options, units
 ELEMENT_TABLE = elements.ElementData()
 
 

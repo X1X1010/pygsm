@@ -1,16 +1,14 @@
 # standard library imports
 from collections import namedtuple
 import os
+import shutil
 
 # third party
 import numpy as np
 
 # local application imports
-from utilities import manage_xyz, options, elements, nifty, units
-try:
-    from .file_options import File_Options
-except:
-    from file_options import File_Options
+from ..utilities import elements, manage_xyz, nifty, options, units
+from .file_options import File_Options
 
 ELEMENT_TABLE = elements.ElementData()
 
@@ -22,10 +20,11 @@ ELEMENT_TABLE = elements.ElementData()
       
 
 def copy_file(path1, path2):
-    cmd = 'cp -r ' + path1 + ' ' + path2
-    print(" copying scr files\n {}".format(cmd))
-    os.system(cmd)
-    os.system('wait')
+    print(" copying scr files\n cp -r {} {}".format(path1, path2))
+    if os.path.isdir(path1):
+        shutil.copytree(path1, path2, dirs_exist_ok=True)
+    else:
+        shutil.copy2(path1, path2)
 
 
 class LoTError(Exception):
@@ -188,6 +187,22 @@ class Lot(object):
             doc='xTB solvent'
         )
 
+        opt.add_option(
+            key='scratch_root',
+            value='scratch',
+            required=False,
+            allowed_types=[str],
+            doc='root directory for scratch outputs',
+        )
+
+        opt.add_option(
+            key='write_energy_file',
+            value=True,
+            required=False,
+            allowed_types=[bool],
+            doc='write cached state energies to scratch output',
+        )
+
         Lot._default_options = opt
         return Lot._default_options.copy()
 
@@ -261,6 +276,7 @@ class Lot(object):
         self.xTB_accuracy = self.options['xTB_accuracy']
         self.xTB_electronic_temperature = self.options['xTB_electronic_temperature']
         self.solvent = self.options['solvent']
+        self.scratch_root = self.options['scratch_root']
 
         # Bools for running
         self.hasRanForCurrentCoords = False
@@ -277,8 +293,8 @@ class Lot(object):
         # pytc? TODO
         self.options['job_data']['lot'] = self.options['job_data'].get('lot', None)
 
-        print(" making folder scratch/{:03}/{}".format(self.ID, self.node_id))
-        os.system('mkdir -p scratch/{:03}/{}'.format(self.ID, self.node_id))
+        print(" making folder {}".format(self.node_scratch_dir))
+        os.makedirs(self.node_scratch_dir, exist_ok=True)
 
     @classmethod
     def from_options(cls, **kwargs):
@@ -398,11 +414,11 @@ class Lot(object):
         return
 
     def get_energy(self, coords, multiplicity, state, runtype=None):
-        if self.hasRanForCurrentCoords is False or (coords != self.currentCoords).any():
+        if self._coords_changed(coords):
             self.currentCoords = coords.copy()
-            geom = manage_xyz.np_to_xyz(self.geom,self.currentCoords)
-            self.runall(geom,runtype)
-            self.hasRanForCurrentCoords=True
+            geom = manage_xyz.np_to_xyz(self.geom, self.currentCoords)
+            self.runall(geom, runtype)
+            self.hasRanForCurrentCoords = True
         
         Energy = self.Energies[(multiplicity,state)]
         if Energy.unit=="Hartree":
@@ -413,39 +429,41 @@ class Lot(object):
             return Energy.value
 
     def get_gradient(self, coords, multiplicity, state, frozen_atoms=None):
-        if self.hasRanForCurrentCoords is False or (coords != self.currentCoords).any():
+        if self._coords_changed(coords):
             self.currentCoords = coords.copy()
             geom = manage_xyz.np_to_xyz(self.geom, self.currentCoords)
             self.runall(geom)
-            self.hasRanForCurrentCoords=True
+            self.hasRanForCurrentCoords = True
         Gradient = self.Gradients[(multiplicity,state)]
         if Gradient.value is not None:
+            gradient = Gradient.value.copy()
             if frozen_atoms is not None:
                 for a in frozen_atoms:
-                    Gradient.value[a, :] = 0.
+                    gradient[a, :] = 0.
             if Gradient.unit == "Hartree/Bohr":
-                return Gradient.value * units.ANGSTROM_TO_AU  # Ha/bohr*bohr/ang=Ha/ang
+                return gradient * units.ANGSTROM_TO_AU  # Ha/bohr*bohr/ang=Ha/ang
             elif Gradient.unit == "kcal/mol/Angstrom":
-                return Gradient.value * units.KCAL_MOL_TO_AU  # kcalmol/A*Ha/kcalmol=Ha/ang
+                return gradient * units.KCAL_MOL_TO_AU  # kcalmol/A*Ha/kcalmol=Ha/ang
             else:
                 raise NotImplementedError
         else:
             return None
 
     def get_coupling(self, coords, multiplicity, state1, state2, frozen_atoms=None):
-        if self.hasRanForCurrentCoords is False or (coords != self.currentCoords).any():
+        if self._coords_changed(coords):
             self.currentCoords = coords.copy()
             geom = manage_xyz.np_to_xyz(self.geom, self.currentCoords)
             self.runall(geom)
-            self.hasRanForCurrentCoords=True
+            self.hasRanForCurrentCoords = True
         Coupling = self.Couplings[(state1,state2)]
 
         if Coupling.value is not None:
+            coupling = Coupling.value.copy()
             if frozen_atoms is not None:
                 for a in [3*i for i in frozen_atoms]:
-                    Coupling.value[a:a+3, 0] = 0.
+                    coupling[a:a+3, 0] = 0.
             if Coupling.unit == "Hartree/Bohr":
-                return Coupling.value * units.ANGSTROM_TO_AU  # Ha/bohr*bohr/ang=Ha/ang
+                return coupling * units.ANGSTROM_TO_AU  # Ha/bohr*bohr/ang=Ha/ang
             else:
                 raise NotImplementedError
         else:
@@ -453,7 +471,9 @@ class Lot(object):
         # return np.reshape(self.coup,(3*len(self.geom),1))*units.ANGSTROM_TO_AU
 
     def write_E_to_file(self):
-        with open('scratch/{:03}/E_{}.txt'.format(self.ID, self.node_id), 'w') as f:
+        if not self.options['write_energy_file']:
+            return
+        with open(self.energy_file_path, 'w') as f:
             for key, Energy in self.Energies.items():
                 f.write('{} {} {:9.7f} Hartree\n'.format(key[0], key[1], Energy.value))
 
@@ -511,6 +531,17 @@ class Lot(object):
 
     def search_tuple(self, tups, multiplicity):
         return [tup for tup in tups if multiplicity == tup[0]]
+
+    @property
+    def node_scratch_dir(self):
+        return os.path.join(self.scratch_root, f'{self.ID:03}', str(self.node_id))
+
+    @property
+    def energy_file_path(self):
+        return os.path.join(self.scratch_root, f'{self.ID:03}', f'E_{self.node_id}.txt')
+
+    def _coords_changed(self, coords):
+        return self.hasRanForCurrentCoords is False or not np.array_equal(coords, self.currentCoords)
 
 
     @classmethod

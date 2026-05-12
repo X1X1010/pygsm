@@ -1,21 +1,15 @@
 # standard library imports
 # local application imports
-from utilities import manage_xyz
 import sys
 import os
-from os import path
 import re
 
-sys.path.append(path.dirname(path.dirname(path.abspath(__file__))))
 # third party
 import numpy as np
 
-try:
-    from .base_lot import Lot
-    from .file_options import File_Options
-except:
-    from base_lot import Lot
-    from file_options import File_Options
+from ..utilities import manage_xyz
+from .base_lot import Lot
+from .file_options import File_Options
 
 
 class BAGEL(Lot):

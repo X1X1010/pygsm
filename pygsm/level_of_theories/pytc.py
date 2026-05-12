@@ -1,10 +1,8 @@
 # standard library imports
 from .casci_lot_svd import CASCI_LOT_SVD
 from .rhf_lot import RHF_LOT
-from utilities import *
 from .base_lot import Lot
 import sys
-from os import path
 
 # third party
 import numpy as np
@@ -14,7 +12,7 @@ import est
 import json
 
 # local application imports
-sys.path.append(path.dirname(path.dirname(path.abspath(__file__))))
+from ..utilities import *
 
 #TODO get rid of get_energy, get_gradient
 
@@ -260,7 +258,7 @@ class PyTC(Lot):
 
 if __name__ == "__main__":
     import psiw
-    from utilities import nifty
+    from ..utilities import nifty
 
     ##### => Job Data <= #####
     states = [(1, 0), (1, 1)]

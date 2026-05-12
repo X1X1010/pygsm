@@ -3,10 +3,7 @@ from __future__ import print_function
 # standard library imports
 import sys
 import os
-try:
-    from io import StringIO
-except:
-    from StringIO import StringIO
+from io import StringIO
 
 # third party
 import numpy as np
@@ -14,7 +11,7 @@ import numpy as np
 # local application imports
 from ._linesearch import NoLineSearch
 from .base_optimizer import base_optimizer
-from utilities import units, block_matrix, manage_xyz
+from ..utilities import block_matrix, manage_xyz, units
 
 
 class eigenvector_follow(base_optimizer):
@@ -283,10 +280,10 @@ class eigenvector_follow(base_optimizer):
 
 
 if __name__ == '__main__':
-    from qchem import QChem
-    from pes import PES
-    from molecule import Molecule
-    from slots import Distance
+    from ..coordinate_systems import Distance
+    from ..molecule import Molecule
+    from ..potential_energy_surfaces import PES
+    from ..level_of_theories.qchem import QChem
 
     basis = "6-31G*"
     nproc = 8

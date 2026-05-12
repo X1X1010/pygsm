@@ -25,6 +25,60 @@ and spin multiplicities.
 class Molecule(object):
 
     @staticmethod
+    def _copy_coord_object(coord_obj, xyz=None):
+        coord_options = coord_obj.options.copy()
+        if xyz is not None:
+            coord_options.set_values({'xyz': xyz})
+        return type(coord_obj)(coord_options)
+
+    @classmethod
+    def _copy_fast(cls, source, xyz=None, fnm=None, new_node_id=1, copy_wavefunction=True):
+        if xyz is not None and fnm is not None:
+            raise ValueError('Specify at most one of xyz or fnm when copying a Molecule.')
+
+        if fnm is not None:
+            new_geom = manage_xyz.read_xyz(fnm, scale=1.)
+            xyz_array = manage_xyz.xyz_to_np(new_geom)
+        elif xyz is not None:
+            xyz_array = np.asarray(xyz)
+            new_geom = manage_xyz.np_to_xyz(source.geometry, xyz_array)
+        else:
+            xyz_array = source.xyz.copy()
+            new_geom = source.geometry
+
+        pes = type(source.PES).create_pes_from(
+            PES=source.PES,
+            options={'node_id': new_node_id},
+            copy_wavefunction=copy_wavefunction,
+        )
+        coord_obj = cls._copy_coord_object(source.coord_obj, xyz_array if xyz is not None or fnm is not None else None)
+
+        new = cls.__new__(cls)
+        new.Data = source.Data.copy().set_values({
+            'PES': pes,
+            'coord_obj': coord_obj,
+            'geom': new_geom,
+            'node_id': new_node_id,
+            'copy_wavefunction': copy_wavefunction,
+        })
+        new.PES = pes
+        new.coord_obj = coord_obj
+        new.Data['xyz'] = xyz_array.copy()
+        new.Data['coord_obj'] = coord_obj
+        new.atoms = list(source.atoms)
+        new._initialize_runtime_state()
+
+        if new.Data['Hessian'] is None and new.Data['Form_Hessian']:
+            if new.Data['Primitive_Hessian'] is None and type(new.coord_obj) is not CartesianCoordinates:
+                new.form_Primitive_Hessian()
+            if new.Data['Primitive_Hessian'] is not None:
+                new.form_Hessian_in_basis()
+            else:
+                new.form_Hessian()
+
+        return new
+
+    @staticmethod
     def default_options():
         if hasattr(Molecule, '_default_options'):
             return Molecule._default_options.copy()
@@ -153,26 +207,13 @@ class Molecule(object):
     def copy_from_options(MoleculeA, xyz=None, fnm=None, new_node_id=1, copy_wavefunction=True):
         """Create a copy of MoleculeA"""
         print(" Copying from MoleculA {}".format(MoleculeA.node_id))
-        PES = type(MoleculeA.PES).create_pes_from(PES=MoleculeA.PES, options={'node_id': new_node_id})
-
-        if xyz is not None:
-            new_geom = manage_xyz.np_to_xyz(MoleculeA.geometry, xyz)
-            coord_obj = type(MoleculeA.coord_obj)(MoleculeA.coord_obj.options.copy().set_values({"xyz": xyz}))
-        elif fnm is not None:
-            new_geom = manage_xyz.read_xyz(fnm, scale=1.)
-            xyz = manage_xyz.xyz_to_np(new_geom)
-            coord_obj = type(MoleculeA.coord_obj)(MoleculeA.coord_obj.options.copy().set_values({"xyz": xyz}))
-        else:
-            new_geom = MoleculeA.geometry
-            coord_obj = type(MoleculeA.coord_obj)(MoleculeA.coord_obj.options.copy())
-
-        return Molecule(MoleculeA.Data.copy().set_values({
-            'PES': PES,
-            'coord_obj': coord_obj,
-            'geom': new_geom,
-            'node_id': new_node_id,
-            'copy_wavefunction': copy_wavefunction,
-        }))
+        return Molecule._copy_fast(
+            MoleculeA,
+            xyz=xyz,
+            fnm=fnm,
+            new_node_id=new_node_id,
+            copy_wavefunction=copy_wavefunction,
+        )
 
     def __init__(self, options, **kwargs):
 
@@ -260,12 +301,7 @@ class Molecule(object):
 
         t2 = time()
         print(" Time  to build coordinate system= %.3f" % (t2-t1))
-
-        #TODO
-        self.gradrms = 0.
-        self.isTSnode = False
-        self.bdist = 0.
-        self.newHess = 5
+        self._initialize_runtime_state()
 
         if self.Data['Hessian'] is None and self.Data['Form_Hessian']:
             if self.Data['Primitive_Hessian'] is None and type(self.coord_obj) is not CartesianCoordinates:
@@ -282,6 +318,22 @@ class Molecule(object):
         #logger.debug("Molecule %s constructed.", repr(self))
         print(" molecule constructed")
 
+    def _initialize_runtime_state(self):
+        self.gradrms = 0.
+        self.isTSnode = False
+        self.bdist = 0.
+        self.newHess = 5
+        self._state_token = 0
+        self._cached_energy_token = -1
+        self._cached_energy = None
+
+    def _invalidate_runtime_caches(self):
+        if not hasattr(self, '_state_token'):
+            return
+        self._state_token += 1
+        self._cached_energy_token = -1
+        self._cached_energy = None
+
     def __add__(self, other):
         """ add method for molecule objects. Concatenates"""
         raise NotImplementedError
@@ -289,9 +341,8 @@ class Molecule(object):
     def reorder(self, new_order):
         """Reorder atoms in the molecule"""
         #TODO doesn't work probably CRA 3/2019
-        for field in ["atoms", "xyz"]:
-            self.__dict__[field] = self.__dict__[field][list(new_order)]
         self.atoms = [self.atoms[i] for i in new_order]
+        self.xyz = self.xyz[list(new_order)]
 
     def reorder_according_to(self, other):
         """
@@ -313,9 +364,9 @@ class Molecule(object):
         """ Move geometric center to the origin. """
         if center_mass:
             com = self.center_of_mass
-            self.xyz -= com
+            self.xyz = self.xyz - com
         else:
-            self.xyz -= self.xyz.mean(0)
+            self.xyz = self.xyz - self.xyz.mean(0)
 
     @property
     def atomic_mass(self):
@@ -377,8 +428,10 @@ class Molecule(object):
 
     @property
     def energy(self):
-        return self.PES.get_energy(self.xyz)
-        #return 0.
+        if self._cached_energy_token != self._state_token:
+            self._cached_energy = self.PES.get_energy(self.xyz)
+            self._cached_energy_token = self._state_token
+        return self._cached_energy
 
     @property
     def gradx(self):
@@ -463,7 +516,8 @@ class Molecule(object):
     @xyz.setter
     def xyz(self, newxyz=None):
         if newxyz is not None:
-            self.Data['xyz'] = newxyz
+            self.Data['xyz'] = np.asarray(newxyz)
+            self._invalidate_runtime_caches()
 
     @property
     def frozen_atoms(self):
@@ -585,3 +639,6 @@ class Molecule(object):
         self.Data['node_id'] = value
         self.PES.lot.node_id = value
 
+    @property
+    def state_token(self):
+        return self._state_token

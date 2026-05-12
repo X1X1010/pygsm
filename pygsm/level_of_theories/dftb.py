@@ -1,20 +1,15 @@
 # standard library imports
 # local application imports
-sys.path.append(path.dirname(path.dirname(path.abspath(__file__))))
-from utilities import manage_xyz
 import sys
 import os
-from os import path
 import subprocess
 import re
 
 # third party
 import numpy as np
 
-try:
-    from .base_lot import Lot
-except:
-    from base_lot import Lot
+from ..utilities import manage_xyz
+from .base_lot import Lot
 
 
 class DFTB(Lot):

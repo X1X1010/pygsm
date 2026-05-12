@@ -19,10 +19,10 @@ from pygsm.level_of_theories.ase import ASELoT
 from pygsm.optimizers.eigenvector_follow import eigenvector_follow
 from pygsm.optimizers.lbfgs import lbfgs
 from pygsm.potential_energy_surfaces import PES
+from pygsm.cli import cleanup_scratch, post_processing
 from pygsm.utilities import nifty
 from pygsm.utilities.elements import ElementData
-from pygsm.wrappers.molecule import Molecule
-from .main import post_processing, cleanup_scratch
+from pygsm.molecule import Molecule
 
 
 def minimal_wrapper_de_gsm(

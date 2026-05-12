@@ -4,14 +4,27 @@ https://gitlab.com/ase/ase
 
 Written by Tamas K. Stenczel in 2021
 """
-import importlib
+from __future__ import annotations
 
-from ase import Atoms
-from ase.calculators.calculator import Calculator
-from ase.data import atomic_numbers
-from ase import units
+import importlib
+from typing import TYPE_CHECKING
 
 from .base_lot import Lot, LoTError
+
+if TYPE_CHECKING:
+    from ase import Atoms
+    from ase.calculators.calculator import Calculator
+
+
+def _require_ase():
+    try:
+        from ase import Atoms
+        from ase import units
+        from ase.calculators.calculator import Calculator
+        from ase.data import atomic_numbers
+    except ModuleNotFoundError as error:
+        raise LoTError("ASE backend requires the optional dependency `ase`. Install with `pip install pygsm[ase]`.") from error
+    return Atoms, Calculator, atomic_numbers, units
 
 
 class ASELoT(Lot):
@@ -20,13 +33,13 @@ class ASELoT(Lot):
         multiplicity is not implemented, the calculator ignores it
     """
 
-    def __init__(self, calculator: Calculator, options):
+    def __init__(self, calculator: 'Calculator', options):
         super(ASELoT, self).__init__(options)
 
         self.ase_calculator = calculator
 
     @classmethod
-    def from_options(cls, calculator: Calculator, **kwargs):
+    def from_options(cls, calculator: 'Calculator', **kwargs):
         """ Returns an instance of this class with default options updated from values in kwargs"""
         return cls(calculator, cls.default_options().set_values(kwargs))
 
@@ -36,7 +49,10 @@ class ASELoT(Lot):
         return cls(lot.ase_calculator, lot.options.copy().set_values(options))
 
     @classmethod
-    def from_calculator_string(cls, calculator_import: str, calculator_kwargs: dict = dict(), **kwargs):
+    def from_calculator_string(cls, calculator_import: str, calculator_kwargs=None, **kwargs):
+        _, Calculator, _, _ = _require_ase()
+        if calculator_kwargs is None:
+            calculator_kwargs = {}
         # this imports the calculator
         module_name = ".".join(calculator_import.split(".")[:-1])
         class_name = calculator_import.split(".")[-1]
@@ -66,9 +82,10 @@ class ASELoT(Lot):
         # run ASE
         self.run_ase_atoms(xyz_to_ase(geom), mult, ad_idx, runtype)
 
-    def run_ase_atoms(self, atoms: Atoms, mult, ad_idx, runtype='gradient'):
+    def run_ase_atoms(self, atoms: 'Atoms', mult, ad_idx, runtype='gradient'):
+        _, _, _, units = _require_ase()
         # set the calculator
-        atoms.set_calculator(self.ase_calculator)
+        atoms.calc = self.ase_calculator
 
         # perform gradient calculation if needed
         if runtype == "gradient":
@@ -106,6 +123,7 @@ def xyz_to_ase(xyz):
     """
 
     # compatible with list-of-list as well
+    _, _, atomic_numbers, _ = _require_ase()
     numbers = [atomic_numbers[x[0]] for x in xyz]
     pos = [x[1:4] for x in xyz]
     return geom_to_ase(numbers, pos)
@@ -128,4 +146,5 @@ def geom_to_ase(numbers, positions, **kwargs):
         ASE's Atoms object
     """
 
+    Atoms, _, _, _ = _require_ase()
     return Atoms(numbers=numbers, positions=positions, **kwargs)

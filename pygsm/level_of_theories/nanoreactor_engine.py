@@ -2,7 +2,6 @@
 # standard library imports
 import sys
 import os
-from os import path
 import re
 from collections import namedtuple
 import copy as cp
@@ -10,16 +9,9 @@ import copy as cp
 import numpy as np
 
 # local application imports
-sys.path.append(path.dirname( path.dirname( path.abspath(__file__))))
-
-try:
-    from .base_lot import Lot
-    from .file_options import File_Options
-except:
-    from base_lot import Lot
-    from file_options import File_Options
-from utilities import *
-
+from ..utilities import *
+from .base_lot import Lot
+from .file_options import File_Options
 '''
 '''
 

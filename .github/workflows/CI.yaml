@@ -36,14 +36,13 @@ jobs:
           curl -LsSf https://astral.sh/uv/install.sh | sh
       - name: Install dependencies
         run: |
-          uv pip install --system pytest
-          uv pip install --system -e .
+          uv pip install --system -e ".[ase,test]"
 
       - name: Run tests
         # conda setup requires this special shell
         shell: bash -l {0}
         run: |
-          pytest -v --cov=pyGSM --cov-report=xml --color=yes pyGSM/tests/
+          pytest -v --cov=pygsm --cov-report=xml --color=yes pygsm/tests/
 
       - name: CodeCov
         uses: codecov/codecov-action@v4

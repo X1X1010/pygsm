@@ -261,6 +261,8 @@ class GSM(object):
         self.endearly_counter = 0  # Find the intermediate x time
         self.pot_min = []
         self.ran_out = False   # if it ran out of iterations
+        self._cached_energies = None
+        self._cached_energy_signature = None
 
         self.newic = Molecule.copy_from_options(self.nodes[0])  # newic object is used for coordinate transformations
 
@@ -311,11 +313,19 @@ class GSM(object):
         '''
         Energies of string
         '''
-        E = []
-        for ico in self.nodes:
-            if ico is not None:
-                E.append(ico.energy - self.nodes[0].energy)
-        return E
+        signature = tuple(
+            None if node is None else (id(node), node.state_token)
+            for node in self.nodes
+        )
+        if signature != self._cached_energy_signature:
+            reference_energy = self.nodes[0].energy
+            energies = []
+            for node in self.nodes:
+                if node is not None:
+                    energies.append(node.energy - reference_energy)
+            self._cached_energies = energies
+            self._cached_energy_signature = signature
+        return self._cached_energies
 
     @energies.setter
     def energies(self, list_of_E):

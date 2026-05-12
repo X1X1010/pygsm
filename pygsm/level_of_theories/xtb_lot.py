@@ -1,25 +1,21 @@
 # standard library imports
-import sys
-from os import path
+from __future__ import annotations
 
 # third party
 import numpy as np
 
-try:
-    from xtb.interface import Calculator
-    from xtb.utils import get_method, get_solvent
-    from xtb.interface import Environment
-    from xtb.libxtb import VERBOSITY_FULL
-except:
-    print('xtb is not imported')
-
 # local application imports
-sys.path.append(path.dirname(path.dirname(path.abspath(__file__))))
-from utilities import manage_xyz, units, elements
-try:
-    from .base_lot import Lot
-except:
-    from base_lot import Lot
+from ..utilities import elements, manage_xyz, units
+from .base_lot import LoTError, Lot
+
+
+def _require_xtb():
+    try:
+        from xtb.interface import Calculator
+        from xtb.utils import get_method, get_solvent
+    except ModuleNotFoundError as error:
+        raise LoTError("xTB backend requires the optional dependency `xtb-python`.") from error
+    return Calculator, get_method, get_solvent
 
 
 class xTB_lot(Lot):
@@ -34,6 +30,7 @@ class xTB_lot(Lot):
         self.numbers = np.asarray(numbers)
 
     def run(self, geom, multiplicity, state, verbose=False):
+        Calculator, get_method, get_solvent = _require_xtb()
 
         # print('running!')
         # sys.stdout.flush()

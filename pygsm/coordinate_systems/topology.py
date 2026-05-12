@@ -189,7 +189,6 @@ class Topology():
 
         if not bondlistfile:
             nifty.printcool(" building bonds")
-            print(prim_idx_start_stop)
             bonds = Topology.build_bonds(xyz, atoms, primitive_indices, prim_idx_start_stop)
             # print(" done")
             assert bondlistfile is None
@@ -226,6 +225,88 @@ class Topology():
             g.__class__ = MyG
 
         return G
+
+    @staticmethod
+    def _primitive_index_ranges(primitive_indices, natoms):
+        primitive_index_set = set(primitive_indices)
+        index_ranges = []
+        new_range = True
+        for i in range(natoms+1):
+            if i in primitive_index_set:
+                if new_range:
+                    start = i
+                    new_range = False
+            elif not new_range:
+                index_ranges.append((start, i-1))
+                new_range = True
+        return index_ranges
+
+    @staticmethod
+    def _assign_atoms_to_grid(xyz, primitive_indices, xgrd, ygrd, zgrd):
+        primitive_index_array = np.asarray(list(primitive_indices), dtype=np.int32)
+        coords = xyz[primitive_index_array]
+
+        xidx = np.clip(np.searchsorted(xgrd, coords[:, 0], side='right') - 1, 0, len(xgrd)-1)
+        yidx = np.clip(np.searchsorted(ygrd, coords[:, 1], side='right') - 1, 0, len(ygrd)-1)
+        zidx = np.clip(np.searchsorted(zgrd, coords[:, 2], side='right') - 1, 0, len(zgrd)-1)
+
+        gidx = list(itertools.product(range(len(xgrd)), range(len(ygrd)), range(len(zgrd))))
+        assignments = OrderedDict((cell, []) for cell in gidx)
+        for atom_index, cell in zip(primitive_index_array, zip(xidx, yidx, zidx)):
+            assignments[cell].append(int(atom_index))
+        return gidx, assignments
+
+    @staticmethod
+    def _build_atom_iterator_from_grid(assignments, gidx):
+        if not gidx:
+            return np.empty((0, 2), dtype=np.int32)
+
+        amax = np.array(gidx[-1])
+        amin = np.array(gidx[0])
+        neighbor_offsets = np.array(list(itertools.product([-1, 0, 1], repeat=3)))
+        pair_blocks = []
+
+        for cell, atoms_in_cell in assignments.items():
+            if not atoms_in_cell:
+                continue
+            cell_index = np.array(cell)
+            for offset in neighbor_offsets:
+                neighbor_index = cell_index + offset
+                for axis in range(3):
+                    mod = amax[axis] - amin[axis] + 1
+                    if neighbor_index[axis] < amin[axis]:
+                        neighbor_index[axis] += mod
+                    elif neighbor_index[axis] > amax[axis]:
+                        neighbor_index[axis] -= mod
+                neighbor_atoms = assignments[tuple(neighbor_index)]
+                if not neighbor_atoms:
+                    continue
+                atom_pairs = nifty.cartesian_product2([atoms_in_cell, neighbor_atoms])
+                if len(atom_pairs) > 0:
+                    pair_blocks.append(atom_pairs[atom_pairs[:, 0] > atom_pairs[:, 1]])
+
+        if not pair_blocks:
+            return np.empty((0, 2), dtype=np.int32)
+        return np.ascontiguousarray(np.vstack(pair_blocks))
+
+    @staticmethod
+    def _build_atom_iterator_from_ranges(index_ranges):
+        first_list = []
+        second_list = []
+        for start, stop in index_ranges:
+            for atom_index in range(start, stop):
+                first_list.append([atom_index] * (stop - atom_index))
+                second_list.append(list(range(atom_index+1, stop+1)))
+
+        if not first_list:
+            return np.empty((0, 2), dtype=np.int32)
+
+        return np.ascontiguousarray(
+            np.vstack((
+                np.fromiter(itertools.chain(*first_list), dtype=np.int32),
+                np.fromiter(itertools.chain(*second_list), dtype=np.int32),
+            )).T
+        )
 
 
     @staticmethod
@@ -295,81 +376,11 @@ class Topology():
         use_grid = toppbc or (np.min([xext, yext, zext]) > 2.0*gsz)
         if use_grid and prim_idx_start_stop is None:
             print(" Using grid")
-            # Inside the grid algorithm.
-            # 1) Determine the left edges of the grid cells.
-            # Note that we leave out the rightmost grid cell,
-            # because this may cause spurious partitionings.
             xgrd = np.arange(xmin, xmax-gszx, gszx)
             ygrd = np.arange(ymin, ymax-gszy, gszy)
             zgrd = np.arange(zmin, zmax-gszz, gszz)
-            # 2) Grid cells are denoted by a three-index tuple.
-            gidx = list(itertools.product(list(range(len(xgrd))), list(range(len(ygrd))), list(range(len(zgrd)))))
-            # 3) Build a dictionary which maps a grid cell to itplus its neighboring grid cells.
-            # Two grid cells are defined to be neighbors if the differences between their x, y, z indices are at most 1.
-            gngh = OrderedDict()
-            amax = np.array(gidx[-1])
-            amin = np.array(gidx[0])
-            n27 = np.array(list(itertools.product([-1, 0, 1], repeat=3)))
-            for i in gidx:
-                gngh[i] = []
-                ai = np.array(i)
-                for j in n27:
-                    nj = ai+j
-                    for k in range(3):
-                        mod = amax[k]-amin[k]+1
-                        if nj[k] < amin[k]:
-                            nj[k] += mod
-                        elif nj[k] > amax[k]:
-                            nj[k] -= mod
-                    gngh[i].append(tuple(nj))
-            # 4) Loop over the atoms and assign each to a grid cell.
-            # Note: I think this step becomes the bottleneck if we choose very small grid sizes.
-
-            # TODO 9/2019 build-bonds only for non-cartesian indices
-            gasn = OrderedDict([(i, []) for i in gidx])
-            for i in primitive_indices:
-                xidx = -1
-                yidx = -1
-                zidx = -1
-                for j in xgrd:
-                    xi = xyz[i][0]
-                    while xi < xmin:
-                        xi += xext
-                    while xi > xmax:
-                        xi -= xext
-                    if xi < j:
-                        break
-                    xidx += 1
-                for j in ygrd:
-                    yi = xyz[i][1]
-                    while yi < ymin:
-                        yi += yext
-                    while yi > ymax:
-                        yi -= yext
-                    if yi < j:
-                        break
-                    yidx += 1
-                for j in zgrd:
-                    zi = xyz[i][2]
-                    while zi < zmin:
-                        zi += zext
-                    while zi > zmax:
-                        zi -= zext
-                    if zi < j:
-                        break
-                    zidx += 1
-                gasn[(xidx, yidx, zidx)].append(i)
-
-            # 5) Create list of 2-tuples corresponding to combinations of atomic indices.
-            # This is done by looping over pairs of neighboring grid cells and getting Cartesian products of atom indices inside.
-            # It may be possible to get a 2x speedup by eliminating forward-reverse pairs (e.g. (5, 4) and (4, 5) and duplicates (5,5).)
-            AtomIterator = []
-            for i in gasn:
-                for j in gngh[i]:
-                    apairs = nifty.cartesian_product2([gasn[i], gasn[j]])
-                    if len(apairs) > 0:
-                        AtomIterator.append(apairs[apairs[:, 0] > apairs[:, 1]])
-            AtomIterator = np.ascontiguousarray(np.vstack(AtomIterator))
+            gidx, assignments = Topology._assign_atoms_to_grid(xyz, primitive_indices, xgrd, ygrd, zgrd)
+            AtomIterator = Topology._build_atom_iterator_from_grid(assignments, gidx)
         else:
             # Create a list of 2-tuples corresponding to combinations of atomic indices.
             # This is much faster than using itertools.combinations.
@@ -383,45 +394,13 @@ class Topology():
             # need the primitive start and stop indices
 
             if prim_idx_start_stop is None:
-                prim_idx_start_stop = []
-                new = True
-                for i in range(natoms+1):
-                    if i in primitive_indices:
-                        if new:
-                            start = i
-                            new = False
-                    else:
-                        if not new:
-                            end = i-1
-                            new = True
-                            prim_idx_start_stop.append((start, end))
+                prim_idx_start_stop = Topology._primitive_index_ranges(primitive_indices, natoms)
             else:
                 print(" using user defined primitive start stop values")
 
-            # print(prim_idx_start_stop)
-            first_list = []
-            for tup in prim_idx_start_stop:
-                for i in range(tup[0], tup[1]):
-                    first_list.append([i]*(tup[1]-i))
-            #         first_list.append([i]*(tup[1]-i-1) for i in range(tup[0],tup[1]))
-            # print(first_list)
-
-            second_list = []
-            for tup in prim_idx_start_stop:
-                for i in range(tup[0], tup[1]):
-                    second_list.append(list(range(i+1, tup[1]+1)))
-            # print(second_list)
-
-            # first = np.fromiter(itertools.chain(*[[i]*(natoms-i-1) for i in primitive_indices]),dtype=np.int32)
-            # first = np.fromiter(itertools.chain(*first_list), dtype=np.int32)
-            # second = np.fromiter(itertools.chain(*second_list), dtype=np.int32)
-
-            AtomIterator = np.ascontiguousarray(
-                np.vstack((
-                    np.fromiter(itertools.chain(*first_list), dtype=np.int32),
-                    np.fromiter(itertools.chain(*second_list), dtype=np.int32)
-                )).T
-            )
+            AtomIterator = Topology._build_atom_iterator_from_ranges(prim_idx_start_stop)
+        if AtomIterator.size == 0:
+            return []
         # Create a list of thresholds for determining whether a certain interatomic distance is considered to be a bond.
         BT0 = R[AtomIterator[:, 0]]
         BT1 = R[AtomIterator[:, 1]]

@@ -1,5 +1,7 @@
 import pytest
 
+pytest.importorskip("xtb")
+
 from pygsm.coordinate_systems.delocalized_coordinates import (
     DelocalizedInternalCoordinates,
 )
@@ -14,14 +16,14 @@ from pygsm.utilities import elements, manage_xyz, nifty
 
 
 def test_basic_penalty_opt():
-    geom = manage_xyz.read_xyzs('pyGSM/data/diels_alder.xyz')[0]
+    geom = manage_xyz.read_xyzs('pygsm/data/diels_alder.xyz')[0]
 
     coupling_states = []
 
     lot1 = xTB_lot.from_options(
         ID=0,
         states=[(1, 0)],
-        gradient_states=[0],
+        gradient_states=[(1, 0)],
         coupling_states=coupling_states,
         geom=geom,
     )
@@ -29,7 +31,7 @@ def test_basic_penalty_opt():
     lot2 = xTB_lot.from_options(
         ID=1,
         states=[(1, 0)],
-        gradient_states=[0],
+        gradient_states=[(1, 0)],
         coupling_states=coupling_states,
         geom=geom,
     )

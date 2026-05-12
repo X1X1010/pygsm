@@ -12,10 +12,9 @@ readme = "README.md"
 authors = [
     { name = "Cody Aldaz", email = "codyaldaz@gmail.com" }
 ]
-license = { text = "MIT" }
+license = "MIT"
 # See https://pypi.org/classifiers/
 classifiers = [
-    "License :: OSI Approved :: MIT License",
     "Programming Language :: Python :: 3",
 ]
 requires-python = ">=3.8"
@@ -31,10 +30,17 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
+ase = [
+  "ase",
+]
 test = [
   "pytest>=6.1.2",
-  "pytest-runner"
+  "pytest-cov",
+  "ase",
 ]
+
+[project.scripts]
+gsm = "pygsm.cli:main"
 
 [tool.setuptools]
 # This subkey is a beta stage development and keys may change in the future, see https://setuptools.pypa.io/en/latest/userguide/pyproject_config.html for more details
@@ -60,11 +66,14 @@ include-package-data = false
 [tool.setuptools.packages.find]
 namespaces = false
 where = ["."]
+include = ["pygsm*"]
+exclude = ["pygsm.tests*"]
 
 # Ref https://setuptools.pypa.io/en/latest/userguide/datafiles.html#package-data
 [tool.setuptools.package-data]
-pyGSM = [
-    "py.typed"
+pygsm = [
+    "py.typed",
+    "data/*",
 ]
 
 [tool.versioningit]
@@ -83,7 +92,7 @@ match = ["*"]
 default-tag = "1.0.0"
 
 [tool.versioningit.write]
-file = "pyGSM/_version.py"
+file = "pygsm/_version.py"
 
 [tool.ruff.format]
 quote-style = "single"

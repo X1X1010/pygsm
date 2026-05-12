@@ -1,7 +1,6 @@
 # standard library imports
 import sys
 import os
-from os import path
 import re
 import subprocess
 
@@ -9,13 +8,8 @@ import subprocess
 import numpy as np
 
 # local application imports
-sys.path.append(path.dirname(path.dirname(path.abspath(__file__))))
-
-from utilities import manage_xyz
-try:
-    from .base_lot import Lot
-except:
-    from base_lot import Lot
+from ..utilities import manage_xyz
+from .base_lot import Lot
 
 
 class Molpro(Lot):

@@ -31,6 +31,7 @@ def main(geom):
     atom_symbols = manage_xyz.get_atoms(geom)
     ELEMENT_TABLE = elements.ElementData()
     atoms = [ELEMENT_TABLE.from_symbol(atom) for atom in atom_symbols]
+    xyz = manage_xyz.xyz_to_np(geom)
     # top = Topology.build_topology(
     #     xyz,
     #     atoms,

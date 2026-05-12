@@ -3,19 +3,15 @@ from __future__ import print_function
 # standard library imports
 import sys
 import os
-try:
-    from io import StringIO
-except:
-    from StringIO import StringIO
+from io import StringIO
 
 # third party
 import numpy as np
-from scipy.optimize.lbfgsb import LbfgsInvHessProduct
+from scipy.optimize import LbfgsInvHessProduct
 
 # local application imports
-from ._linesearch import backtrack, NoLineSearch
 from .base_optimizer import base_optimizer
-from utilities import manage_xyz, block_matrix, units
+from ..utilities import block_matrix, manage_xyz, units
 
 
 class iterationData:
