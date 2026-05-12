@@ -219,15 +219,14 @@ class MainGSM(GSM):
     # TODO remove return form_TS hess  3/2021
     def set_stage(self, totalgrad, sumgradrms, ts_cgradq, ts_gradrms, fp):
 
+        totalgrad = totalgrad.item() if isinstance(totalgrad, np.ndarray) else totalgrad
+        ts_cgradq = ts_cgradq.item() if isinstance(ts_cgradq, np.ndarray) else ts_cgradq
+        ts_gradrms = ts_gradrms.item() if isinstance(ts_gradrms, np.ndarray) else ts_gradrms
         # checking sum gradrms is not good because if one node is converged a lot while others a re not this is bad
         print('In set stage')
         all_converged = all([self.nodes[n].gradrms < self.optimizer[n].conv_grms*1.1 for n in range(1, self.nnodes-1)])
         all_converged_climb = all([self.nodes[n].gradrms < self.optimizer[n].conv_grms*2.5 for n in range(1, self.nnodes-1)])
         stage_changed = False
-
-        # TODO totalgrad is not a good criteria for large systems
-        # if fp>0 and (((totalgrad < 0.3 or ts_cgradq < 0.01) and self.dE_iter < 2.) or all_converged) and self.nopt_intermediate<1: # extra criterion in og-gsm for added
-
         print('set stage ts_cgradq')
         print(ts_cgradq)
 
@@ -235,7 +234,7 @@ class MainGSM(GSM):
             if not self.climb and self.climber:
                 print(" ** starting climb **")
                 self.climb = True
-                print(" totalgrad %5.4f gradrms: %5.4f gts: %5.4f" % (totalgrad, ts_gradrms, ts_cgradq))
+                print(f" totalgrad {totalgrad:.4f} gradrms: {ts_gradrms:.4f} gts: {ts_cgradq:.4f}")
                 # overwrite this here just in case TSnode changed wont cause slow down climb
                 self.pTSnode = self.TSnode
                 stage_changed = True
@@ -248,7 +247,7 @@ class MainGSM(GSM):
                      (ts_gradrms < self.CONV_TOL*2.5 and ts_cgradq < 0.01)  # used to be 5
                      )) and self.dE_iter < 5.:
                 print(" ** starting exact climb **")
-                print(" totalgrad %5.4f gradrms: %5.4f gts: %5.4f" % (totalgrad, ts_gradrms, ts_cgradq))
+                print(f" totalgrad {totalgrad:.4f} gradrms: {ts_gradrms:.4f} gts: {ts_cgradq:.4f}")
                 self.find = True
 
                 # Modify TS Hessian

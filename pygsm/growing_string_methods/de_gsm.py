@@ -40,34 +40,14 @@ class DE_GSM(MainGSM):
             self.reparameterize()
             # self.xyz_writer('grown_string_{:03}.xyz'.format(self.ID), self.geometries, self.energies, self.gradrmss, self.dEs)
 
-        # Can check for intermediate at beginning but not doing that now.
-        # else:
-        #    if self.has_intermediate(self.noise):
-        #        nifty.printcool(f" WARNING THIS REACTION HAS AN INTERMEDIATE within noise {self.noise}, opting out")
-        #        try:
-        #            self.optimize_string(max_iter=3,opt_steps=opt_steps,rtype=0)
-        #        except Exception as error:
-        #            print(" Done optimizing 3 times, checking if intermediate still exists")
-        #            if self.has_intermediate(self.noise):
-        #                self.tscontinue=False
-
         if self.tscontinue:
-            try:
-                self.optimize_string(max_iter=max_iters, opt_steps=opt_steps, rtype=rtype)
-            except Exception as error:
-                if str(error) == "Ran out of iterations":
-                    print(error)
-                    self.end_early = True
-                else:
-                    print(error)
-                    self.end_early = True
+            self.optimize_string(max_iter=max_iters, opt_steps=opt_steps, rtype=rtype)
         else:
             print("Exiting early")
             self.end_early = True
 
         print("Finished GSM!")
 
-        return
 
     def add_GSM_nodes(self, newnodes=1):
         if self.current_nnodes+newnodes > self.nnodes:

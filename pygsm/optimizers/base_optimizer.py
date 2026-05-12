@@ -366,7 +366,7 @@ class base_optimizer(object):
             if gts > np.abs(max_step):
                 gts = np.sign(gts)*max_step
                 # constraint_steps = constraint_steps*max_step/stepsize
-            print(" gts %1.4f" % gts)
+            print(f" gts {gts.item():.4f}")
             constraint_steps = gts*molecule.constraints[:, 0]
             constraint_steps = constraint_steps[:, np.newaxis]
         # => MECI
@@ -386,7 +386,7 @@ class base_optimizer(object):
             if gts > np.abs(max_step):
                 gts = np.sign(gts)*max_step
                 # constraint_steps = constraint_steps*max_step/stepsize
-            print(" gts %1.4f" % gts)
+            print(f" gts {gts.item():.4f}")
             constraint_steps = gts*molecule.constraints[:, 0]
             constraint_steps = constraint_steps[:, np.newaxis]
 
