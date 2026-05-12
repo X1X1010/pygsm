@@ -3,6 +3,7 @@ from __future__ import print_function
 
 # local application imports
 import os
+import sys
 from ..coordinate_systems import Angle, Dihedral, Distance, OutOfPlane
 from .main_gsm import MainGSM
 from ..molecule import Molecule
@@ -119,8 +120,8 @@ class SE_GSM(MainGSM):
                             self.add_last_node(1)
                     elif self.pastts == 3: #product detected by bonding
                         self.add_last_node(1)
-                except:
-                    print("Failed to add last node, continuing.")
+                except (IndexError, RuntimeError, ValueError) as error:
+                    print(f"Failed to add last node, continuing: {error}")
                     # probably need to make sure last node is optimized
 
             self.nnodes = self.nR
@@ -524,24 +525,3 @@ class SE_GSM(MainGSM):
         # if rtype==1 and self.climb:
         #    if self.nodes[self.TSnode].gradrms<TS_conv and ts_cgradq < self.options['CONV_TOL']:
         #        isDone=True
-
-
-if __name__ == '__main__':
-    from .qchem import QChem
-    from .pes import PES
-    from .dlc_new import DelocalizedInternalCoordinates
-    from .eigenvector_follow import eigenvector_follow
-    from ._linesearch import backtrack, NoLineSearch
-    from .molecule import Molecule
-
-    basis = '6-31G'
-    nproc = 8
-    functional = 'B3LYP'
-    filepath1 = "examples/tests/butadiene_ethene.xyz"
-    lot1 = QChem.from_options(states=[(1, 0)], charge=0, basis=basis, functional=functional, nproc=nproc, fnm=filepath1)
-    pes1 = PES.from_options(lot=lot1, ad_idx=0, multiplicity=1)
-    M1 = Molecule.from_options(fnm=filepath1, PES=pes1, coordinate_type="DLC")
-    optimizer = eigenvector_follow.from_options(print_level=1)  # default parameters fine here/opt_type will get set by GSM
-
-    gsm = SE_GSM.from_options(reactant=M1, nnodes=20, driving_coords=[("ADD", 6, 4), ("ADD", 5, 1)], optimizer=optimizer, print_level=1)
-    gsm.go_gsm()

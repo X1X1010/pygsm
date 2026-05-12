@@ -3,7 +3,7 @@ import numpy as np
 
 # local application imports
 from ..coordinate_systems import rotate
-from ..utilities import elements, manage_xyz, nifty, options, units
+from ..utilities import elements, manage_xyz, options, units
 ELEMENT_TABLE = elements.ElementData()
 
 
@@ -317,80 +317,3 @@ class PES(object):
         elements = [ELEMENT_TABLE.from_symbol(atom) for atom in atoms]
         atomic_num = [ele.atomic_num for ele in elements]
         self.checked_input = True
-
-
-if __name__ == '__main__':
-
-    QCHEM = True
-    PYTC = False
-    if QCHEM:
-        #from .qchem import QChem
-        from level_of_theories.qchem import QChem
-    elif PYTC:
-        from level_of_theories.pytc import PyTC
-        import psiw
-        import lightspeed as ls
-
-    filepath = '../../data/ethylene.xyz'
-    geom = manage_xyz.read_xyz(filepath, scale=1)
-    if QCHEM:
-        lot = QChem.from_options(states=[(1, 0), (1, 1)], charge=0, basis='6-31g(d)', functional='B3LYP', fnm=filepath)
-    elif PYTC:
-        ##### => Job Data <= #####
-        states = [(1, 0), (1, 1)]
-        charge = 0
-        nocc = 7
-        nactive = 2
-        basis = '6-31gs'
-
-        #### => PSIW Obj <= ######
-        nifty.printcool("Build resources")
-        resources = ls.ResourceList.build()
-        nifty.printcool('{}'.format(resources))
-
-        molecule = ls.Molecule.from_xyz_file(filepath)
-        geom = psiw.geometry.Geometry.build(
-            resources=resources,
-            molecule=molecule,
-            basisname=basis,
-        )
-        nifty.printcool('{}'.format(geom))
-
-        ref = psiw.RHF.from_options(
-            geometry=geom,
-            g_convergence=1.0E-6,
-            fomo=True,
-            fomo_method='gaussian',
-            fomo_temp=0.3,
-            fomo_nocc=nocc,
-            fomo_nact=nactive,
-            print_level=1,
-        )
-        ref.compute_energy()
-        casci = psiw.CASCI.from_options(
-            reference=ref,
-            nocc=nocc,
-            nact=nactive,
-            nalpha=nactive/2,
-            nbeta=nactive/2,
-            S_inds=[0],
-            S_nstates=[2],
-            print_level=1,
-        )
-        casci.compute_energy()
-        psiw = psiw.CASCI_LOT.from_options(
-            casci=casci,
-            rhf_guess=True,
-            rhf_mom=True,
-            orbital_coincidence='core',
-            state_coincidence='full',
-        )
-
-        nifty.printcool("Build the pyGSM Level of Theory object (LOT)")
-        lot = PyTC.from_options(states=[(1, 0), (1, 1)], job_data={'psiw': psiw}, do_coupling=False, fnm=filepath)
-
-    pes = PES.from_options(lot=lot, ad_idx=0, multiplicity=1)
-    geom = manage_xyz.read_xyz(filepath, scale=1)
-    coords = manage_xyz.xyz_to_np(geom)
-    print(pes.get_energy(coords))
-    print(pes.get_gradient(coords))

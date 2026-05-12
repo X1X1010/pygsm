@@ -12,13 +12,7 @@ from pygsm.coordinate_systems import Distance, Angle, Dihedral, OutOfPlane
 from pygsm.utilities import nifty, options, block_matrix
 from pygsm.molecule import Molecule
 from pygsm.utilities.manage_xyz import write_molden_geoms
-
-
-
-def worker(arg):
-   obj, methname = arg[:2]
-   return getattr(obj, methname)(*arg[2:])
-
+from ._shared import worker
 
 #######################################################################################
 #### This class contains the main constructor, object properties and staticmethods ####

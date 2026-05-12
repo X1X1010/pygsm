@@ -8,6 +8,7 @@ import numpy as np
 
 from pygsm.coordinate_systems import CartesianCoordinates
 from pygsm.utilities import manage_xyz, elements, options, block_matrix, units
+from ._helpers import copy_geometry_inputs, copy_pes, load_geometry_inputs, validate_geometry_inputs
 
 
 ELEMENT_TABLE = elements.ElementData()
@@ -33,24 +34,8 @@ class Molecule(object):
 
     @classmethod
     def _copy_fast(cls, source, xyz=None, fnm=None, new_node_id=1, copy_wavefunction=True):
-        if xyz is not None and fnm is not None:
-            raise ValueError('Specify at most one of xyz or fnm when copying a Molecule.')
-
-        if fnm is not None:
-            new_geom = manage_xyz.read_xyz(fnm, scale=1.)
-            xyz_array = manage_xyz.xyz_to_np(new_geom)
-        elif xyz is not None:
-            xyz_array = np.asarray(xyz)
-            new_geom = manage_xyz.np_to_xyz(source.geometry, xyz_array)
-        else:
-            xyz_array = source.xyz.copy()
-            new_geom = source.geometry
-
-        pes = type(source.PES).create_pes_from(
-            PES=source.PES,
-            options={'node_id': new_node_id},
-            copy_wavefunction=copy_wavefunction,
-        )
+        new_geom, xyz_array = copy_geometry_inputs(source.geometry, source.xyz, xyz=xyz, fnm=fnm)
+        pes = copy_pes(source.PES, new_node_id, copy_wavefunction)
         coord_obj = cls._copy_coord_object(source.coord_obj, xyz_array if xyz is not None or fnm is not None else None)
 
         new = cls.__new__(cls)
@@ -223,23 +208,7 @@ class Molecule(object):
         # important first try to read in geom
 
         t0 = time()
-        if self.Data['geom'] is not None:
-            print(" getting cartesian coordinates from geom")
-            atoms = manage_xyz.get_atoms(self.Data['geom'])
-            xyz = manage_xyz.xyz_to_np(self.Data['geom'])
-        elif self.Data['fnm'] is not None:
-            print(" reading cartesian coordinates from file")
-            if self.Data['ftype'] is None:
-                self.Data['ftype'] = os.path.splitext(self.Data['fnm'])[1][1:]
-            if not os.path.exists(self.Data['fnm']):
-                #logger.error('Tried to create Molecule object from a file that does not exist: %s\n' % self.Data['fnm'])
-                raise IOError
-            geom = manage_xyz.read_xyz(self.Data['fnm'], scale=1.)
-            xyz = manage_xyz.xyz_to_np(geom)
-            atoms = manage_xyz.get_atoms(geom)
-
-        else:
-            raise RuntimeError
+        geom, atoms, xyz = load_geometry_inputs(self.Data)
 
         t1 = time()
         print(" Time to get coords= %.3f" % (t1 - t0))
@@ -252,22 +221,8 @@ class Molecule(object):
         # Perform all the sanity checks and cache some useful attributes
 
         # TODO make PES property
-        self.PES = type(self.Data['PES']).create_pes_from(
-            PES=self.Data['PES'],
-            options={'node_id': self.Data['node_id']},
-            copy_wavefunction=self.Data['copy_wavefunction']
-        )
-        if not hasattr(atoms, "__getitem__"):
-            raise TypeError("atoms must be a sequence of atomic symbols")
-
-        for a in atoms:
-            if not isinstance(a, str):
-                raise TypeError("atom symbols must be strings")
-
-        if type(xyz) is not np.ndarray:
-            raise TypeError("xyz must be a numpy ndarray")
-        if xyz.shape != (len(atoms), 3):
-            raise ValueError("xyz must have shape natoms x 3")
+        self.PES = copy_pes(self.Data['PES'], self.Data['node_id'], self.Data['copy_wavefunction'])
+        validate_geometry_inputs(atoms, xyz)
         self.Data['xyz'] = xyz.copy()
 
         # create a dictionary from atoms

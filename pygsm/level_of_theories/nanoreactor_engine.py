@@ -1,26 +1,17 @@
-
-# standard library imports
-import sys
-import os
-import re
-from collections import namedtuple
 import copy as cp
-# third party
+
 import numpy as np
 
-# local application imports
-from ..utilities import *
 from .base_lot import Lot
-from .file_options import File_Options
-'''
-'''
+from ..utilities import manage_xyz, units
+
 
 class nanoreactor_engine(Lot):
 
-    def __init__(self,options):
-        super(nanoreactor_engine,self).__init__(options)
+    def __init__(self, options):
+        super(nanoreactor_engine, self).__init__(options)
         # can we do a check here?
-        self.engine=options['job_data']['engine']
+        self.engine = options['job_data']['engine']
         self.nscffail = 0
         self.save_orbital = True
         if type(self.options['job_data']['orbfile']) != dict:
@@ -89,7 +80,7 @@ class nanoreactor_engine(Lot):
                         self.engine.options['fon_tests'] = 2
                 results = self.engine.compute_blocking(xyz, fields, job_type = 'gradient', guess = 'generate') #compute__(fields = "energy, gradient, orbfiles")
                 self.engine.options = old_options
-        except:
+        except Exception:
             # The calculation failed
             # set energy to a large number so the optimizer attempts to slow down
             print(" SCF FAILURE")
@@ -110,33 +101,3 @@ class nanoreactor_engine(Lot):
             orb_b_path = results[3]
             self.options['job_data']['orbfile'].update({self.node_id: orb_a_path + ' ' + orb_b_path})
         # Store the values in memory
-
-
-if __name__=="__main__":
-    from nanoreactor.engine import get_engine
-    from nanoreactor.parsing import load_settings
-
-    # read settings from name
-    db, setting_name, settings = load_settings('refine.yaml', host='fire-05-30')
-
-    # Create the nanoreactor TCPB engine
-    engine_type=settings['engine'].pop('type')
-    engine = get_engine(r.mol, engine_type=engine_type, **settings['engine'])
-
-    
-    # read in a geometry
-    geom = manage_xyz.read_xyz('../../data/ethylene.xyz')
-    xyz = manage_xyz.xyz_to_np(geom)
-    
-    # create the pyGSM level of theory object
-    test_lot = nanoreactor_engine(geom,job_data = {'engine',test_engine})
-
-    # Test
-    print("getting energy")
-    print(test_lot.get_energy(xyz,1,0))
-
-    print("getting grad")
-    print(test_lot.get_gradient(xyz,1,0))
-
-
-    

@@ -9,6 +9,14 @@ import numpy as np
 # local application imports
 from ..utilities import elements, manage_xyz, nifty, options, units
 from .file_options import File_Options
+from ._lot_helpers import (
+    energy_file_path,
+    ensure_node_scratch_dir,
+    infer_gradient_states,
+    initialize_job_data,
+    node_scratch_dir,
+    normalize_states,
+)
 
 ELEMENT_TABLE = elements.ElementData()
 
@@ -220,36 +228,15 @@ class Lot(object):
         self._Couplings={}
 
         # count number of states
-        singlets = self.search_tuple(self.states, 1)
-        doublets = self.search_tuple(self.states, 2)
-        triplets = self.search_tuple(self.states, 3)
-        quartets = self.search_tuple(self.states, 4)
-        quintets = self.search_tuple(self.states, 5)
-
-        # TODO do this for all states, since it catches if states are put in lazy e.g [(1,1)]
-        if singlets:
-            len_singlets = max(singlets, key=lambda x: x[1])[1]+1
-        else:
-            len_singlets = 0
-        len_doublets = len(doublets)
-        len_triplets = len(triplets)
-        len_quartets = len(quartets)
-        len_quintets = len(quintets)
-
-        # DO this before fixing states if put in lazy
-        if self.options['gradient_states'] is None and self.calc_grad:
-            print(" Assuming gradient states are ", self.states)
-            self.options['gradient_states'] = self.options['states']
-
-        if len(self.states) < len_singlets+len_doublets+len_triplets+len_quartets+len_quintets:
+        self.options['gradient_states'] = infer_gradient_states(
+            self.states,
+            self.options['gradient_states'],
+            self.calc_grad,
+        )
+        normalized_states, did_normalize = normalize_states(self.states)
+        if did_normalize:
             print('fixing states to be proper length')
-            tmp = []
-            # TODO put in rest of fixed states
-            for i in range(len_singlets):
-                tmp.append((1, i))
-            for i in range(len_triplets):
-                tmp.append((3, i))
-            self.states = tmp
+            self.states = normalized_states
             print(' New states ', self.states)
 
         self.geom = self.options['geom']
@@ -289,12 +276,8 @@ class Lot(object):
         # package  specific implementation
         # TODO MOVE to specific package !!!
         # tc cloud
-        self.options['job_data']['orbfile'] = self.options['job_data'].get('orbfile', '')
-        # pytc? TODO
-        self.options['job_data']['lot'] = self.options['job_data'].get('lot', None)
-
-        print(" making folder {}".format(self.node_scratch_dir))
-        os.makedirs(self.node_scratch_dir, exist_ok=True)
+        self.options['job_data'] = initialize_job_data(self.options['job_data'])
+        ensure_node_scratch_dir(self.scratch_root, self.ID, self.node_id)
 
     @classmethod
     def from_options(cls, **kwargs):
@@ -534,11 +517,11 @@ class Lot(object):
 
     @property
     def node_scratch_dir(self):
-        return os.path.join(self.scratch_root, f'{self.ID:03}', str(self.node_id))
+        return node_scratch_dir(self.scratch_root, self.ID, self.node_id)
 
     @property
     def energy_file_path(self):
-        return os.path.join(self.scratch_root, f'{self.ID:03}', f'E_{self.node_id}.txt')
+        return energy_file_path(self.scratch_root, self.ID, self.node_id)
 
     def _coords_changed(self, coords):
         return self.hasRanForCurrentCoords is False or not np.array_equal(coords, self.currentCoords)
