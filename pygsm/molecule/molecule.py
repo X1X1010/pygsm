@@ -1,7 +1,6 @@
 """Class structures of important chemical concepts
 This class is the combination of Martinez group and Lee Ping's molecule class.
 """
-
 import os
 from time import time
 
@@ -348,11 +347,6 @@ class Molecule(object):
     def natoms(self):
         """The number of atoms in the molecule"""
         return len(self.atoms)
-
-    #def atom_data(self):
-    #    uniques = list(set(M.atoms))
-    #    for a in uniques:
-    #        nifty.printcool_dictionary(a._asdict())
 
     @property
     def center_of_mass(self):

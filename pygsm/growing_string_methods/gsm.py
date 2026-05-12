@@ -203,11 +203,11 @@ class GSM(object):
         """ Constructor """
         self.options = options
 
-        os.system('mkdir -p scratch')
+        os.makedirs("scratch", exist_ok=True)
 
         # Cache attributes
-        self.nnodes = self.options['nnodes']
-        self.nodes = [None]*self.nnodes
+        self.nnodes: int = self.options['nnodes']
+        self.nodes: List[Molecule] = [None for _ in range(self.nnodes)]
         self.nodes[0] = self.options['reactant']
         self.nodes[-1] = self.options['product']
         self.driving_coords = self.options['driving_coords']

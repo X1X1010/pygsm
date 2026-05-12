@@ -1,13 +1,9 @@
-from __future__ import print_function
 from collections import OrderedDict
 import itertools
 import numpy as np
 
-# standard library imports
-import sys
-from os import path
 
-from pygsm.utilities import manage_xyz, nifty
+from pygsm.utilities import nifty
 
 try:
     import networkx as nx
@@ -162,7 +158,7 @@ class Topology():
 
         # can do an assert for xyz here CRA TODO
         if natoms > 100000:
-            nifty.logger.warning("Warning: Large number of atoms (%i), topology building may take a long time" % natoms)
+            nifty.logger.warning(f"Warning: Large number of atoms ({natoms}), topology building may take a long time")
 
         # Get hybrid indices
         hybrid_indices = hybrid_indices
@@ -229,56 +225,8 @@ class Topology():
         for g in fragments:
             g.__class__ = MyG
 
-        # print(len(fragments))
-        # for frag in fragments:
-        #    print(frag.L())
-
-        # print("nodes of Graph")
-        # print(topology.L())
-
-        # Deprecated in networkx 2.2
-        # fragments = list(nx.connected_component_subgraphs(G))
-
-        # show topology
-        # import matplotlib as mpl
-        # mpl.use('Agg')
-        # import matplotlib.pyplot as plt
-        # plt.plot()
-        # nx.draw(topology,with_labels=True,font_weight='bold')
-        # plt.show()
-        # plt.savefig('tmp.png')
-
         return G
 
-    # @staticmethod
-    # def rebuild_topology_from_prim_bonds(xyz):
-
-    #     raise NotImplementedError
-    #     bonds = []
-    #     for p in Internals:
-    #         if type(p) == Distance:
-    #             bonds.append(p)
-
-    #     # Create a NetworkX graph object to hold the bonds.
-    #     G = MyG()
-    #     for i, a_dict in enumerate(atoms):
-    #         a = a_dict.symbol
-    #         G.add_node(i)
-    #         if parse_version(nx.__version__) >= parse_version('2.0'):
-    #             nx.set_node_attributes(G, {i: a}, name='e')
-    #             nx.set_node_attributes(G, {i: xyz[i]}, name='x')
-    #         else:
-    #             nx.set_node_attributes(G, 'e', {i: a})
-    #             nx.set_node_attributes(G, 'x', {i: xyz[i]})
-    #     for bond in bonds:
-    #         atoms = bond.atoms
-    #         G.add_edge(atoms[0], atoms[1])
-
-    #     # The Topology is simply the NetworkX graph object.
-    #     topology = G
-    #     fragments = [G.subgraph(c).copy() for c in nx.connected_components(G)]
-    #     for g in fragments:
-    #         g.__class__ = MyG
 
     @staticmethod
     def build_bonds(xyz, atoms, primitive_indices, prim_idx_start_stop=None, **kwargs):
@@ -620,90 +568,3 @@ class Topology():
         # else:
         drij.append(AtomContact(xyz, AtomIterator))
         return AtomIterator, drij
-
-
-if __name__ == '__main__' and __package__ is None:
-    from os import sys, path
-    sys.path.append(path.dirname(path.dirname(path.abspath(__file__))))
-
-    #filepath='../../data/butadiene_ethene.xyz'
-    #filepath='crystal.xyz'
-    filepath1 = 'multi1.xyz'
-    filepath2 = 'multi2.xyz'
-
-    geom1 = manage_xyz.read_xyz(filepath1)
-    geom2 = manage_xyz.read_xyz(filepath2)
-    atom_symbols = manage_xyz.get_atoms(geom1)
-    xyz1 = manage_xyz.xyz_to_np(geom1)
-    xyz2 = manage_xyz.xyz_to_np(geom2)
-
-    ELEMENT_TABLE = elements.ElementData()
-    atoms = [ELEMENT_TABLE.from_symbol(atom) for atom in atom_symbols]
-    #print(atoms)
-
-    #hybrid_indices = list(range(0,10)) + list(range(21,26))
-    hybrid_indices = list(range(16, 26))
-
-    G1 = Topology.build_topology(xyz1, atoms, hybrid_indices=hybrid_indices)
-    G2 = Topology.build_topology(xyz2, atoms, hybrid_indices=hybrid_indices)
-
-    for bond in G2.edges():
-        if bond in G1.edges:
-            pass
-        elif (bond[1], bond[0]) in G1.edges():
-            pass
-        else:
-            print(" Adding bond {} to top1".format(bond))
-            if bond[0] > bond[1]:
-                G1.add_edge(bond[0], bond[1])
-            else:
-                G1.add_edge(bond[1], bond[0])
-
-    #print(" G")
-    #print(G.L())
-
-    #fragments = [G.subgraph(c).copy() for c in nx.connected_components(G)]
-    #for g in fragments: g.__class__ = MyG
-
-    #print(" fragments")
-    #for frag in fragments:
-    #    print(frag.L())
-    ##print(len(mytop.fragments))
-    ##print(mytop.fragments)
-
-    ## need the primitive start and stop indices
-    #prim_idx_start_stop=[]
-    #new=True
-    #for frag in fragments:
-    #    nodes=frag.L()
-    #    prim_idx_start_stop.append((nodes[0],nodes[-1]))
-    #print("prim start stop")
-    #print(prim_idx_start_stop)
-
-    #prim_idx =[]
-    #for info in prim_idx_start_stop:
-    #    prim_idx += list(range(info[0],info[1]+1))
-    #print('prim_idx')
-    #print(prim_idx)
-
-    #new_hybrid_indices=list(range(len(atoms)))
-    #for elem in prim_idx:
-    #    new_hybrid_indices.remove(elem)
-    #print('hybr')
-    #print(new_hybrid_indices)
-
-    #hybrid_idx_start_stop=[]
-    ## get the hybrid start and stop indices
-    #new=True
-    #for i in range(len(atoms)+1):
-    #    if i in new_hybrid_indices:
-    #        print(i)
-    #        if new==True:
-    #            start=i
-    #            new=False
-    #    else:
-    #        if new==False:
-    #            end=i-1
-    #            new=True
-    #            hybrid_idx_start_stop.append((start,end))
-    #print(hybrid_idx_start_stop)

@@ -6,17 +6,10 @@ Written by Tamas K. Stenczel in 2021
 """
 import importlib
 
-try:
-    from ase import Atoms
-    from ase.calculators.calculator import Calculator
-    from ase.data import atomic_numbers
-    from ase import units
-except ModuleNotFoundError:
-    Atoms = None
-    Calculator = None
-    atomic_numbers = None
-    units = None
-    print("ASE not installed, ASE-based calculators will not work")
+from ase import Atoms
+from ase.calculators.calculator import Calculator
+from ase.data import atomic_numbers
+from ase import units
 
 from .base_lot import Lot, LoTError
 

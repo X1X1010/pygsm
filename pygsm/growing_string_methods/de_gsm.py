@@ -1,6 +1,3 @@
-from __future__ import print_function
-# standard library imports
-from os import path
 from pygsm.utilities import manage_xyz, nifty
 from pygsm.molecule import Molecule
 from .main_gsm import MainGSM
