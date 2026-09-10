@@ -253,7 +253,14 @@ def write_std_multixyz(
     with open(filename, 'w') as f:
         for E, geom in zip(energies, geoms):
             f.write('%d\n' % len(geom))
-            f.write('%.6f\n' % (E*units.KJ_MOL_TO_AU))
+            # Energies are already in kcal/mol (see level_of_theories/base_lot.py
+            # get_energy, which returns Hartree * KCAL_MOL_PER_AU). Write them in
+            # that native unit with an explicit label so the output is a clean,
+            # documented unit and downstream readers can detect this format.
+            # Previously this multiplied E by KJ_MOL_TO_AU, which treated a
+            # kcal/mol value as if it were kJ/mol and produced a garbled
+            # AU-scaled number (see ZimmermanGroup/pyGSM#65).
+            f.write('%.6f kcal/mol\n' % E)
             for atom in geom:
                 f.write('%-2s %14.6f %14.6f %14.6f\n' % (
                     atom[0],

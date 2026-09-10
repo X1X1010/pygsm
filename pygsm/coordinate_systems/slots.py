@@ -527,13 +527,26 @@ class Rotator(object):
         xyz = xyz.reshape(-1, 3)
         relative_a = [a-start_idx for a in self.a]
 
-        # NOTE 3/2020 CRA stored_der does not currently work in block-matrix formulism
         if self.stored_derxyz is None:
             pass
         elif np.max(np.abs(xyz-self.stored_derxyz)) < 1e-12:
-            return self.stored_deriv[relative_a]
+            # Cache hit: xyz (the whole passed block) is unchanged since the
+            # last computation, so the full previously computed block-sized
+            # array is still correct and must be returned as-is -- indexing
+            # it by relative_a here previously returned a shape mismatched
+            # with the fresh-computation path below (only coincidentally
+            # equal to the full array when relative_a happened to span the
+            # entire block, i.e. before blocks could hold more than one
+            # Rotator's atoms).
+            return self.stored_deriv
 
-        xsel = xyz  # [relative_a, :]
+        # Select just this Rotator's own atoms out of the passed xyz block.
+        # xyz previously had to equal exactly self.a's atoms for this to be
+        # correct (true whenever a block == a single fragment, which was
+        # always the case before interleaved-fragment blocks could be
+        # merged together); explicitly selecting relative_a generalizes
+        # correctly to a block containing other atoms/fragments too.
+        xsel = xyz[relative_a, :]
         # x0 is the full size. . .
         # need absolute indices of fragment
         absolute_a = list(range(start_idx, start_idx+len(relative_a)))

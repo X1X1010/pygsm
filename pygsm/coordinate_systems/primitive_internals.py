@@ -26,6 +26,35 @@ from .slots import Distance, Angle, Dihedral, OutOfPlane, RotationA, RotationB, 
 CacheWarning = False
 
 
+def _merge_block_windows(raw_blocks):
+    """Merge overlapping (sa, ea, sp, ep, kind) atom/primitive-index windows.
+
+    Each raw block's (sa, ea) = (min(atoms), max(atoms)+1) is only a valid
+    stand-in for "the atoms in this block" when those atoms are contiguous.
+    If a fragment's atom indices are interleaved with another fragment's,
+    their raw (sa, ea) windows overlap. Since every atom belongs to exactly
+    one block, the union of all raw windows has no gaps, so merging any
+    chain of overlapping windows (this is the standard sorted-interval-merge
+    algorithm) yields windows that are each exactly the true contiguous atom
+    range they cover -- restoring the invariant that block_info windows
+    partition [0, natoms) that downstream code (e.g. wilsonB's block-diagonal
+    derivative assembly) relies on.
+
+    raw_blocks must be sorted by sa (the callers already build them that way).
+    Non-overlapping input (the common, non-interleaved case) passes through
+    unchanged.
+    """
+    merged = []
+    for sa, ea, sp, ep, kind in raw_blocks:
+        if merged and sa < merged[-1][1]:
+            psa, pea, psp, _pep, pkind = merged[-1]
+            new_kind = 'reg' if 'reg' in (pkind, kind) else 'hyb'
+            merged[-1] = (psa, max(pea, ea), psp, ep, new_kind)
+        else:
+            merged.append((sa, ea, sp, ep, kind))
+    return merged
+
+
 class PrimitiveInternalCoordinates(InternalCoordinates):
 
     def __init__(self,
@@ -765,7 +794,7 @@ class PrimitiveInternalCoordinates(InternalCoordinates):
 
                 else:  # Add Cart or TR
                     if addcart:
-                        for i in range(info[0], info[1]):
+                        for i in frag.nodes():
                             self.tmp_add(CartesianX(i, w=1.0))
                             self.tmp_add(CartesianY(i, w=1.0))
                             self.tmp_add(CartesianZ(i, w=1.0))
@@ -944,16 +973,17 @@ class PrimitiveInternalCoordinates(InternalCoordinates):
             self.tmp_Internals = []
 
             ep = sp+nprims
-            self.block_info.append((info[0], info[1], sp, ep))
+            self.block_info.append((info[0], info[1], sp, ep, info[-1]))
             sp = ep
 
+        # Fragments (or hybrid atoms) with interleaved atom indices produce
+        # overlapping raw (sa, ea) windows above; merge them into true,
+        # non-overlapping partitions so block-diagonal consumers (wilsonB,
+        # second_derivatives, calcCg) stay correct without modification.
+        self.block_info = _merge_block_windows(self.block_info)
+
         # print(self.Internals)
-        self.prim_only_block_info = []
-        for info1, info2 in zip(tmp_block_info, self.block_info):
-            if info1[-1] == 'hyb':
-                pass
-            else:
-                self.prim_only_block_info.append(info2)
+        self.prim_only_block_info = [info for info in self.block_info if info[-1] != 'hyb']
 
         print(" Done making primitives")
         print(" Made a total of {} primitives".format(len(self.Internals)))
@@ -979,7 +1009,11 @@ class PrimitiveInternalCoordinates(InternalCoordinates):
 
     def reorderPrimsByFrag(self):
         '''
-        Warning this assumes that the fragments aren't intermixed. you shouldn't do that!!!!
+        Orders primitives (and block_info) by fragment. Fragments with
+        interleaved atom indices are handled: primitives are matched to a
+        fragment by real atom membership (frag.L()), not by an assumed
+        contiguous atom-index range, and any resulting overlapping blocks
+        are merged (see _merge_block_windows) into true partitions.
         '''
 
         # these are the subgraphs
@@ -1027,9 +1061,15 @@ class PrimitiveInternalCoordinates(InternalCoordinates):
             nprims = 0
             if info[-1] == 'reg':
                 # TODO OLD
+                # Match primitives by real fragment membership, not by the
+                # numeric (start, end) window: with interleaved fragments
+                # that window can overlap another fragment's window, and
+                # matching by range (rather than by frag.L()) would append
+                # the same primitive to more than one block.
+                frag_atoms = set(info[2].L())
                 for p in self.Internals:
                     atoms = p.atoms
-                    if all([atom in range(info[0], info[1]) for atom in atoms]):
+                    if all([atom in frag_atoms for atom in atoms]):
                         newPrims.append(p)
                         nprims += 1
             else:
@@ -1039,8 +1079,14 @@ class PrimitiveInternalCoordinates(InternalCoordinates):
                 nprims = 3
 
             ep = sp+nprims
-            self.block_info.append((info[0], info[1], sp, ep))
+            self.block_info.append((info[0], info[1], sp, ep, info[-1]))
             sp = ep
+
+        # See _merge_block_windows: interleaved fragments produce
+        # overlapping raw (sa, ea) windows above; merge them into true,
+        # non-overlapping partitions so block-diagonal consumers (wilsonB,
+        # second_derivatives, calcCg) stay correct without modification.
+        self.block_info = _merge_block_windows(self.block_info)
 
         # print(" block info")
         # print(self.block_info)
@@ -1296,40 +1342,27 @@ class PrimitiveInternalCoordinates(InternalCoordinates):
 
         natoms = len(xyz)
 
-        # print("fragments")
-
-        # need the primitive start and stop indices
-        prim_idx_start_stop = []
-        new = True
-        for frag in self.fragments:
-            nodes = frag.L()
-            # print(nodes)
-            prim_idx_start_stop.append((nodes[0], nodes[-1]))
-        # print("prim start stop")
-        # print(prim_idx_start_stop)
-
+        # need the atom indices belonging to a fragment's own primitives.
+        # Use each fragment's real atom-index set (frag.L()) rather than
+        # re-expanding (min, max) into a range: fragments' atom indices are
+        # not guaranteed to be contiguous (e.g. interleaved fragments), and
+        # re-expanding a (min, max) window would wrongly claim atoms that
+        # actually belong to a different, interleaved fragment.
         prim_idx = []
-        for info in prim_idx_start_stop:
-            prim_idx += list(range(int(info[0]), int(info[1]+1)))
-        # print('prim indices')
-        # print(prim_idx)
+        for frag in self.fragments:
+            prim_idx += frag.L()
 
-        # print(natoms)
         new_hybrid_indices = list(range(int(natoms)))
-        # print(new_hybrid_indices)
-        # for count,i in enumerate(prim_idx):
-        #    print(i,end=' ')
-        #    if (count+1) %20==0:
-        #        print('')
-        # print()
-        # print(type(new_hybrid_indices[0]))
         for elem in prim_idx:
             try:
                 new_hybrid_indices.remove(elem)
-            except:
-                print(elem)
-                print(type(elem))
-                raise RuntimeError
+            except ValueError:
+                raise RuntimeError(
+                    f"Atom index {elem} belongs to more than one molecular "
+                    "fragment. Fragments should be disjoint connected "
+                    "components of the topology; this indicates an "
+                    "inconsistent bond topology rather than an indexing issue."
+                )
         # print('hybrid indices')
         # print(new_hybrid_indices)
 
@@ -1354,7 +1387,7 @@ class PrimitiveInternalCoordinates(InternalCoordinates):
         if count is None:
             count = 0
             for info in self.block_info:
-                if info[3]-info[2] != 3:  # this is a hybrid block skipping
+                if info[4] != 'hyb':  # this is a hybrid block skipping
                     if all([atom in range(info[0], info[1]) for atom in prim.atoms]):
                         break
                 count += 1
@@ -1371,12 +1404,12 @@ class PrimitiveInternalCoordinates(InternalCoordinates):
         new_block_info = []
         for i, info in enumerate(self.block_info):
             if i < count:
-                # sa,ea,sp,ep --> therefore all sps before count are unaffected
-                new_block_info.append((info[0], info[1], info[2], info[3]))
+                # sa,ea,sp,ep,kind --> therefore all sps before count are unaffected
+                new_block_info.append((info[0], info[1], info[2], info[3], info[4]))
             elif i == count:
-                new_block_info.append((info[0], info[1], info[2], info[3]+1))
+                new_block_info.append((info[0], info[1], info[2], info[3]+1, info[4]))
             else:
-                new_block_info.append((info[0], info[1], info[2]+1, info[3]+1))
+                new_block_info.append((info[0], info[1], info[2]+1, info[3]+1, info[4]))
         # print(new_block_info)
         self.block_info = new_block_info
 
@@ -1417,8 +1450,8 @@ class PrimitiveInternalCoordinates(InternalCoordinates):
         block_info = copy(self.block_info)
         count = 0
         for info1, info2 in zip(block_info, other.block_info):
-            sa1, ea1, sp1, ep1 = info1
-            sa2, ea2, sp2, ep2 = info2
+            sa1, ea1, sp1, ep1 = info1[:4]
+            sa2, ea2, sp2, ep2 = info2[:4]
             for i in other.Internals[sp2:ep2]:
                 # Dont check Cartesians
                 if type(i) not in [CartesianX, CartesianY, CartesianZ]:
