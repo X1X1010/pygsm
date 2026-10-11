@@ -1,3 +1,5 @@
+from pathlib import Path
+
 import pytest
 
 pytest.importorskip("xtb")
@@ -16,7 +18,7 @@ from pygsm.utilities import elements, manage_xyz, nifty
 
 
 def test_basic_penalty_opt():
-    geom = manage_xyz.read_xyzs('pygsm/data/diels_alder.xyz')[0]
+    geom = manage_xyz.read_xyzs(str(Path(__file__).resolve().parent / 'data' / 'diels_alder.xyz'))[0]
 
     coupling_states = []
 

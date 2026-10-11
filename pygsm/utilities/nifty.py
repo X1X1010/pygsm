@@ -40,7 +40,6 @@ import tarfile
 import time
 import subprocess
 import math
-import six  # For six.string_types
 from subprocess import PIPE
 from collections import OrderedDict, defaultdict
 #import pybel as pb
@@ -1189,7 +1188,7 @@ def listfiles(fnms=None, ext=None, err=False, dnm=None):
                 logger.error(f'Specified {i} but it does not exist')
                 raise RuntimeError
             answer.append(i)
-    elif isinstance(fnms, six.string_types):
+    elif isinstance(fnms, str):
         if not os.path.exists(fnms):
             logger.error(f'Specified {fnms} but it does not exist')
             raise RuntimeError
@@ -1254,7 +1253,7 @@ def extract_tar(tarfnm, fnms, force=False):
     if not tarfile.is_tarfile(tarfnm):
         return
     # Check type of fnms argument.
-    if isinstance(fnms, six.string_types):
+    if isinstance(fnms, str):
         fnms = [fnms]
     # Load the tar file.
     arch = tarfile.open(tarfnm, 'r')
@@ -1457,7 +1456,7 @@ def _exec(command, print_to_screen=False, outfnm=None, logfnm=None, stdin="",
     """
 
     # Dictionary of options to be passed to the Popen object.
-    cmd_options = {'shell': isinstance(command, six.string_types), 'stdin': PIPE,
+    cmd_options = {'shell': isinstance(command, str), 'stdin': PIPE,
                    'stdout': PIPE, 'stderr': PIPE, 'universal_newlines': expand_cr, 'cwd': cwd}
 
     # If the current working directory is provided, the outputs will be written to there as well.

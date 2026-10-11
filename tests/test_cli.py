@@ -1,12 +1,15 @@
-from pathlib import Path
+import shutil
 import subprocess
 import sys
+from pathlib import Path
+
+import pytest
 
 from pygsm.cli import parse_arguments
 
 
-DATA_DIR = Path(__file__).resolve().parents[1] / 'data'
-REPO_ROOT = Path(__file__).resolve().parents[2]
+DATA_DIR = Path(__file__).resolve().parent / 'data'
+REPO_ROOT = Path(__file__).resolve().parents[1]
 
 
 def test_parse_arguments_handles_cli_defaults():
@@ -44,9 +47,12 @@ def test_python_module_cli_help_smoke():
     assert 'Reaction path transition state and photochemistry tool' in result.stdout
 
 
-def test_bin_gsm_help_smoke():
+def test_console_script_help_smoke():
+    gsm = shutil.which('gsm', path=str(Path(sys.executable).parent))
+    if gsm is None:
+        pytest.skip('gsm console script is not installed')
     result = subprocess.run(
-        [sys.executable, 'bin/gsm', '--help'],
+        [gsm, '--help'],
         cwd=REPO_ROOT,
         check=False,
         capture_output=True,

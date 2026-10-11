@@ -1,52 +1,48 @@
 name: CI
 
 on:
-  # The cookiecutter uses the "--initial-branch" flag when it runs git-init
   push:
-    branches:
-      - "master"
+    branches: [master]
   pull_request:
-    branches:
-      - "master"
+    branches: [master]
   schedule:
-    # Weekly tests run on master by default:
-    #   Scheduled workflows run on the latest commit on the default or base branch.
-    #   (from https://help.github.com/en/actions/reference/events-that-trigger-workflows#scheduled-events-schedule)
+    # weekly run on master
     - cron: "0 0 * * 0"
 
 jobs:
-  test:
-    name: Test on ${{ matrix.os }}, Python ${{ matrix.python-version }}
-    runs-on: ${{ matrix.os }}
-    strategy:
-      matrix:
-        os: [ubuntu-latest]
-        python-version: [3.8, 3.9, "3.10"]
-
+  lint:
+    name: Lint
+    runs-on: ubuntu-latest
+    # Non-blocking until the legacy-code cleanup lands; remove afterwards.
+    continue-on-error: true
     steps:
       - uses: actions/checkout@v4
-      - name: Set up Python ${{ matrix.python-version }}
-        uses: actions/setup-python@v5
+      - uses: astral-sh/setup-uv@v6
+      - run: uvx ruff@0.14.0 check .
+
+  test:
+    name: Test on Python ${{ matrix.python-version }}
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ["3.10", "3.11", "3.12", "3.13"]
+    env:
+      OMP_NUM_THREADS: "1"
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # versioningit needs the tags
+      - uses: astral-sh/setup-uv@v6
         with:
           python-version: ${{ matrix.python-version }}
-      - name: Display Python version
-        run: python -c "import sys; print(sys.version)"
-      - name: Install uv
-        run: |
-          curl -LsSf https://astral.sh/uv/install.sh | sh
-      - name: Install dependencies
-        run: |
-          uv pip install --system -e ".[ase,test]"
-
+      - name: Install
+        run: uv pip install -e ".[test,plot]"
       - name: Run tests
-        # conda setup requires this special shell
-        shell: bash -l {0}
-        run: |
-          pytest -v --cov=pygsm --cov-report=xml --color=yes pygsm/tests/
-
-      - name: CodeCov
-        uses: codecov/codecov-action@v4
+        run: pytest -v --color=yes --cov=pygsm --cov-report=xml
+      - name: Upload coverage
+        uses: codecov/codecov-action@v5
         with:
-          file: ./coverage.xml
+          files: ./coverage.xml
           flags: unittests
-          name: codecov-${{ matrix.os }}-py${{ matrix.python-version }}
+          name: codecov-py${{ matrix.python-version }}

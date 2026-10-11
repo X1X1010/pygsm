@@ -1,6 +1,9 @@
 """Public API for the `pygsm` package."""
 
-from ._version import __version__
+try:
+    from ._version import __version__
+except ImportError:  # running from a source tree that was never installed
+    __version__ = 'unknown'
 from .coordinate_systems import (
     Angle,
     CartesianCoordinates,

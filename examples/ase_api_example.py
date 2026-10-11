@@ -4,6 +4,8 @@ API example modified for an ASE calculator.
 The result is meaningless, apart from showing that the code runs, because of using a Morse potential.
 
 """
+from pathlib import Path
+
 import ase.io
 import numpy as np
 from ase.calculators.morse import MorsePotential
@@ -77,7 +79,8 @@ def main(geom):
 
 
 if __name__ == '__main__':
-    diels_adler = ase.io.read("diels_alder.xyz", ":")
+    data_file = Path(__file__).resolve().parents[1] / "tests" / "data" / "diels_alder.xyz"
+    diels_adler = ase.io.read(data_file, ":")
     xyz = diels_adler[0].positions
 
     # this is a hack

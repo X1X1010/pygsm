@@ -13,7 +13,16 @@ See https://zimmermangroup.github.io/pyGSM/
 pip install -e .
 ```
 
-For the ASE-backed workflow and local tests:
+Optional extras: `ase` (ASE calculators), `xtb` (GFN-xTB via tblite), `plot` (string energy plot in the CLI),
+`test` and `dev` (ruff, pre-commit). For development:
 ```
-pip install -e ".[ase,test]"
+pip install -e ".[dev]"
 ```
+
+## Tests
+```
+OMP_NUM_THREADS=1 pytest                       # unit + golden numerical regression tests
+OMP_NUM_THREADS=1 python -m tests.bench --compare   # wall-time regression check
+```
+The golden tests compare full GSM runs against the baselines in `tests/golden/baselines`.
+Only re-record them (`python -m tests.golden.make_golden`) in a commit that intentionally changes numerics.

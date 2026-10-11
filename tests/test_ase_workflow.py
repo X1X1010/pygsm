@@ -16,7 +16,7 @@ from pygsm.potential_energy_surfaces import PES
 from pygsm.utilities import elements, manage_xyz
 
 
-DATA_DIR = Path(__file__).resolve().parents[1] / 'data'
+DATA_DIR = Path(__file__).resolve().parent / 'data'
 
 
 def _load_ethene_geom():
