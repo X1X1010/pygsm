@@ -58,7 +58,7 @@ class PES:
     def energy(self):
         return self.get_energy(self.lot.currentCoords)
 
-    def get_energy(self, xyz):
+    def get_energy(self, xyz: np.ndarray) -> float:
         fdE = 0.0
         if self.FORCE is not None:
             for i in self.FORCE:
@@ -129,7 +129,7 @@ class PES:
 
         return (grad_fwd - grad_bwd) / (FD_STEP_LENGTH * 2)
 
-    def get_gradient(self, xyz, frozen_atoms=None):
+    def get_gradient(self, xyz: np.ndarray, frozen_atoms: list | None = None) -> np.ndarray:
         grad = self.lot.get_gradient(xyz, self.multiplicity, self.ad_idx, frozen_atoms=frozen_atoms)
         if self.FORCE is not None:
             for i in self.FORCE:

@@ -4,6 +4,7 @@ import numpy as np
 
 
 def NoLineSearch(n, x, fx, g, d, step, xp, constraint_step, parameters, molecule, verbose=False):
+    """Take the full step ``x + d * step`` (plus the constraint step) without a line search."""
     x = x + d * step + constraint_step  #
     xyz = molecule.coord_obj.newCartesian(molecule.xyz, x - xp, frozen_atoms=molecule.frozen_atoms, verbose=verbose)
 
@@ -21,6 +22,7 @@ def NoLineSearch(n, x, fx, g, d, step, xp, constraint_step, parameters, molecule
 # the number of iterations was many and the energy increased
 # just return the initial point
 def backtrack(nconstraints, x, fx, g, d, step, xp, constraint_step, parameters, molecule, verbose=False):
+    """Backtracking line search: shrink the step until the Armijo condition holds."""
     print(' In backtrack')
 
     # n is the non-constrained

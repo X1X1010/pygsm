@@ -57,9 +57,12 @@ class GSMConfig(Config):
     ID: int = option(0, doc='string id used in file names')
     interp_method: str = option('DLC', doc='interpolation/reparametrisation method', choices=('Geodesic', 'DLC'))
     noise: float = option(100.0, doc='energy noise used when checking for intermediates')
+    scratch_dir: str = option('scratch', doc='directory for per-node optimisation output and string trajectories')
 
 
 class GSM:
+    """String of nodes (Molecules) with tangents, interpolation and reparametrisation; base of the GSM drivers."""
+
     config_class = GSMConfig
 
     #: True for strings that start from both reactant and product (DE-GSM).
@@ -71,7 +74,7 @@ class GSM:
         self.options = self.config_class.build(options, **kwargs)
         options = self.options
 
-        os.makedirs('scratch', exist_ok=True)
+        self.scratch_dir = self.options.scratch_dir
 
         # Cache attributes
         self.nnodes: int = self.options.nnodes
@@ -133,6 +136,10 @@ class GSM:
         self._cached_energy_signature = None
 
         self.newic = Molecule.copy_from(self.nodes[0])  # newic object is used for coordinate transformations
+
+    def node_scratch_path(self, n):
+        """Scratch directory for node ``n`` of this string (used for optimisation trajectories)."""
+        return os.path.join(os.getcwd(), self.scratch_dir, f'{self.ID:03d}', str(n))
 
     @property
     def TSnode(self):

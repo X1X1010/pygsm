@@ -1,8 +1,12 @@
+from __future__ import annotations
+
 # standard library imports
 import sys
 from io import StringIO
 
 # third party
+from typing import TYPE_CHECKING
+
 import numpy as np
 
 from ..coordinate_systems import CartesianCoordinates
@@ -11,20 +15,25 @@ from ..utilities import block_matrix, manage_xyz
 # local application imports
 from .base_optimizer import BaseOptimizer
 
+if TYPE_CHECKING:
+    from ..molecule import Molecule
+
 
 class BealesCG(BaseOptimizer):
+    """Conjugate-gradient optimizer with Beale's restarts."""
+
     def optimize(
         self,
-        molecule,
+        molecule: Molecule,
         s0_prim,
         gp_prim,
-        refE=0.0,
+        refE: float = 0.0,
         opt_type='BEALES_CG',
-        opt_steps=3,
+        opt_steps: int = 3,
         ictan=None,
         xyzframerate=4,
         verbose=False,
-    ):
+    ) -> tuple[list, list]:
         print(f' initial E {molecule.energy - refE:5.4f}')
         sys.stdout.flush()
 

@@ -23,7 +23,7 @@ class MainGSM(GrowthMixin, OptimizationMixin, GSM):
     #: Node optimisation steps per growth iteration when ``go_gsm`` is called without ``opt_steps``.
     default_growth_opt_steps = 3
 
-    def go_gsm(self, max_iters=50, opt_steps=None, rtype=2):
+    def go_gsm(self, max_iters: int = 50, opt_steps: int | None = None, rtype: int = 2) -> None:
         """Grow the string, then optimise it.
 
         rtype=2 finds and climbs to the TS, 1 climbs without the exact TS search,
@@ -31,6 +31,7 @@ class MainGSM(GrowthMixin, OptimizationMixin, GSM):
         """
         if opt_steps is None:
             opt_steps = self.default_growth_opt_steps
+        os.makedirs(self.scratch_dir, exist_ok=True)
         self.set_V0()
 
         if not self.isRestarted:
@@ -139,7 +140,7 @@ class MainGSM(GrowthMixin, OptimizationMixin, GSM):
         for n in range(self.nnodes):
             if self.nodes[n] and self.active[n]:
                 print()
-                path = os.path.join(os.getcwd(), f'scratch/{self.ID:03d}/{n}')
+                path = self.node_scratch_path(n)
                 printcool(f'Optimizing node {n}')
                 opt_type = self.set_opt_type(n)
                 osteps = self.mult_steps(n, opt_steps)
@@ -163,7 +164,7 @@ class MainGSM(GrowthMixin, OptimizationMixin, GSM):
                 and self.nodes[self.nnodes - 1].gradrms > self.CONV_TOL
             ):
                 printcool('Last node is not a minimum, Might need to verify that the last node is a minimum')
-                path = os.path.join(os.getcwd(), f'scratch/{self.ID:03d}/{self.nnodes - 1}')
+                path = self.node_scratch_path(self.nnodes - 1)
                 self.optimizer[self.nnodes - 1].optimize(
                     molecule=self.nodes[self.nnodes - 1],
                     refE=refE,

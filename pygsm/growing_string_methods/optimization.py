@@ -1,5 +1,7 @@
 """Optimization phase of the growing string method (climbing image / exact TS search)."""
 
+import os
+
 import numpy as np
 
 from pygsm.molecule.molecule import Molecule
@@ -129,7 +131,7 @@ class OptimizationMixin:
                     self.hess_counter += 1
             print(f'{stage_changed=}: {self.climb=} {self.find=}')
 
-            filename = f'scratch/opt_iters_{self.ID:03}_{opt_iteration:03}.xyz'
+            filename = os.path.join(self.scratch_dir, f'opt_iters_{self.ID:03}_{opt_iteration:03}.xyz')
             self.xyz_writer(filename, self.geometries, self.energies, self.gradrmss, self.dEs)
 
             print(f' End early counter {self.endearly_counter}')

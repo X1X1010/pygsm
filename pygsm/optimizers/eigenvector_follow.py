@@ -1,9 +1,13 @@
+from __future__ import annotations
+
 # standard library imports
 import os
 import sys
 from io import StringIO
 
 # third party
+from typing import TYPE_CHECKING
+
 import numpy as np
 
 from ..coordinate_systems import CartesianCoordinates
@@ -13,19 +17,24 @@ from ..utilities import block_matrix, manage_xyz, units
 from ._linesearch import NoLineSearch
 from .base_optimizer import BaseOptimizer
 
+if TYPE_CHECKING:
+    from ..molecule import Molecule
+
 
 class EigenvectorFollow(BaseOptimizer):
+    """Eigenvector-following (rational function) optimizer with BFGS Hessian updates; supports climbing and TS search."""
+
     def optimize(
         self,
-        molecule,
-        refE=0.0,
-        opt_type='UNCONSTRAINED',
-        opt_steps=3,
+        molecule: Molecule,
+        refE: float = 0.0,
+        opt_type: str = 'UNCONSTRAINED',
+        opt_steps: int = 3,
         ictan=None,
         xyzframerate=4,
         verbose=False,
-        path=None,
-    ):
+        path: str | None = None,
+    ) -> tuple[list, list]:
         if path is None:
             path = os.getcwd()
         # stash/initialize some useful attributes

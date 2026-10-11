@@ -111,8 +111,14 @@ def AtomContact(xyz, pairs, box=None, displace=False):
 
 
 def build_topology(
-    xyz, atoms, add_bond=None, hybrid_indices=None, bondlistfile=None, prim_idx_start_stop=None, **kwargs
-):
+    xyz: np.ndarray,
+    atoms: list,
+    add_bond: list | None = None,
+    hybrid_indices: list | None = None,
+    bondlistfile: str | None = None,
+    prim_idx_start_stop: list | None = None,
+    **kwargs,
+) -> MolGraph:
     """
     Create topology and fragments; these are graph
     representations of the individual molecule fragments

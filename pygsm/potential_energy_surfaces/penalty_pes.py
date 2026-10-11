@@ -7,7 +7,7 @@ from .pes import PES
 
 
 class PenaltyPES(PES):
-    """penalty potential energy surface calculators"""
+    """Average of two surfaces plus a penalty on their energy gap (Levine-Coe-Martinez), for crossing searches."""
 
     def __init__(
         self,

@@ -1,5 +1,7 @@
 """Growth phase of the growing string method."""
 
+import os
+
 import numpy as np
 
 from pygsm.molecule.molecule import Molecule
@@ -30,7 +32,7 @@ class GrowthMixin:
             self.optimize_iteration(max_opt_steps)
             totalgrad, gradrms, _ = self.calc_optimization_metrics(self.nodes)
             self.xyz_writer(
-                f'scratch/growth_iters_{self.ID:03}_{iteration:03}.xyz',
+                os.path.join(self.scratch_dir, f'growth_iters_{self.ID:03}_{iteration:03}.xyz'),
                 self.geometries,
                 self.energies,
                 self.gradrmss,

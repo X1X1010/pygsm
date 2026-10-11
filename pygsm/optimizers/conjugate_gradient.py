@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 # standard library imports
 from io import StringIO
 
@@ -12,6 +14,8 @@ from .base_optimizer import BaseOptimizer
 
 
 class ConjugateGradient(BaseOptimizer):
+    """Plain conjugate-gradient optimizer."""
+
     def optimize(self, molecule, refE=0.0, opt_type='UNCONSTRAINED', opt_steps=3, ictan=None):
         print(f' initial E {molecule.energy - refE:5.4f}')
         if opt_type == 'TS':

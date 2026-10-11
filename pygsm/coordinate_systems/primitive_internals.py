@@ -61,6 +61,8 @@ def _merge_block_windows(raw_blocks):
 
 
 class PrimitiveInternalCoordinates(InternalCoordinates):
+    """Primitive internal coordinates (bonds, angles, dihedrals, and TRIC translations/rotations), stored per fragment block."""
+
     def __init__(self, options=None, **kwargs):
         super().__init__(options, **kwargs)
         options = self.options

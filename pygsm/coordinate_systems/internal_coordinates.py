@@ -37,6 +37,8 @@ class CoordinateConfig(Config):
 
 
 class InternalCoordinates:
+    """Base class of the coordinate systems: B-matrix (cached), G-matrix and Cartesian back-transformation."""
+
     config_class = CoordinateConfig
 
     def __init__(self, options=None, **kwargs):

@@ -545,6 +545,8 @@ class RotationC(_RotationAxis):
 
 
 class Distance(PrimitiveCoordinate):
+    """Bond length between atoms ``a`` and ``b``."""
+
     def __init__(self, a, b):
         self.a = a
         self.b = b
@@ -600,6 +602,8 @@ class Distance(PrimitiveCoordinate):
 
 
 class Angle(PrimitiveCoordinate):
+    """Bond angle a-b-c (b is the vertex)."""
+
     def __init__(self, a, b, c):
         self.a = a
         self.b = b
@@ -746,6 +750,8 @@ class Angle(PrimitiveCoordinate):
 
 
 class LinearAngle(PrimitiveCoordinate):
+    """One of two orthogonal components of a near-linear angle a-b-c."""
+
     def __init__(self, a, b, c, axis):
         self.a = a
         self.b = b
@@ -900,6 +906,8 @@ class LinearAngle(PrimitiveCoordinate):
 
 
 class Dihedral(PrimitiveCoordinate):
+    """Torsion angle a-b-c-d."""
+
     def __init__(self, a, b, c, d):
         self.a = a
         self.b = b
@@ -1053,6 +1061,8 @@ class Dihedral(PrimitiveCoordinate):
 
 
 class OutOfPlane(PrimitiveCoordinate):
+    """Out-of-plane angle of atom ``a`` relative to the plane of b, c, d."""
+
     def __init__(self, a, b, c, d):
         self.a = a
         self.b = b

@@ -7,7 +7,7 @@ from .pes import PES
 
 
 class AvgPES(PES):
-    """Avg potential energy surface calculators"""
+    """Average of two adiabatic surfaces of one level of theory, with derivative coupling (seam/MECI searches)."""
 
     # TODO can fix this up so it automatically initializes PES1 and PES2?
     def __init__(

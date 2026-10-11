@@ -4,6 +4,8 @@ from .main_gsm import MainGSM
 
 
 class DEGSM(MainGSM):
+    """Double-ended GSM: grows the string from both reactant and product, then optimises it towards the TS."""
+
     is_double_ended = True
 
     def __init__(self, options=None, **kwargs):

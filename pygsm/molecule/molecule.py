@@ -2,6 +2,8 @@
 This class is the combination of Martinez group and Lee Ping's molecule class.
 """
 
+from __future__ import annotations
+
 from dataclasses import dataclass
 from time import time
 from typing import Any
@@ -96,7 +98,14 @@ class Molecule:
         return '\n'.join(lines)
 
     @classmethod
-    def copy_from(cls, MoleculeA, xyz=None, fnm=None, new_node_id=1, copy_wavefunction=True):
+    def copy_from(
+        cls,
+        MoleculeA: Molecule,
+        xyz: np.ndarray | None = None,
+        fnm: str | None = None,
+        new_node_id: int = 1,
+        copy_wavefunction: bool = True,
+    ) -> Molecule:
         """Copy ``MoleculeA``, optionally with new coordinates, node id and a fresh wavefunction."""
         print(f' Copying from MoleculA {MoleculeA.node_id}')
         return cls._copy_fast(

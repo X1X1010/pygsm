@@ -1,9 +1,13 @@
+from __future__ import annotations
+
 # standard library imports
 import os
 import sys
 from io import StringIO
 
 # third party
+from typing import TYPE_CHECKING
+
 import numpy as np
 from scipy.optimize import LbfgsInvHessProduct
 
@@ -12,6 +16,9 @@ from ..utilities import block_matrix, manage_xyz, units
 
 # local application imports
 from .base_optimizer import BaseOptimizer
+
+if TYPE_CHECKING:
+    from ..molecule import Molecule
 
 
 class IterationData:
@@ -24,7 +31,7 @@ class IterationData:
 
 
 class LBFGS(BaseOptimizer):
-    """the class of lbfgs method"""
+    """Limited-memory BFGS optimizer in delocalized internal coordinates."""
 
     def __init__(self, options=None, **kwargs):
         super().__init__(options, **kwargs)
@@ -33,16 +40,16 @@ class LBFGS(BaseOptimizer):
 
     def optimize(
         self,
-        molecule,
-        refE=0.0,
-        opt_type='UNCONSTRAINED',
-        opt_steps=20,
+        molecule: Molecule,
+        refE: float = 0.0,
+        opt_type: str = 'UNCONSTRAINED',
+        opt_steps: int = 20,
         maxcor=10,
         ictan=None,
         xyzframerate=4,
         verbose=False,
-        path=None,
-    ):
+        path: str | None = None,
+    ) -> tuple[list, list]:
         if path is None:
             path = os.getcwd()
         # stash/initialize some useful attributes

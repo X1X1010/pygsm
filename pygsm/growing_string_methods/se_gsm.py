@@ -1,5 +1,4 @@
 # local application imports
-import os
 import sys
 
 # standard library imports
@@ -15,6 +14,8 @@ from .main_gsm import MainGSM
 
 
 class SEGSM(MainGSM):
+    """Single-ended GSM: grows from the reactant along driving coordinates, then optimises towards the TS."""
+
     def __init__(self, options=None, **kwargs):
         super().__init__(options, **kwargs)
         self.current_nnodes = 1
@@ -122,7 +123,7 @@ class SEGSM(MainGSM):
             self.optimizer[self.nR].conv_gmax = self.options.CONV_gmax
             self.optimizer[self.nR].conv_Ediff = self.options.CONV_Ediff
             self.optimizer[self.nR].conv_dE = self.options.CONV_dE
-            path = os.path.join(os.getcwd(), f'scratch/{self.ID:03d}/{self.nR}')
+            path = self.node_scratch_path(self.nR)
             self.optimizer[self.nR].optimize(
                 molecule=self.nodes[self.nR],
                 refE=self.nodes[0].V0,
@@ -141,7 +142,7 @@ class SEGSM(MainGSM):
             self.optimizer[self.nR - 1].conv_gmax = self.options.CONV_gmax
             self.optimizer[self.nR - 1].conv_Ediff = self.options.CONV_Ediff
             self.optimizer[self.nR - 1].conv_dE = self.options.CONV_dE
-            path = os.path.join(os.getcwd(), f'scratch/{self.ID:03d}/{self.nR - 1}')
+            path = self.node_scratch_path(self.nR - 1)
             self.optimizer[self.nR - 1].optimize(
                 molecule=self.nodes[self.nR - 1],
                 refE=self.nodes[0].V0,
@@ -157,7 +158,7 @@ class SEGSM(MainGSM):
         print(' optimizing last node')
         self.optimizer[self.nR - 1].conv_grms = self.CONV_TOL
         print(self.optimizer[self.nR - 1].conv_grms)
-        path = os.path.join(os.getcwd(), f'scratch/{self.ID:03d}/{self.nR - 1}')
+        path = self.node_scratch_path(self.nR - 1)
         self.optimizer[self.nR - 1].optimize(
             molecule=self.nodes[self.nR - 1],
             refE=self.nodes[0].V0,

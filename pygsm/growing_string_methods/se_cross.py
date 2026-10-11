@@ -11,17 +11,20 @@ from .se_gsm import SEGSM
 
 
 class SECross(SEGSM):
+    """Single-ended search for a minimum-energy crossing point (MESX/MECI) on a penalty PES."""
+
     is_crossing_search = True
 
     def on_growth_exhausted(self, error):
         # SE-Cross optimises the last node itself after growth (see go_gsm).
         print(' Will do extra optimization of this node in SE-Cross')
 
-    def go_gsm(self, max_iters=50, opt_steps=3, rtype=0):
+    def go_gsm(self, max_iters: int = 50, opt_steps: int = 3, rtype: int = 0) -> None:
         """rtype=0 MECI search
         rtype=1 MESX search
         """
         assert rtype in [0, 1], 'rtype not defined'
+        os.makedirs(self.scratch_dir, exist_ok=True)
         if rtype == 0:
             output.printcool('Doing SE-MECI search')
         else:
@@ -43,7 +46,7 @@ class SECross(SEGSM):
         print(' SE_Cross growth phase over')
         print(' Warning last node still not fully optimized')
 
-        path = os.path.join(os.getcwd(), f'scratch/{self.ID:03d}/{self.nR - 1}')
+        path = self.node_scratch_path(self.nR - 1)
         # doing extra constrained penalty optimization for MECI, tightening the penalty step by step
         print(f' extra constrained optimization for the nnR-1 = {self.nR - 1}')
         self.optimizer[self.nR - 1].conv_grms = self.options.CONV_TOL * 5
@@ -69,7 +72,7 @@ class SECross(SEGSM):
             self.nodes[self.nR] = Molecule.copy_from(self.nodes[self.nR - 1], new_node_id=self.nR)
             avg_pes = AvgPES.create_pes_from(self.nodes[self.nR].PES)
             self.nodes[self.nR].PES = avg_pes
-            path = os.path.join(os.getcwd(), f'scratch/{self.ID:03d}/{self.nR}')
+            path = self.node_scratch_path(self.nR)
             self.optimizer[self.nR].conv_grms = self.options.CONV_TOL
             self.optimizer[self.nR].conv_gmax = 0.1  # self.options.CONV_gmax
             self.optimizer[self.nR].conv_Ediff = self.options.CONV_Ediff
@@ -99,7 +102,7 @@ class SECross(SEGSM):
             self.nodes[self.nR] = Molecule.copy_from(self.nodes[self.nR - 1], new_node_id=self.nR)
             self.nodes[self.nR].PES.sigma = 10.0
             print(f' sigma for node {self.nR} is {self.nodes[self.nR].PES.sigma:.3f}')
-            path = os.path.join(os.getcwd(), f'scratch/{self.ID:03d}/{self.nR}')
+            path = self.node_scratch_path(self.nR)
             self.optimizer[self.nR].opt_cross = True
             self.optimizer[self.nR].conv_grms = self.options.CONV_TOL
             self.optimizer[self.nR].conv_Ediff = self.options.CONV_Ediff

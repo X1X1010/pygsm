@@ -13,6 +13,8 @@ from .slots import RotationA, RotationB, RotationC
 
 
 class DelocalizedInternalCoordinates(InternalCoordinates):
+    """Delocalized internal coordinates: non-redundant linear combinations of primitives (DLC/TRIC/HDLC)."""
+
     def __init__(self, options=None, **kwargs):
         super().__init__(options, **kwargs)
         options = self.options
