@@ -3,8 +3,8 @@
 import numpy as np
 
 from pygsm.molecule.molecule import Molecule
-from pygsm.optimizers import eigenvector_follow
-from pygsm.potential_energy_surfaces import Avg_PES
+from pygsm.optimizers import EigenvectorFollow
+from pygsm.potential_energy_surfaces import AvgPES
 from pygsm.utilities import block_matrix, units
 from pygsm.utilities.output import printcool
 
@@ -205,7 +205,7 @@ class OptimizationMixin:
 
                 if self.optimizer[self.TSnode].options.DMAX > 0.1:
                     self.optimizer[self.TSnode].options.DMAX = 0.1
-                self.optimizer[self.TSnode] = eigenvector_follow(self.optimizer[self.TSnode].options.replace())
+                self.optimizer[self.TSnode] = EigenvectorFollow(self.optimizer[self.TSnode].options.replace())
                 self.optimizer[self.TSnode].options.SCALEQN = 1.0
                 self.nhessreset = 10  # are these used??? TODO
                 self.hessrcount = 0  # are these used?!  TODO
@@ -311,11 +311,11 @@ class OptimizationMixin:
     def set_opt_type(self, n, quiet=False):
         # TODO error for seam climb
         opt_type = 'ICTAN'
-        if self.climb and n == self.TSnode and not self.find and not isinstance(self.nodes[n].PES, Avg_PES):
+        if self.climb and n == self.TSnode and not self.find and not isinstance(self.nodes[n].PES, AvgPES):
             opt_type = 'CLIMB'
         elif self.find and n == self.TSnode:
             opt_type = 'TS'
-        elif isinstance(self.nodes[n].PES, Avg_PES):
+        elif isinstance(self.nodes[n].PES, AvgPES):
             opt_type = 'SEAM'
             if self.climb and n == self.TSnode:
                 opt_type = 'TS-SEAM'

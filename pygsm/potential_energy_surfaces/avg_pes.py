@@ -6,7 +6,7 @@ from ..utilities import units
 from .pes import PES
 
 
-class Avg_PES(PES):
+class AvgPES(PES):
     """Avg potential energy surface calculators"""
 
     # TODO can fix this up so it automatically initializes PES1 and PES2?

@@ -10,7 +10,7 @@ import numpy as np
 
 from pygsm.coordinate_systems import Angle, Dihedral, Distance, OutOfPlane
 from pygsm.molecule import Molecule
-from pygsm.potential_energy_surfaces import Penalty_PES
+from pygsm.potential_energy_surfaces import PenaltyPES
 from pygsm.utilities import output
 from pygsm.utilities.config import Config, option
 from pygsm.utilities.manage_xyz import write_molden_geoms
@@ -141,7 +141,7 @@ class GSM:
         """
         # Treat GSM with penalty a little different since penalty will increase energy based on energy
         # differences, which might not be great for Climbing Image
-        if not self.is_crossing_search and isinstance(self.nodes[0].PES, Penalty_PES):
+        if not self.is_crossing_search and isinstance(self.nodes[0].PES, PenaltyPES):
             energies = np.asarray([0.0] * self.nnodes)
             for i, node in enumerate(self.nodes):
                 if node is not None:

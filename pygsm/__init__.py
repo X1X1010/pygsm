@@ -22,42 +22,42 @@ from .coordinate_systems import (
     TranslationZ,
     build_topology,
 )
-from .growing_string_methods import DE_GSM, GSM, SE_GSM, MainGSM, SE_Cross
+from .growing_string_methods import DEGSM, GSM, SEGSM, MainGSM, SECross
 from .molecule import Molecule
-from .optimizers import NoLineSearch, backtrack, beales_cg, conjugate_gradient, eigenvector_follow, lbfgs
-from .potential_energy_surfaces import PES, Avg_PES, Penalty_PES
+from .optimizers import LBFGS, BealesCG, ConjugateGradient, EigenvectorFollow, NoLineSearch, backtrack
+from .potential_energy_surfaces import PES, AvgPES, PenaltyPES
 
 __all__ = [
-    'DE_GSM',
+    'DEGSM',
     'GSM',
+    'LBFGS',
     'PES',
-    'SE_GSM',
+    'SEGSM',
     'Angle',
-    'Avg_PES',
+    'AvgPES',
+    'BealesCG',
     'CartesianCoordinates',
+    'ConjugateGradient',
     'DelocalizedInternalCoordinates',
     'Dihedral',
     'Distance',
+    'EigenvectorFollow',
     'InternalCoordinates',
     'MainGSM',
     'MolGraph',
     'Molecule',
     'NoLineSearch',
     'OutOfPlane',
-    'Penalty_PES',
+    'PenaltyPES',
     'PrimitiveInternalCoordinates',
     'RotationA',
     'RotationB',
     'RotationC',
-    'SE_Cross',
+    'SECross',
     'TranslationX',
     'TranslationY',
     'TranslationZ',
     '__version__',
     'backtrack',
-    'beales_cg',
     'build_topology',
-    'conjugate_gradient',
-    'eigenvector_follow',
-    'lbfgs',
 ]

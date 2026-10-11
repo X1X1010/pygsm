@@ -15,9 +15,9 @@ from pygsm.coordinate_systems import (
     build_topology,
 )
 from pygsm.coordinate_systems.primitive_internals import get_driving_coord_prim
-from pygsm.growing_string_methods import DE_GSM, SE_GSM, SE_Cross
+from pygsm.growing_string_methods import DEGSM, SEGSM, SECross
 from pygsm.molecule import Molecule
-from pygsm.potential_energy_surfaces import Penalty_PES
+from pygsm.potential_energy_surfaces import PenaltyPES
 from pygsm.utilities import elements, manage_xyz, output
 from pygsm.utilities.cli_utils import plot
 from pygsm.utilities.manage_xyz import XYZ_WRITERS
@@ -190,7 +190,7 @@ def _build_coordinate_object(inpfileq: dict, atoms, xyz1, xyz2, top1, hybrid_ind
 def _build_gsm(inpfileq: dict, reactant: Molecule, product: Molecule | None, optimizer, driving_coordinates):
     xyz_writer = XYZ_WRITERS[inpfileq['xyz_output_format']]
     if inpfileq['gsm_type'] == 'DE_GSM':
-        return DE_GSM(
+        return DEGSM(
             reactant=reactant,
             product=product,
             nnodes=inpfileq['num_nodes'],
@@ -208,7 +208,7 @@ def _build_gsm(inpfileq: dict, reactant: Molecule, product: Molecule | None, opt
             interp_method=inpfileq['interp_method'],
         )
 
-    gsm_class = SE_GSM if inpfileq['gsm_type'] == 'SE_GSM' else SE_Cross
+    gsm_class = SEGSM if inpfileq['gsm_type'] == 'SE_GSM' else SECross
     return gsm_class(
         reactant=reactant,
         nnodes=inpfileq['num_nodes'],
@@ -323,7 +323,7 @@ def main(argv: Sequence[str] | None = None):
         _run_only_drive_mode(gsm)
         return
 
-    if (inpfileq['gsm_type'] != 'SE_Cross' and isinstance(pes, (Penalty_PES,))) or (
+    if (inpfileq['gsm_type'] != 'SE_Cross' and isinstance(pes, (PenaltyPES,))) or (
         inpfileq['gsm_type'] != 'SE_Cross' and inpfileq['PES_type'] == 'Avg_PES'
     ):
         optimizer.opt_cross = True

@@ -1,5 +1,5 @@
-from .avg_pes import Avg_PES
-from .penalty_pes import Penalty_PES
+from .avg_pes import AvgPES
+from .penalty_pes import PenaltyPES
 from .pes import PES
 
-__all__ = ['PES', 'Avg_PES', 'Penalty_PES']
+__all__ = ['PES', 'AvgPES', 'PenaltyPES']

@@ -9,10 +9,10 @@ from ..coordinate_systems import CartesianCoordinates
 from ..utilities import block_matrix, manage_xyz
 
 # local application imports
-from .base_optimizer import base_optimizer
+from .base_optimizer import BaseOptimizer
 
 
-class beales_cg(base_optimizer):
+class BealesCG(BaseOptimizer):
     def optimize(
         self,
         molecule,

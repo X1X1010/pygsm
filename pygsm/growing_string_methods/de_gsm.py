@@ -3,7 +3,7 @@ from pygsm.utilities import output
 from .main_gsm import MainGSM
 
 
-class DE_GSM(MainGSM):
+class DEGSM(MainGSM):
     is_double_ended = True
 
     def __init__(self, options=None, **kwargs):

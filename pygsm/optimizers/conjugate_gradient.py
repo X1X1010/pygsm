@@ -8,10 +8,10 @@ from ..coordinate_systems import CartesianCoordinates
 from ..utilities import units
 
 # local application imports
-from .base_optimizer import base_optimizer
+from .base_optimizer import BaseOptimizer
 
 
-class conjugate_gradient(base_optimizer):
+class ConjugateGradient(BaseOptimizer):
     def optimize(self, molecule, refE=0.0, opt_type='UNCONSTRAINED', opt_steps=3, ictan=None):
         print(f' initial E {molecule.energy - refE:5.4f}')
         if opt_type == 'TS':

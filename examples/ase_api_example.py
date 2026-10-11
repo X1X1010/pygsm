@@ -14,7 +14,7 @@ from ase.calculators.morse import MorsePotential
 from pygsm.coordinate_systems import DelocalizedInternalCoordinates
 from pygsm.level_of_theories.ase import ASELoT
 from pygsm.molecule import Molecule
-from pygsm.optimizers import eigenvector_follow
+from pygsm.optimizers import EigenvectorFollow
 from pygsm.potential_energy_surfaces import PES
 from pygsm.utilities import elements, manage_xyz, output
 
@@ -54,7 +54,7 @@ def main(geom):
     )
 
     output.printcool('Creating optimizer')
-    optimizer = eigenvector_follow(Linesearch='backtrack', OPTTHRESH=0.0005, DMAX=0.5, abs_max_step=0.5, conv_Ediff=0.5)
+    optimizer = EigenvectorFollow(Linesearch='backtrack', OPTTHRESH=0.0005, DMAX=0.5, abs_max_step=0.5, conv_Ediff=0.5)
 
     output.printcool(f'initial energy is {reactant.energy:5.4f} kcal/mol')
     geoms, energies = optimizer.optimize(

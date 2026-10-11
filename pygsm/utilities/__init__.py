@@ -1,11 +1,11 @@
 __all__ = [
     'block_matrix',
     'block_tensor',
+    'config',
     'elements',
     'manage_xyz',
     'math_utils',
     'nifty',
-    'config',
     'output',
     'units',
 ]

@@ -15,11 +15,11 @@ from pygsm.cli import cleanup_scratch, post_processing
 from pygsm.coordinate_systems.delocalized_coordinates import DelocalizedInternalCoordinates
 from pygsm.coordinate_systems.primitive_internals import PrimitiveInternalCoordinates
 from pygsm.coordinate_systems.topology import build_topology
-from pygsm.growing_string_methods import DE_GSM
+from pygsm.growing_string_methods import DEGSM
 from pygsm.level_of_theories.ase import ASELoT
 from pygsm.molecule import Molecule
-from pygsm.optimizers.eigenvector_follow import eigenvector_follow
-from pygsm.optimizers.lbfgs import lbfgs
+from pygsm.optimizers.eigenvector_follow import EigenvectorFollow
+from pygsm.optimizers.lbfgs import LBFGS
 from pygsm.potential_energy_surfaces import PES
 from pygsm.utilities import output
 from pygsm.utilities.elements import ElementData
@@ -145,15 +145,15 @@ def minimal_wrapper_de_gsm(
         opt_climb=only_climb,
     )
     if optimizer_method == 'eigenvector_follow':
-        optimizer_object = eigenvector_follow(**opt_options)
+        optimizer_object = EigenvectorFollow(**opt_options)
     elif optimizer_method == 'lbfgs':
-        optimizer_object = lbfgs(**opt_options)
+        optimizer_object = LBFGS(**opt_options)
     else:
         raise NotImplementedError
 
     # GSM
     output.printcool('Building the GSM object')
-    gsm = DE_GSM(
+    gsm = DEGSM(
         reactant=molecule_reactant,
         product=molecule_product,
         nnodes=num_nodes,
@@ -201,7 +201,7 @@ def minimal_wrapper_de_gsm(
     cleanup_scratch(gsm.ID)
 
 
-def gsm_to_ase_atoms(gsm: DE_GSM):
+def gsm_to_ase_atoms(gsm: DEGSM):
     # string
     frames = []
     for energy, geom in zip(gsm.energies, gsm.geometries):

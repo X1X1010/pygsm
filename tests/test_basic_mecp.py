@@ -9,10 +9,10 @@ from pygsm.coordinate_systems.delocalized_coordinates import (
 )
 from pygsm.coordinate_systems.primitive_internals import PrimitiveInternalCoordinates
 from pygsm.coordinate_systems.topology import build_topology
-from pygsm.level_of_theories.xtb_lot import xTB_lot
+from pygsm.level_of_theories.xtb_lot import XTBLoT
 from pygsm.molecule.molecule import Molecule
-from pygsm.optimizers import eigenvector_follow
-from pygsm.potential_energy_surfaces.penalty_pes import Penalty_PES
+from pygsm.optimizers import EigenvectorFollow
+from pygsm.potential_energy_surfaces.penalty_pes import PenaltyPES
 from pygsm.potential_energy_surfaces.pes import PES
 from pygsm.utilities import elements, manage_xyz, output
 
@@ -22,7 +22,7 @@ def test_basic_penalty_opt():
 
     coupling_states = []
 
-    lot1 = xTB_lot(
+    lot1 = XTBLoT(
         ID=0,
         states=[(1, 0)],
         gradient_states=[(1, 0)],
@@ -30,7 +30,7 @@ def test_basic_penalty_opt():
         geom=geom,
     )
 
-    lot2 = xTB_lot(
+    lot2 = XTBLoT(
         ID=1,
         states=[(1, 0)],
         gradient_states=[(1, 0)],
@@ -50,7 +50,7 @@ def test_basic_penalty_opt():
         ad_idx=0,
     )
 
-    pes = Penalty_PES(PES1=pes1, PES2=pes2, lot=lot1)
+    pes = PenaltyPES(PES1=pes1, PES2=pes2, lot=lot1)
 
     output.printcool('Building the topology')
     atom_symbols = manage_xyz.get_atoms(geom)
@@ -96,7 +96,7 @@ def test_basic_penalty_opt():
         Form_Hessian=Form_Hessian,
     )
 
-    optimizer = eigenvector_follow(
+    optimizer = EigenvectorFollow(
         Linesearch='backtrack',  # a step size algorithm
         OPTTHRESH=0.0005,  # The gradrms threshold, this is generally easy to reach for large systems
         DMAX=0.01,  # The initial max step size, will be adjusted if optimizer is doing well. Max is 0.5

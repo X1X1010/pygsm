@@ -189,9 +189,9 @@ def _molecule(geom, xyz2=None, coordinate_type='TRIC', form_hessian=True, counte
 
 
 def _optimizer(method, **opts):
-    from pygsm.optimizers import eigenvector_follow, lbfgs
+    from pygsm.optimizers import LBFGS, EigenvectorFollow
 
-    cls = {'ef': eigenvector_follow, 'lbfgs': lbfgs}[method]
+    cls = {'ef': EigenvectorFollow, 'lbfgs': LBFGS}[method]
     return cls(**opts)
 
 
@@ -246,7 +246,7 @@ def _gsm_result(gsm, counter):
 def _de_gsm(
     method='ef', climb=True, optimize_endpoints=False, num_nodes=9, max_gsm_steps=20, coordinate_type='TRIC', mp_cores=1
 ):
-    from pygsm.growing_string_methods import DE_GSM
+    from pygsm.growing_string_methods import DEGSM
     from pygsm.molecule import Molecule
 
     counter = CallCounter()
@@ -270,7 +270,7 @@ def _de_gsm(
             DMAX=0.1,
             opt_climb=climb,
         )
-        gsm = DE_GSM(
+        gsm = DEGSM(
             reactant=reactant,
             product=product,
             nnodes=num_nodes,
@@ -328,7 +328,7 @@ def segsm_ef():
         PrimitiveInternalCoordinates,
         build_topology,
     )
-    from pygsm.growing_string_methods import SE_GSM
+    from pygsm.growing_string_methods import SEGSM
     from pygsm.level_of_theories.ase import ASELoT
     from pygsm.molecule import Molecule
     from pygsm.potential_energy_surfaces import PES
@@ -355,7 +355,7 @@ def segsm_ef():
         pes = PES(lot=lot, ad_idx=0)
         reactant = Molecule(geom=geom, PES=pes, coord_obj=dlc, Form_Hessian=True)
         opt = _optimizer('ef', Linesearch='NoLineSearch', DMAX=0.1, conv_Ediff=100.0, conv_gmax=100.0, print_level=1)
-        gsm = SE_GSM(
+        gsm = SEGSM(
             reactant=reactant,
             nnodes=30,
             DQMAG_MAX=0.8,
@@ -403,7 +403,7 @@ def _two_state_lot_class():
 def mecp_penalty_ethylene():
     from pygsm.coordinate_systems import DelocalizedInternalCoordinates, PrimitiveInternalCoordinates, build_topology
     from pygsm.molecule import Molecule
-    from pygsm.potential_energy_surfaces import PES, Penalty_PES
+    from pygsm.potential_energy_surfaces import PES, PenaltyPES
     from pygsm.utilities import manage_xyz
 
     geom = manage_xyz.read_xyzs(str(DATA_DIR / 'ethylene.xyz'))[0]
@@ -423,7 +423,7 @@ def mecp_penalty_ethylene():
         )
         pes1 = PES(lot=lot, multiplicity=1, ad_idx=0)
         pes2 = PES(lot=lot, multiplicity=3, ad_idx=0)
-        pes = Penalty_PES(PES1=pes1, PES2=pes2, lot=lot, sigma=3.5)
+        pes = PenaltyPES(PES1=pes1, PES2=pes2, lot=lot, sigma=3.5)
         top = build_topology(xyz, atoms)
         flags = _coord_flags('TRIC')
         p1 = PrimitiveInternalCoordinates(xyz=xyz, atoms=atoms, topology=top, **flags)

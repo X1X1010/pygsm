@@ -5,9 +5,9 @@ from __future__ import annotations
 import json
 
 from pygsm.level_of_theories.ase import ASELoT
-from pygsm.level_of_theories.xtb_lot import xTB_lot
-from pygsm.optimizers import beales_cg, conjugate_gradient, eigenvector_follow, lbfgs
-from pygsm.potential_energy_surfaces import PES, Avg_PES, Penalty_PES
+from pygsm.level_of_theories.xtb_lot import XTBLoT
+from pygsm.optimizers import LBFGS, BealesCG, ConjugateGradient, EigenvectorFollow
+from pygsm.potential_energy_surfaces import PES, AvgPES, PenaltyPES
 
 
 def create_lot(inpfileq: dict, geom):
@@ -35,7 +35,7 @@ def create_lot(inpfileq: dict, geom):
             **lot_options,
         )
     if inpfileq['EST_Package'] == 'xTB':
-        return xTB_lot(
+        return XTBLoT(
             xTB_Hamiltonian=inpfileq['xTB_Hamiltonian'],
             xTB_accuracy=inpfileq['xTB_accuracy'],
             xTB_electronic_temperature=inpfileq['xTB_electronic_temperature'],
@@ -71,19 +71,19 @@ def choose_pes(lot, inpfileq: dict):
     )
 
     if inpfileq['PES_type'] == 'Avg_PES':
-        return Avg_PES(PES1=pes1, PES2=pes2, lot=lot)
+        return AvgPES(PES1=pes1, PES2=pes2, lot=lot)
     if inpfileq['PES_type'] == 'Penalty_PES':
-        return Penalty_PES(PES1=pes1, PES2=pes2, lot=lot, sigma=inpfileq['sigma'])
+        return PenaltyPES(PES1=pes1, PES2=pes2, lot=lot, sigma=inpfileq['sigma'])
     raise NotImplementedError(f'Unsupported PES type `{inpfileq["PES_type"]}`')
 
 
 def choose_optimizer(inpfileq: dict):
     update_hess_in_bg = not (inpfileq['only_climb'] or inpfileq['optimizer'] == 'lbfgs')
     optimizer_map = {
-        'conjugate_gradient': conjugate_gradient,
-        'eigenvector_follow': eigenvector_follow,
-        'lbfgs': lbfgs,
-        'beales_cg': beales_cg,
+        'conjugate_gradient': ConjugateGradient,
+        'eigenvector_follow': EigenvectorFollow,
+        'lbfgs': LBFGS,
+        'beales_cg': BealesCG,
     }
     try:
         opt_class = optimizer_map[inpfileq['optimizer']]

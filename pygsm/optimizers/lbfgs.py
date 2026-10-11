@@ -11,10 +11,10 @@ from ..coordinate_systems import CartesianCoordinates
 from ..utilities import block_matrix, manage_xyz, units
 
 # local application imports
-from .base_optimizer import base_optimizer
+from .base_optimizer import BaseOptimizer
 
 
-class iterationData:
+class IterationData:
     """docstring for iterationData"""
 
     def __init__(self, alpha, s, y):
@@ -23,7 +23,7 @@ class iterationData:
         self.y_prim = y  # diff in grad
 
 
-class lbfgs(base_optimizer):
+class LBFGS(BaseOptimizer):
     """the class of lbfgs method"""
 
     def __init__(self, options=None, **kwargs):
@@ -97,7 +97,7 @@ class lbfgs(base_optimizer):
             for _i in range(0, maxcor):
                 s_prim = np.zeros_like(g_prim)
                 y_prim = np.zeros_like(g_prim)
-                self.lm.append(iterationData(0.0, s_prim.flatten(), y_prim.flatten()))
+                self.lm.append(IterationData(0.0, s_prim.flatten(), y_prim.flatten()))
 
         for ostep in range(opt_steps):
             print(f' On opt step {ostep + 1} ')
@@ -195,7 +195,7 @@ class lbfgs(base_optimizer):
                 for _i in range(0, maxcor):
                     s_prim = np.zeros_like(g_prim)
                     y_prim = np.zeros_like(g_prim)
-                    self.lm.append(iterationData(0.0, s_prim.flatten(), y_prim.flatten()))
+                    self.lm.append(IterationData(0.0, s_prim.flatten(), y_prim.flatten()))
                 self.k = 0
                 self.end = 0
                 molecule.newHess = 5

@@ -73,7 +73,7 @@ class OptimizerConfig(Config):
 
 
 # TODO Add primitive constraint e.g. a list of internal coordinates to be left basically frozen throughout optimization
-class base_optimizer:
+class BaseOptimizer:
     """some common functions that the children can use (ef, cg, hybrid ef/cg, etc).
     e.g. dgrad_step.
     """

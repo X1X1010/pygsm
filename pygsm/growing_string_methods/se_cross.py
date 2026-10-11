@@ -3,14 +3,14 @@ import os
 from ..molecule import Molecule
 
 # local application imports
-from ..potential_energy_surfaces import PES, Avg_PES
+from ..potential_energy_surfaces import PES, AvgPES
 from ..utilities import output
-from .se_gsm import SE_GSM
+from .se_gsm import SEGSM
 
 # standard library imports
 
 
-class SE_Cross(SE_GSM):
+class SECross(SEGSM):
     is_crossing_search = True
 
     def on_growth_exhausted(self, error):
@@ -67,7 +67,7 @@ class SE_Cross(SE_GSM):
         if rtype == 0:
             # MECI optimization
             self.nodes[self.nR] = Molecule.copy_from(self.nodes[self.nR - 1], new_node_id=self.nR)
-            avg_pes = Avg_PES.create_pes_from(self.nodes[self.nR].PES)
+            avg_pes = AvgPES.create_pes_from(self.nodes[self.nR].PES)
             self.nodes[self.nR].PES = avg_pes
             path = os.path.join(os.getcwd(), f'scratch/{self.ID:03d}/{self.nR}')
             self.optimizer[self.nR].conv_grms = self.options.CONV_TOL

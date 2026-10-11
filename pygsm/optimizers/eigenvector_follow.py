@@ -11,10 +11,10 @@ from ..utilities import block_matrix, manage_xyz, units
 
 # local application imports
 from ._linesearch import NoLineSearch
-from .base_optimizer import base_optimizer
+from .base_optimizer import BaseOptimizer
 
 
-class eigenvector_follow(base_optimizer):
+class EigenvectorFollow(BaseOptimizer):
     def optimize(
         self,
         molecule,

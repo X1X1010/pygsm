@@ -6,7 +6,7 @@ from ..utilities import units
 from .pes import PES
 
 
-class Penalty_PES(PES):
+class PenaltyPES(PES):
     """penalty potential energy surface calculators"""
 
     def __init__(

@@ -14,7 +14,7 @@ from ..utilities import output
 from .main_gsm import MainGSM
 
 
-class SE_GSM(MainGSM):
+class SEGSM(MainGSM):
     def __init__(self, options=None, **kwargs):
         super().__init__(options, **kwargs)
         self.current_nnodes = 1

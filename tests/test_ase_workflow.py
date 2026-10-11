@@ -11,7 +11,7 @@ from pygsm.coordinate_systems import DelocalizedInternalCoordinates, build_topol
 from pygsm.growing_string_methods import GSM
 from pygsm.level_of_theories.ase import ASELoT
 from pygsm.molecule import Molecule
-from pygsm.optimizers import eigenvector_follow
+from pygsm.optimizers import EigenvectorFollow
 from pygsm.potential_energy_surfaces import PES
 from pygsm.utilities import elements, manage_xyz
 
@@ -98,7 +98,7 @@ def test_gsm_energy_cache_invalidates_when_node_geometry_changes():
 
     middle = Molecule.copy_from(reactant, xyz=midpoint, new_node_id=1, copy_wavefunction=False)
     product = Molecule.copy_from(reactant, xyz=displaced, new_node_id=2, copy_wavefunction=False)
-    optimizer = eigenvector_follow(Linesearch='backtrack', OPTTHRESH=0.0005, DMAX=0.1)
+    optimizer = EigenvectorFollow(Linesearch='backtrack', OPTTHRESH=0.0005, DMAX=0.1)
     gsm = GSM(reactant=reactant, product=product, nnodes=3, optimizer=optimizer)
     gsm.nodes[1] = middle
 

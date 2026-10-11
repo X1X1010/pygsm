@@ -35,7 +35,7 @@ class XTBConfig(LotConfig):
     solvent: str | None = option(None, doc='ALPB implicit solvent name')
 
 
-class xTB_lot(Lot):
+class XTBLoT(Lot):
     """GFN1/GFN2-xTB ground states, one calculation per requested spin multiplicity.
 
     Only adiabatic index 0 is available for each multiplicity, which is enough
