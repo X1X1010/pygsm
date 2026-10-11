@@ -331,7 +331,7 @@ class PrimitiveInternalCoordinates(InternalCoordinates):
         return self.GInverse_EIG(xyz)
 
     def add(self, dof, verbose=False):
-        if dof.__class__.__name__ in ['CartesianX', 'CartesianY', 'CartesianZ']:
+        if isinstance(dof, (CartesianX, CartesianY, CartesianZ)):
             if verbose:
                 print((' adding ', dof))
             self.Internals.append(dof)
@@ -344,7 +344,7 @@ class PrimitiveInternalCoordinates(InternalCoordinates):
             return False
 
     def tmp_add(self, dof, verbose=False):
-        if dof.__class__.__name__ in ['CartesianX', 'CartesianY', 'CartesianZ']:
+        if isinstance(dof, (CartesianX, CartesianY, CartesianZ)):
             if verbose:
                 print((' adding ', dof))
             self.tmp_Internals.append(dof)

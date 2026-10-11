@@ -6,6 +6,7 @@ from io import StringIO
 # third party
 import numpy as np
 
+from ..coordinate_systems import CartesianCoordinates
 from ..utilities import block_matrix, manage_xyz, units
 
 # local application imports
@@ -72,7 +73,7 @@ class eigenvector_follow(base_optimizer):
             self.opt_cross = True
 
         # TODO are these used? -- n is used for gradrms,linesearch
-        if molecule.coord_obj.__class__.__name__ == 'CartesianCoordinates':
+        if isinstance(molecule.coord_obj, CartesianCoordinates):
             n = molecule.num_coordinates
         else:
             n_actual = molecule.num_coordinates
@@ -97,7 +98,7 @@ class eigenvector_follow(base_optimizer):
             update_hess = True
 
             # => Form eigenvector step <= #
-            if molecule.coord_obj.__class__.__name__ == 'CartesianCoordinates':
+            if isinstance(molecule.coord_obj, CartesianCoordinates):
                 raise NotImplementedError
             else:
                 if opt_type != 'TS':
@@ -122,7 +123,7 @@ class eigenvector_follow(base_optimizer):
             xyzp = xyz.copy()
             fxp = fx
             pgradrms = molecule.gradrms
-            if molecule.coord_obj.__class__.__name__ != 'CartesianCoordinates':
+            if not isinstance(molecule.coord_obj, CartesianCoordinates):
                 gp_prim = self.g_prim.copy()
 
             # => calculate constraint step <= #
@@ -191,7 +192,7 @@ class eigenvector_follow(base_optimizer):
                 manage_xyz.write_xyzs_w_comments(f'{path}/opt_{molecule.node_id}.xyz', geoms, energies, scale=1.0)
 
             # save variables for update Hessian!
-            if molecule.coord_obj.__class__.__name__ != 'CartesianCoordinates':
+            if not isinstance(molecule.coord_obj, CartesianCoordinates):
                 # only form g_prim for non-constrained
                 self.g_prim = block_matrix.dot(molecule.coord_basis, gc)
                 self.dx = x - xp
@@ -268,7 +269,7 @@ class eigenvector_follow(base_optimizer):
                 break
 
             # update DLC  --> this changes q, g, Hint
-            if molecule.coord_obj.__class__.__name__ != 'CartesianCoordinates' and opt_type != 'TS':
+            if not isinstance(molecule.coord_obj, CartesianCoordinates) and opt_type != 'TS':
                 constraints = self.get_constraint_vectors(molecule, opt_type, ictan)
                 molecule.update_coordinate_basis(constraints=constraints)
                 x = np.copy(molecule.coordinates)

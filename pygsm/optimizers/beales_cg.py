@@ -5,6 +5,7 @@ from io import StringIO
 # third party
 import numpy as np
 
+from ..coordinate_systems import CartesianCoordinates
 from ..utilities import block_matrix, manage_xyz
 
 # local application imports
@@ -172,7 +173,7 @@ class beales_cg(base_optimizer):
                 manage_xyz.write_xyzs_w_comments(f'opt_{molecule.node_id}.xyz', geoms, energies, scale=1.0)
 
             # save variables for update Hessian!
-            if molecule.coord_obj.__class__.__name__ != 'CartesianCoordinates' or self.options['update_hess_in_bg']:
+            if not isinstance(molecule.coord_obj, CartesianCoordinates) or self.options['update_hess_in_bg']:
                 self.dx_prim = molecule.coord_obj.Prims.calcDiff(xyz, xyzp)
                 self.dx_prim = np.reshape(self.dx_prim, (-1, 1))
                 self.dg_prim = g_prim - gp_prim
@@ -225,7 +226,7 @@ class beales_cg(base_optimizer):
                 break
 
             # update DLC  --> this changes q, g, Hint
-            if molecule.coord_obj.__class__.__name__ != 'CartesianCoordinates' and opt_type in ('SEAM', 'MECI'):
+            if not isinstance(molecule.coord_obj, CartesianCoordinates) and opt_type in ('SEAM', 'MECI'):
                 print(' updating DLC')
                 sys.stdout.flush()
                 constraints = self.get_constraint_vectors(molecule, opt_type, ictan)

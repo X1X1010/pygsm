@@ -6,6 +6,7 @@ import numpy as np
 
 from pygsm.molecule.molecule import Molecule
 from pygsm.optimizers import eigenvector_follow
+from pygsm.potential_energy_surfaces import Avg_PES
 from pygsm.utilities import block_matrix, units
 from pygsm.utilities.manage_xyz import xyz_to_np
 from pygsm.utilities.output import printcool
@@ -21,6 +22,10 @@ from .gsm import GSM
 
 
 class MainGSM(GSM):
+    def on_growth_exhausted(self, error):
+        """Called when growth stops because no further node can be added."""
+        raise RuntimeError(f'cannot grow the string any further: {error}') from error
+
     def grow_string(self, max_iters=30, max_opt_steps=3, nconstraints=1):
         return _grow_string(self, max_iters=max_iters, max_opt_steps=max_opt_steps, nconstraints=nconstraints)
 
@@ -130,6 +135,8 @@ class MainGSM(GSM):
                     path=path,
                 )
 
+        # FIXME: 'SE-GSM' (hyphen) never matches the SE_GSM class, so this block never runs.
+        # Enabling it changes SE-GSM results; kept as is to preserve behaviour.
         if self.__class__.__name__ == 'SE-GSM' and self.done_growing:
             fp = self.find_peaks('opting')
             if (
@@ -172,7 +179,7 @@ class MainGSM(GSM):
             print(nlist)
 
         for n in range(ncurrent):
-            if self.__class__.__name__ == 'DE_GSM':  # or self.__class__.__name__=="SE_Cross":
+            if self.is_double_ended:
                 print(
                     f' getting tangent [{nlist[2 * n]} ]from between {nlist[2 * n]} {nlist[2 * n + 1]} pointing towards {nlist[2 * n]}'
                 )
@@ -314,7 +321,7 @@ class MainGSM(GSM):
             if self.nodes[self.nR] is None:
                 raise RuntimeError('Ran out of space')
 
-            if self.__class__.__name__ != 'DE_GSM':
+            if not self.is_double_ended:
                 _ictan, bdist = self.get_tangent(
                     self.nodes[self.nR],
                     None,
@@ -615,11 +622,11 @@ class MainGSM(GSM):
     def set_opt_type(self, n, quiet=False):
         # TODO error for seam climb
         opt_type = 'ICTAN'
-        if self.climb and n == self.TSnode and not self.find and self.nodes[n].PES.__class__.__name__ != 'Avg_PES':
+        if self.climb and n == self.TSnode and not self.find and not isinstance(self.nodes[n].PES, Avg_PES):
             opt_type = 'CLIMB'
         elif self.find and n == self.TSnode:
             opt_type = 'TS'
-        elif self.nodes[n].PES.__class__.__name__ == 'Avg_PES':
+        elif isinstance(self.nodes[n].PES, Avg_PES):
             opt_type = 'SEAM'
             if self.climb and n == self.TSnode:
                 opt_type = 'TS-SEAM'

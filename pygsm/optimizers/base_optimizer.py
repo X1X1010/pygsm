@@ -1,6 +1,7 @@
 # third party
 import numpy as np
 
+from ..coordinate_systems import CartesianCoordinates, DelocalizedInternalCoordinates
 from ..utilities import block_matrix, options, units
 
 # local application imports
@@ -557,7 +558,7 @@ class base_optimizer:
         # do this even if mode==BOFILL
         change = self.update_bfgs(molecule)
 
-        if molecule.coord_obj.__class__.__name__ == 'DelocalizedInternalCoordinates':
+        if isinstance(molecule.coord_obj, DelocalizedInternalCoordinates):
             molecule.update_Primitive_Hessian(change=change)
             if self.options['print_level'] > 1:
                 print('change')
@@ -574,7 +575,7 @@ class base_optimizer:
         return change
 
     def update_bfgs(self, molecule):
-        if molecule.coord_obj.__class__.__name__ != 'CartesianCoordinates':
+        if not isinstance(molecule.coord_obj, CartesianCoordinates):
             return self.update_bfgsp(molecule)
         else:
             raise NotImplementedError

@@ -9,6 +9,7 @@ import numpy as np
 
 from pygsm.coordinate_systems import Angle, Dihedral, Distance, OutOfPlane
 from pygsm.molecule import Molecule
+from pygsm.potential_energy_surfaces import Penalty_PES
 from pygsm.utilities import options, output
 from pygsm.utilities.manage_xyz import write_molden_geoms
 
@@ -25,6 +26,11 @@ from ._shared import worker
 
 
 class GSM:
+    #: True for strings that start from both reactant and product (DE-GSM).
+    is_double_ended = False
+    #: True for the single-ended crossing search (SE-Cross), which optimises on a penalty PES.
+    is_crossing_search = False
+
     @staticmethod
     def default_options():
         if hasattr(GSM, '_default_options'):
@@ -203,7 +209,7 @@ class GSM:
         """
         # Treat GSM with penalty a little different since penalty will increase energy based on energy
         # differences, which might not be great for Climbing Image
-        if self.__class__.__name__ != 'SE_Cross' and self.nodes[0].PES.__class__.__name__ == 'Penalty_PES':
+        if not self.is_crossing_search and isinstance(self.nodes[0].PES, Penalty_PES):
             energies = np.asarray([0.0] * self.nnodes)
             for i, node in enumerate(self.nodes):
                 if node is not None:

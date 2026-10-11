@@ -2,8 +2,6 @@
 
 from __future__ import annotations
 
-import os
-
 from pygsm.molecule import Molecule
 from pygsm.utilities.output import printcool
 
@@ -42,23 +40,7 @@ def grow_string(gsm, max_iters=30, max_opt_steps=3, nconstraints=1):
         except (IndexError, RuntimeError, ValueError) as error:
             print(f"can't add anymore nodes, bdist too small: {error}")
 
-            if gsm.__class__.__name__ == 'SE_GSM':
-                opt_type = 'MECI' if gsm.nodes[gsm.nR - 1].PES.lot.do_coupling else 'UNCONSTRAINED'
-                print(' optimizing last node')
-                gsm.optimizer[gsm.nR - 1].conv_grms = gsm.CONV_TOL
-                print(gsm.optimizer[gsm.nR - 1].conv_grms)
-                path = os.path.join(os.getcwd(), f'scratch/{gsm.ID:03d}/{gsm.nR - 1}')
-                gsm.optimizer[gsm.nR - 1].optimize(
-                    molecule=gsm.nodes[gsm.nR - 1],
-                    refE=gsm.nodes[0].V0,
-                    opt_steps=50,
-                    opt_type=opt_type,
-                    path=path,
-                )
-            elif gsm.__class__.__name__ == 'SE_Cross':
-                print(' Will do extra optimization of this node in SE-Cross')
-            else:
-                raise RuntimeError(f'cannot grow the string any further: {error}') from error
+            gsm.on_growth_exhausted(error)
             break
 
         gsm.set_active(gsm.nR - 1, gsm.nnodes - gsm.nP)

@@ -11,6 +11,12 @@ from .se_gsm import SE_GSM
 
 
 class SE_Cross(SE_GSM):
+    is_crossing_search = True
+
+    def on_growth_exhausted(self, error):
+        # SE-Cross optimises the last node itself after growth (see go_gsm).
+        print(' Will do extra optimization of this node in SE-Cross')
+
     def go_gsm(self, max_iters=50, opt_steps=3, rtype=0):
         """rtype=0 MECI search
         rtype=1 MESX search

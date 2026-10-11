@@ -420,7 +420,7 @@ class Molecule:
         self.coord_obj.Vecs = value
 
     def update_coordinate_basis(self, constraints=None):
-        if self.coord_obj.__class__.__name__ == 'CartesianCoordinates':
+        if isinstance(self.coord_obj, CartesianCoordinates):
             return
 
         print(' updating coord basis')

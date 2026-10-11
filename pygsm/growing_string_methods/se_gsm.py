@@ -165,6 +165,21 @@ class SE_GSM(MainGSM):
             )
         return
 
+    def on_growth_exhausted(self, error):
+        """Optimise the last grown node once the driving coordinates are exhausted."""
+        opt_type = 'MECI' if self.nodes[self.nR - 1].PES.lot.do_coupling else 'UNCONSTRAINED'
+        print(' optimizing last node')
+        self.optimizer[self.nR - 1].conv_grms = self.CONV_TOL
+        print(self.optimizer[self.nR - 1].conv_grms)
+        path = os.path.join(os.getcwd(), f'scratch/{self.ID:03d}/{self.nR - 1}')
+        self.optimizer[self.nR - 1].optimize(
+            molecule=self.nodes[self.nR - 1],
+            refE=self.nodes[0].V0,
+            opt_steps=50,
+            opt_type=opt_type,
+            path=path,
+        )
+
     def grow_nodes(self):
         if self.nodes[self.nR - 1].gradrms < self.options['ADD_NODE_TOL']:
             if self.nR == self.nnodes:

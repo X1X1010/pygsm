@@ -7,6 +7,7 @@ from io import StringIO
 import numpy as np
 from scipy.optimize import LbfgsInvHessProduct
 
+from ..coordinate_systems import CartesianCoordinates
 from ..utilities import block_matrix, manage_xyz, units
 
 # local application imports
@@ -324,7 +325,7 @@ class lbfgs(base_optimizer):
                 break
 
             # update DLC  --> this changes q, g, Hint
-            if molecule.coord_obj.__class__.__name__ != 'CartesianCoordinates' and opt_type in ('SEAM', 'MECI'):
+            if not isinstance(molecule.coord_obj, CartesianCoordinates) and opt_type in ('SEAM', 'MECI'):
                 constraints = self.get_constraint_vectors(molecule, opt_type, ictan)
                 molecule.update_coordinate_basis(constraints=constraints)
                 x = np.copy(molecule.coordinates)

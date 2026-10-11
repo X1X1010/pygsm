@@ -4,6 +4,7 @@ from io import StringIO
 # third party
 import numpy as np
 
+from ..coordinate_systems import CartesianCoordinates
 from ..utilities import units
 
 # local application imports
@@ -36,7 +37,7 @@ class conjugate_gradient(base_optimizer):
         x = np.copy(molecule.coordinates)
 
         # number of coordinates
-        if molecule.coord_obj.__class__.__name__ == 'CartesianCoordinates':
+        if isinstance(molecule.coord_obj, CartesianCoordinates):
             n = molecule.num_coordinates
         else:
             n_actual = molecule.num_coordinates
@@ -161,7 +162,7 @@ class conjugate_gradient(base_optimizer):
             #    #print self.disp
 
             # update DLC  --> this changes q, g, Hint
-            if molecule.coord_obj.__class__.__name__ != 'CartesianCoordinates':
+            if not isinstance(molecule.coord_obj, CartesianCoordinates):
                 constraints = self.get_constraint_vectors(molecule, opt_type, ictan)
                 molecule.update_coordinate_basis(constraints=constraints)
                 x = np.copy(molecule.coordinates)

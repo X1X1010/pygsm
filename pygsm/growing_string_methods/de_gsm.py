@@ -4,6 +4,8 @@ from .main_gsm import MainGSM
 
 
 class DE_GSM(MainGSM):
+    is_double_ended = True
+
     def __init__(
         self,
         options,
