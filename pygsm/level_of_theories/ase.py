@@ -35,20 +35,15 @@ class ASELoT(Lot):
         multiplicity is not implemented, the calculator ignores it
     """
 
-    def __init__(self, calculator: Calculator, options):
-        super().__init__(options)
+    def __init__(self, calculator: Calculator, options=None, **kwargs):
+        super().__init__(options, **kwargs)
 
         self.ase_calculator = calculator
 
     @classmethod
-    def from_options(cls, calculator: Calculator, **kwargs):
-        """Returns an instance of this class with default options updated from values in kwargs"""
-        return cls(calculator, cls.default_options().set_values(kwargs))
-
-    @classmethod
-    def copy(cls, lot, options, copy_wavefunction=True):
+    def copy(cls, lot, options=None, copy_wavefunction=True):
         assert isinstance(lot, ASELoT)
-        return cls(lot.ase_calculator, lot.options.copy().set_values(options))
+        return cls(lot.ase_calculator, lot.options.replace(**(options or {})))
 
     @classmethod
     def from_calculator_string(cls, calculator_import: str, calculator_kwargs=None, **kwargs):
@@ -76,7 +71,7 @@ class ASELoT(Lot):
         _ = kwargs.pop('calculator', None)
 
         # construct from the constructor
-        return cls.from_options(calc_class(**calculator_kwargs), **kwargs)
+        return cls(calc_class(**calculator_kwargs), **kwargs)
 
     def run(self, geom, mult, ad_idx, runtype='gradient'):
         # run ASE

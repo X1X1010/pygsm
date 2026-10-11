@@ -59,10 +59,10 @@ def minimal_wrapper_de_gsm(
     output.printcool('Parsed GSM')
 
     # LOT
-    lot = ASELoT.from_options(calculator, geom=[[x.symbol, *x.position] for x in atoms_reactant], ID=ID)
+    lot = ASELoT(calculator, geom=[[x.symbol, *x.position] for x in atoms_reactant], ID=ID)
 
     # PES
-    pes_obj = PES.from_options(lot=lot, ad_idx=0, multiplicity=1)
+    pes_obj = PES(lot=lot, ad_idx=0, multiplicity=1)
 
     # Build the topology
     output.printcool('Building the topologies')
@@ -86,7 +86,7 @@ def minimal_wrapper_de_gsm(
     # primitive internal coordinates
     output.printcool('Building Primitive Internal Coordinates')
 
-    prim_reactant = PrimitiveInternalCoordinates.from_options(
+    prim_reactant = PrimitiveInternalCoordinates(
         xyz=atoms_reactant.get_positions(),
         atoms=elements,
         topology=topology_reactant,
@@ -95,7 +95,7 @@ def minimal_wrapper_de_gsm(
         addcart=coordinate_type == 'HDLC',
     )
 
-    prim_product = PrimitiveInternalCoordinates.from_options(
+    prim_product = PrimitiveInternalCoordinates(
         xyz=atoms_product.get_positions(),
         atoms=elements,
         topology=topology_product,
@@ -109,7 +109,7 @@ def minimal_wrapper_de_gsm(
 
     # Delocalised internal coordinates
     output.printcool('Building Delocalized Internal Coordinates')
-    deloc_coords_reactant = DelocalizedInternalCoordinates.from_options(
+    deloc_coords_reactant = DelocalizedInternalCoordinates(
         xyz=atoms_reactant.get_positions(),
         atoms=elements,
         connect=coordinate_type == 'DLC',
@@ -122,14 +122,14 @@ def minimal_wrapper_de_gsm(
     output.printcool(f'Building the reactant object with {coordinate_type}')
     from_hessian = optimizer_method == 'eigenvector_follow'
 
-    molecule_reactant = Molecule.from_options(
+    molecule_reactant = Molecule(
         geom=[[x.symbol, *x.position] for x in atoms_reactant],
         PES=pes_obj,
         coord_obj=deloc_coords_reactant,
         Form_Hessian=from_hessian,
     )
 
-    molecule_product = Molecule.copy_from_options(
+    molecule_product = Molecule.copy_from(
         molecule_reactant, xyz=atoms_product.get_positions(), new_node_id=num_nodes - 1, copy_wavefunction=False
     )
 
@@ -145,15 +145,15 @@ def minimal_wrapper_de_gsm(
         opt_climb=only_climb,
     )
     if optimizer_method == 'eigenvector_follow':
-        optimizer_object = eigenvector_follow.from_options(**opt_options)
+        optimizer_object = eigenvector_follow(**opt_options)
     elif optimizer_method == 'lbfgs':
-        optimizer_object = lbfgs.from_options(**opt_options)
+        optimizer_object = lbfgs(**opt_options)
     else:
         raise NotImplementedError
 
     # GSM
     output.printcool('Building the GSM object')
-    gsm = DE_GSM.from_options(
+    gsm = DE_GSM(
         reactant=molecule_reactant,
         product=molecule_product,
         nnodes=num_nodes,

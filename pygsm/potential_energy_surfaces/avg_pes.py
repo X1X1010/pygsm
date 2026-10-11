@@ -17,20 +17,8 @@ class Avg_PES(PES):
         lot,
     ):
         self.options = PES1.options
-        self.PES1 = PES(
-            PES1.options.copy().set_values(
-                {
-                    'lot': lot,
-                }
-            )
-        )
-        self.PES2 = PES(
-            PES2.options.copy().set_values(
-                {
-                    'lot': lot,
-                }
-            )
-        )
+        self.PES1 = PES(PES1.options.replace(lot=lot))
+        self.PES2 = PES(PES2.options.replace(lot=lot))
         self._dE = 1000.0
         self.lot = lot
         self.lot.do_coupling = True

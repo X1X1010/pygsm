@@ -370,7 +370,7 @@ class MainGSM(GrowthMixin, OptimizationMixin, GSM):
         self.nodes[0].xyz = xyz_to_np(geoms[0])
         self.nodes[nstructs - 1].xyz = xyz_to_np(geoms[-1])
         for struct in range(1, nstructs - 1):
-            self.nodes[struct] = Molecule.copy_from_options(
+            self.nodes[struct] = Molecule.copy_from(
                 self.nodes[struct - 1], xyz_to_np(geoms[struct]), new_node_id=struct, copy_wavefunction=False
             )
             self.nodes[struct].newHess = 5
@@ -399,6 +399,6 @@ class MainGSM(GrowthMixin, OptimizationMixin, GSM):
         for n in range(1, self.nnodes - 1):
             self.active[n] = True
             self.optimizer[n].conv_grms = self.CONV_TOL * 2.5
-            self.optimizer[n].options['DMAX'] = 0.05
+            self.optimizer[n].options.DMAX = 0.05
 
         return

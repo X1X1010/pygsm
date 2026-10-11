@@ -61,7 +61,7 @@ class beales_cg(base_optimizer):
         for ostep in range(opt_steps):
             print(f' On opt step {ostep + 1} ')
 
-            if update_hess and self.options['update_hess_in_bg']:
+            if update_hess and self.options.update_hess_in_bg:
                 if opt_type != 'TS':
                     self.update_Hessian(molecule, 'BFGS')
                 else:
@@ -121,18 +121,18 @@ class beales_cg(base_optimizer):
             if nconstraints > 0:
                 g = g - np.dot(g.T, molecule.constraints) * molecule.constraints
 
-            if ls['step'] > self.options['DMAX']:
-                if ls['step'] <= self.options['abs_max_step']:  # absolute max
+            if ls['step'] > self.options.DMAX:
+                if ls['step'] <= self.options.abs_max_step:  # absolute max
                     print(' Increasing DMAX to {}'.format(ls['step']))
-                    self.options['DMAX'] = ls['step']
+                    self.options.DMAX = ls['step']
                 else:
-                    self.options['DMAX'] = self.options['abs_max_step']
-            elif ls['step'] < self.options['DMAX']:
+                    self.options.DMAX = self.options.abs_max_step
+            elif ls['step'] < self.options.DMAX:
                 if ls['step'] >= self.DMIN:  # absolute min
                     print(' Decreasing DMAX to {}'.format(ls['step']))
-                    self.options['DMAX'] = ls['step']
+                    self.options.DMAX = ls['step']
                 elif ls['step'] <= self.DMIN:
-                    self.options['DMAX'] = self.DMIN
+                    self.options.DMAX = self.DMIN
                     print(f' Decreasing DMAX to {self.DMIN}')
 
             # dE
@@ -173,23 +173,19 @@ class beales_cg(base_optimizer):
                 manage_xyz.write_xyzs_w_comments(f'opt_{molecule.node_id}.xyz', geoms, energies, scale=1.0)
 
             # save variables for update Hessian!
-            if not isinstance(molecule.coord_obj, CartesianCoordinates) or self.options['update_hess_in_bg']:
+            if not isinstance(molecule.coord_obj, CartesianCoordinates) or self.options.update_hess_in_bg:
                 self.dx_prim = molecule.coord_obj.Prims.calcDiff(xyz, xyzp)
                 self.dx_prim = np.reshape(self.dx_prim, (-1, 1))
                 self.dg_prim = g_prim - gp_prim
             else:
                 raise NotImplementedError(' ef not implemented for CART')
 
-            if self.options['print_level'] > 0:
+            if self.options.print_level > 0:
                 print(
-                    ' Opt step: {} E: {:5.4f} gradrms: {:1.5f} ss: {:1.3f} DMAX: {:1.3f}'.format(
-                        ostep + 1, fx - refE, molecule.gradrms, step, self.options['DMAX']
-                    )
+                    f' Opt step: {ostep + 1} E: {fx - refE:5.4f} gradrms: {molecule.gradrms:1.5f} ss: {step:1.3f} DMAX: {self.options.DMAX:1.3f}'
                 )
             self.buf.write(
-                ' Opt step: {} E: {:5.4f} gradrms: {:1.5f} ss: {:1.3f} DMAX: {:1.3f}\n'.format(
-                    ostep + 1, fx - refE, molecule.gradrms, step, self.options['DMAX']
-                )
+                f' Opt step: {ostep + 1} E: {fx - refE:5.4f} gradrms: {molecule.gradrms:1.5f} ss: {step:1.3f} DMAX: {self.options.DMAX:1.3f}\n'
             )
 
             # check for convergence TODO

@@ -22,7 +22,7 @@ def test_basic_penalty_opt():
 
     coupling_states = []
 
-    lot1 = xTB_lot.from_options(
+    lot1 = xTB_lot(
         ID=0,
         states=[(1, 0)],
         gradient_states=[(1, 0)],
@@ -30,7 +30,7 @@ def test_basic_penalty_opt():
         geom=geom,
     )
 
-    lot2 = xTB_lot.from_options(
+    lot2 = xTB_lot(
         ID=1,
         states=[(1, 0)],
         gradient_states=[(1, 0)],
@@ -38,13 +38,13 @@ def test_basic_penalty_opt():
         geom=geom,
     )
 
-    pes1 = PES.from_options(
+    pes1 = PES(
         lot=lot1,
         multiplicity=1,
         ad_idx=0,
     )
 
-    pes2 = PES.from_options(
+    pes2 = PES(
         lot=lot2,
         multiplicity=1,
         ad_idx=0,
@@ -67,7 +67,7 @@ def test_basic_penalty_opt():
     connect = False
     addtr = True
     addcart = False
-    p1 = PrimitiveInternalCoordinates.from_options(
+    p1 = PrimitiveInternalCoordinates(
         xyz=xyz1,
         atoms=atoms,
         connect=connect,
@@ -77,7 +77,7 @@ def test_basic_penalty_opt():
     )
 
     output.printcool('Building Delocalized Internal Coordinates')
-    coord_obj1 = DelocalizedInternalCoordinates.from_options(
+    coord_obj1 = DelocalizedInternalCoordinates(
         xyz=xyz1,
         atoms=atoms,
         addtr=addtr,
@@ -89,14 +89,14 @@ def test_basic_penalty_opt():
     output.printcool('Building the molecule')
 
     Form_Hessian = True
-    initial = Molecule.from_options(
+    initial = Molecule(
         geom=geom,
         PES=pes,
         coord_obj=coord_obj1,
         Form_Hessian=Form_Hessian,
     )
 
-    optimizer = eigenvector_follow.from_options(
+    optimizer = eigenvector_follow(
         Linesearch='backtrack',  # a step size algorithm
         OPTTHRESH=0.0005,  # The gradrms threshold, this is generally easy to reach for large systems
         DMAX=0.01,  # The initial max step size, will be adjusted if optimizer is doing well. Max is 0.5

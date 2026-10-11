@@ -15,11 +15,8 @@ from .main_gsm import MainGSM
 
 
 class SE_GSM(MainGSM):
-    def __init__(
-        self,
-        options,
-    ):
-        super().__init__(options)
+    def __init__(self, options=None, **kwargs):
+        super().__init__(options, **kwargs)
         self.current_nnodes = 1
 
         print(' Assuming the isomers are initialized!')
@@ -61,7 +58,7 @@ class SE_GSM(MainGSM):
                     self.add_last_node(2)
                 elif self.pastts == 2 or self.pastts == 3:  # when cgrad is positive
                     self.add_last_node(1)
-                    if self.nodes[self.nR - 1].gradrms > 5.0 * self.options['CONV_TOL']:
+                    if self.nodes[self.nR - 1].gradrms > 5.0 * self.options.CONV_TOL:
                         self.add_last_node(1)
                 elif self.pastts == 3:  # product detected by bonding
                     self.add_last_node(1)
@@ -119,12 +116,12 @@ class SE_GSM(MainGSM):
 
         if rtype == 1:
             print(' copying last node, opting')
-            self.nodes[self.nR] = Molecule.copy_from_options(self.nodes[self.nR - 1], new_node_id=self.nR)
+            self.nodes[self.nR] = Molecule.copy_from(self.nodes[self.nR - 1], new_node_id=self.nR)
             print(f' Optimizing node {self.nR}')
-            self.optimizer[self.nR].conv_grms = self.options['CONV_TOL']
-            self.optimizer[self.nR].conv_gmax = self.options['CONV_gmax']
-            self.optimizer[self.nR].conv_Ediff = self.options['CONV_Ediff']
-            self.optimizer[self.nR].conv_dE = self.options['CONV_dE']
+            self.optimizer[self.nR].conv_grms = self.options.CONV_TOL
+            self.optimizer[self.nR].conv_gmax = self.options.CONV_gmax
+            self.optimizer[self.nR].conv_Ediff = self.options.CONV_Ediff
+            self.optimizer[self.nR].conv_dE = self.options.CONV_dE
             path = os.path.join(os.getcwd(), f'scratch/{self.ID:03d}/{self.nR}')
             self.optimizer[self.nR].optimize(
                 molecule=self.nodes[self.nR],
@@ -140,10 +137,10 @@ class SE_GSM(MainGSM):
                 self.nR += 1
         elif rtype == 2:
             print(' already created node, opting')
-            self.optimizer[self.nR - 1].conv_grms = self.options['CONV_TOL']
-            self.optimizer[self.nR - 1].conv_gmax = self.options['CONV_gmax']
-            self.optimizer[self.nR - 1].conv_Ediff = self.options['CONV_Ediff']
-            self.optimizer[self.nR - 1].conv_dE = self.options['CONV_dE']
+            self.optimizer[self.nR - 1].conv_grms = self.options.CONV_TOL
+            self.optimizer[self.nR - 1].conv_gmax = self.options.CONV_gmax
+            self.optimizer[self.nR - 1].conv_Ediff = self.options.CONV_Ediff
+            self.optimizer[self.nR - 1].conv_dE = self.options.CONV_dE
             path = os.path.join(os.getcwd(), f'scratch/{self.ID:03d}/{self.nR - 1}')
             self.optimizer[self.nR - 1].optimize(
                 molecule=self.nodes[self.nR - 1],
@@ -170,7 +167,7 @@ class SE_GSM(MainGSM):
         )
 
     def grow_nodes(self):
-        if self.nodes[self.nR - 1].gradrms < self.options['ADD_NODE_TOL']:
+        if self.nodes[self.nR - 1].gradrms < self.options.ADD_NODE_TOL:
             if self.nR == self.nnodes:
                 print(' Ran out of nodes, exiting GSM')
                 raise ValueError
@@ -195,10 +192,8 @@ class SE_GSM(MainGSM):
 
     def set_frontier_convergence(self, nR):
         # set
-        self.optimizer[nR].conv_grms = self.options['ADD_NODE_TOL']
-        self.optimizer[
-            nR
-        ].conv_gmax = 100.0  # self.options['ADD_NODE_TOL'] # could use some multiplier times CONV_GMAX...
+        self.optimizer[nR].conv_grms = self.options.ADD_NODE_TOL
+        self.optimizer[nR].conv_gmax = 100.0  # self.options.ADD_NODE_TOL # could use some multiplier times CONV_GMAX...
         self.optimizer[nR].conv_Ediff = 1000.0  # 2.5
         print(f' conv_tol of node {nR} is {self.optimizer[nR].conv_grms:.4f}')
 
@@ -334,7 +329,7 @@ class SE_GSM(MainGSM):
         elif (
             fp == -1
             and self.energies[self.nR - 1] > 200.0
-            and self.nodes[self.nR - 1].gradrms > self.options['CONV_TOL'] * 5
+            and self.nodes[self.nR - 1].gradrms > self.options.CONV_TOL * 5
         ):
             print('growth_iters over: all uphill and high energy')
             self.end_early = 2
@@ -353,7 +348,7 @@ class SE_GSM(MainGSM):
 
     def is_converged(self, totalgrad, fp, rtype, ts_cgradq):
         if self.TSnode == self.nnodes - 2 and (self.find or totalgrad < 0.2) and fp == 1:
-            if self.nodes[self.nR - 1].gradrms > self.options['CONV_TOL']:
+            if self.nodes[self.nR - 1].gradrms > self.options.CONV_TOL:
                 print('TS node is second to last node, adding one more node')
                 self.add_last_node(1)
                 self.nnodes = self.nR

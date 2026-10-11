@@ -26,8 +26,8 @@ class iterationData:
 class lbfgs(base_optimizer):
     """the class of lbfgs method"""
 
-    def __init__(self, options):
-        super().__init__(options)
+    def __init__(self, options=None, **kwargs):
+        super().__init__(options, **kwargs)
         self.k = 0
         self.end = 0
 
@@ -102,9 +102,9 @@ class lbfgs(base_optimizer):
         for ostep in range(opt_steps):
             print(f' On opt step {ostep + 1} ')
 
-            SCALE = self.options['SCALEQN']
+            SCALE = self.options.SCALEQN
             if molecule.newHess > 0:
-                SCALE = self.options['SCALEQN'] * molecule.newHess
+                SCALE = self.options.SCALEQN * molecule.newHess
 
             if self.k != 0:
                 # update vectors s and y:
@@ -248,11 +248,11 @@ class lbfgs(base_optimizer):
                     dgradrms = molecule.gradrms - pgradrms
                     print('dgradrms ', dgradrms)
                     if ls['step'] > self.DMAX:
-                        if ls['step'] <= self.options['abs_max_step']:  # absolute max
+                        if ls['step'] <= self.options.abs_max_step:  # absolute max
                             print(' Increasing DMAX to {}'.format(ls['step']))
                             self.DMAX = ls['step']
                         else:
-                            self.DMAX = self.options['abs_max_step']
+                            self.DMAX = self.options.abs_max_step
                     elif ls['step'] < self.DMAX:
                         if ls['step'] >= self.DMIN:  # absolute min
                             print(' Decreasing DMAX to {}'.format(ls['step']))
@@ -263,8 +263,8 @@ class lbfgs(base_optimizer):
                     elif ratio > 0.85 and ratio < 1.1 and actual_step > self.DMAX and dgradrms < -0.00005:
                         print(' HERE increasing DMAX')
                         self.DMAX *= 1.1
-                        if self.options['abs_max_step'] < self.DMAX:
-                            self.DMAX = self.options['abs_max_step']
+                        if self.options.abs_max_step < self.DMAX:
+                            self.DMAX = self.options.abs_max_step
                 else:
                     print('status not zero')
 
@@ -273,7 +273,7 @@ class lbfgs(base_optimizer):
                 energies.append(molecule.energy - refE)
                 manage_xyz.write_xyzs_w_comments(f'{path}/opt_{molecule.node_id}.xyz', geoms, energies, scale=1.0)
 
-            if self.options['print_level'] > 0:
+            if self.options.print_level > 0:
                 print(
                     f' Node: {molecule.node_id} Opt step: {ostep + 1} E: {fx - refE:5.4f} predE: {dEpre:5.4f} ratio: {ratio:1.3f} gradrms: {molecule.gradrms:1.5f} ss: {step:1.3f} DMAX: {self.DMAX:1.3f}'
                 )

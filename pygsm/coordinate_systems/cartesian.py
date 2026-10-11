@@ -12,15 +12,16 @@ class CartesianCoordinates(InternalCoordinates):
     primitive internal coordinates.
     """
 
-    def __init__(self, options):
-        super().__init__(options)
+    def __init__(self, options=None, **kwargs):
+        super().__init__(options, **kwargs)
+        options = self.options
         self.Internals = []
         self.cPrims = []
         self.cVals = []
-        self.atoms = options['atoms']
+        self.atoms = options.atoms
         self.natoms = len(self.atoms)
-        top_settings = {'make_primitives': False}
-        self.Prims = PrimitiveInternalCoordinates(options.copy().set_values({'extra_kwargs': top_settings}))
+        # Cartesian primitives only: skip topology and internal primitives
+        self.Prims = PrimitiveInternalCoordinates(options.replace(form_topology=False))
 
         for i in range(self.natoms):
             self.Prims.add(CartesianX(i, w=1.0))

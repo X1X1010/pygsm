@@ -96,6 +96,10 @@ ignore = [
     "SIM108", # ternaries are not always clearer in the numerics
 ]
 
+[tool.ruff.lint.flake8-bugbear]
+# config field specifier (wraps dataclasses.field)
+extend-immutable-calls = ["pygsm.utilities.config.option"]
+
 [tool.ruff.lint.per-file-ignores]
 "__init__.py" = ["F401"]
 

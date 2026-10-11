@@ -21,10 +21,10 @@ from pygsm.utilities import elements, manage_xyz, output
 
 def main(geom):
     output.printcool(' Building the LOT')
-    lot = ASELoT.from_options(MorsePotential(), geom=geom)
+    lot = ASELoT(MorsePotential(), geom=geom)
 
     output.printcool(' Building the PES')
-    pes = PES.from_options(
+    pes = PES(
         lot=lot,
         ad_idx=0,
         multiplicity=1,
@@ -39,14 +39,14 @@ def main(geom):
     #     atoms,
 
     output.printcool('Building Delocalized Internal Coordinates')
-    coord_obj1 = DelocalizedInternalCoordinates.from_options(
+    coord_obj1 = DelocalizedInternalCoordinates(
         xyz=xyz,
         atoms=atoms,
         addtr=False,  # Add TRIC
     )
 
     output.printcool('Building Molecule')
-    reactant = Molecule.from_options(
+    reactant = Molecule(
         geom=geom,
         PES=pes,
         coord_obj=coord_obj1,
@@ -54,9 +54,7 @@ def main(geom):
     )
 
     output.printcool('Creating optimizer')
-    optimizer = eigenvector_follow.from_options(
-        Linesearch='backtrack', OPTTHRESH=0.0005, DMAX=0.5, abs_max_step=0.5, conv_Ediff=0.5
-    )
+    optimizer = eigenvector_follow(Linesearch='backtrack', OPTTHRESH=0.0005, DMAX=0.5, abs_max_step=0.5, conv_Ediff=0.5)
 
     output.printcool(f'initial energy is {reactant.energy:5.4f} kcal/mol')
     geoms, energies = optimizer.optimize(

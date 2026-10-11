@@ -1,8 +1,11 @@
+from dataclasses import dataclass
+
 # third party
 import numpy as np
 
 from ..coordinate_systems import CartesianCoordinates, DelocalizedInternalCoordinates
-from ..utilities import block_matrix, options, units
+from ..utilities import block_matrix, units
+from ..utilities.config import Config, option
 
 # local application imports
 from ._linesearch import NoLineSearch, backtrack
@@ -41,153 +44,67 @@ def force_positive_definite(H):
     return Hs
 
 
+@dataclass(kw_only=True)
+class OptimizerConfig(Config):
+    OPTTHRESH: float = option(0.0005, doc='gradrms convergence threshold')
+    conv_Ediff: float = option(100.0, doc='energy difference convergence')
+    conv_dE: float = option(1.0, doc='state difference energy convergence')
+    conv_gmax: float = option(100.0, doc='max gradient convergence threshold')
+    conv_disp: float = option(100.0, doc='max atomic displacement threshold')
+    opt_cross: bool = option(False, doc='used for state crossing calculations')
+    opt_climb: bool = option(False, doc='optimize the TS with the climbing criterion')
+    DMAX: float = option(0.1, doc='step size controller; adapts to the performance of the optimization')
+    DMIN: float = option(0.0001, doc='minimum step size')
+    abs_max_step: float = option(
+        0.4,
+        doc='absolute max step; a hard cutoff is needed because the IC -> Cartesian back-transformation becomes pathological',
+    )
+    ftol: float = option(0.0001, doc='strong Armijo condition: required relative energy decrease')
+    SCALEQN: float = option(1, doc='scale of the quasi-Newton step')
+    SCALE_CLIMB: float = option(1.0, doc='scales the climbing image search')
+    update_hess_in_bg: bool = option(True, doc='keep updating the Hessian in the background (non-BFGS optimizers)')
+    SCALEW: float = option(1.0)
+    Linesearch: str = option(
+        'NoLineSearch', doc='line search used to control the step', choices=('NoLineSearch', 'backtrack')
+    )
+    MAXAD: float = option(0.075)
+    print_level: int = option(1, doc='printout: 0 less, 1 more, 2 everything')
+    HESS_TANG_TOL_TS: float = option(0.35, doc='Hessian overlap with tangent tolerance for the TS node')
+
+
 # TODO Add primitive constraint e.g. a list of internal coordinates to be left basically frozen throughout optimization
 class base_optimizer:
     """some common functions that the children can use (ef, cg, hybrid ef/cg, etc).
     e.g. dgrad_step.
     """
 
-    @staticmethod
-    def default_options():
-        """default options."""
+    config_class = OptimizerConfig
 
-        if hasattr(base_optimizer, '_default_options'):
-            return base_optimizer._default_options.copy()
-        opt = options.Options()
-
-        opt.add_option(
-            key='OPTTHRESH', value=0.0005, required=False, allowed_types=[float], doc='Gradrms convergence threshold'
-        )
-
-        opt.add_option(
-            key='conv_Ediff', value=100.0, required=False, allowed_types=[float], doc='Energy difference convergence'
-        )
-
-        opt.add_option(
-            key='conv_dE', value=1.0, required=False, allowed_types=[float], doc='State difference Energy convergence'
-        )
-        opt.add_option(
-            key='conv_gmax',
-            value=100.0,
-            required=False,
-            allowed_types=[float],
-            doc='max gradient convergence threshold',
-        )
-
-        opt.add_option(
-            key='conv_disp',
-            value=100.0,
-            required=False,
-            allowed_types=[float],
-            doc='max atomic displacement threshold',
-        )
-
-        opt.add_option(
-            key='opt_cross',
-            value=False,
-            allowed_types=[bool],
-            doc='used for state crossing calculations',
-        )
-
-        opt.add_option(
-            key='opt_climb',
-            value=False,
-            allowed_types=[bool],
-            doc='Optimize TS with climbing criterion',
-        )
-
-        opt.add_option(
-            key='DMAX',
-            value=0.1,
-            doc='step size controller, this changes depending on the performance of the optimization',
-        )
-        opt.add_option(
-            key='DMIN',
-            value=0.0001,
-            doc='step size controller, this changes depending on the performance of the optimization',
-        )
-        opt.add_option(
-            key='abs_max_step',
-            value=0.4,
-            doc='the absolute max step allowed in optimization, a hard cutoff is required because converting internal coordinates becomes pathological',
-        )
-
-        opt.add_option(
-            key='ftol',
-            value=1e-4,
-            doc='used for the strong armijo condition to determine if energy decreased enough',
-        )
-
-        opt.add_option(
-            key='SCALEQN',
-            value=1,
-        )
-
-        opt.add_option(key='SCALE_CLIMB', value=1.0, doc='Used to scale the climbing image search')
-
-        opt.add_option(
-            key='update_hess_in_bg',
-            value=True,
-            doc='For optimizers not bfgs keep track of Hessian in back ground',
-        )
-
-        opt.add_option(
-            key='SCALEW',
-            value=1.0,
-        )
-
-        opt.add_option(
-            key='Linesearch',
-            value='NoLineSearch',
-            allowed_values=['NoLineSearch', 'backtrack'],
-            required=False,
-            doc='A function to do a linesearch e.g. bactrack,NoLineSearch, etc.',
-        )
-
-        opt.add_option(
-            key='MAXAD',
-            value=0.075,
-        )
-
-        opt.add_option(key='print_level', value=1, doc='control the printout, 0 less, 1 more, 2 too much')
-
-        opt.add_option(key='HESS_TANG_TOL_TS', value=0.35, doc='Hessian  overlap with tangent tolerance for TS node')
-
-        base_optimizer._default_options = opt
-        return base_optimizer._default_options.copy()
-
-    @classmethod
-    def from_options(cls, **kwargs):
-        """Returns an instance of this class with default options updated from values in kwargs"""
-        return cls(cls.default_options().set_values(kwargs))
-
-    def __init__(
-        self,
-        options,
-    ):
-        self.options = options
-        if self.options['Linesearch'] == 'backtrack':
+    def __init__(self, options=None, **kwargs):
+        self.options = self.config_class.build(options, **kwargs)
+        options = self.options
+        if self.options.Linesearch == 'backtrack':
             self.Linesearch = backtrack
-        elif self.options['Linesearch'] == 'NoLineSearch':
+        elif self.options.Linesearch == 'NoLineSearch':
             self.Linesearch = NoLineSearch
 
         # additional convergence criterion (default parameters for Q-Chem)
-        self.conv_disp = options['conv_disp']  # 12e-4 #max atomic displacement
-        self.conv_gmax = options['conv_gmax']  # 3e-4 #max gradient
-        self.conv_Ediff = options['conv_Ediff']  # 1e-6 #E diff
-        self.conv_dE = options['conv_dE']
-        self.conv_grms = options['OPTTHRESH']
+        self.conv_disp = options.conv_disp  # 12e-4 #max atomic displacement
+        self.conv_gmax = options.conv_gmax  # 3e-4 #max gradient
+        self.conv_Ediff = options.conv_Ediff  # 1e-6 #E diff
+        self.conv_dE = options.conv_dE
+        self.conv_grms = options.OPTTHRESH
 
         # TS node properties
         self.nneg = 0  # number of negative eigenvalues
-        self.DMIN = self.options['DMIN']
+        self.DMIN = self.options.DMIN
 
         # MECI
-        self.opt_cross = self.options['opt_cross']
-        self.opt_climb = self.options['opt_climb']
+        self.opt_cross = self.options.opt_cross
+        self.opt_climb = self.options.opt_climb
 
         # Hessian
-        self.update_hess_in_bg = self.options['update_hess_in_bg']
+        self.update_hess_in_bg = self.options.update_hess_in_bg
 
         # Hessian
         self.Hint = None
@@ -199,11 +116,11 @@ class base_optimizer:
         # additional parameters needed by linesearch
         self.linesearch_parameters = {
             'epsilon': 1e-5,
-            'ftol': options['ftol'],  # 1e-4,
+            'ftol': options.ftol,  # 1e-4,
             'wolfe': 0.9,
             'max_linesearch': 3,
             'min_step': self.DMIN,
-            'max_step': options['abs_max_step'],
+            'max_step': options.abs_max_step,
         }
 
         # Converged
@@ -214,35 +131,35 @@ class base_optimizer:
 
     @property
     def conv_grms(self):
-        return self.options['OPTTHRESH']
+        return self.options.OPTTHRESH
 
     @conv_grms.setter
     def conv_grms(self, value):
-        self.options['OPTTHRESH'] = value
+        self.options.OPTTHRESH = value
 
     @property
     def opt_cross(self):
-        return self.options['opt_cross']
+        return self.options.opt_cross
 
     @opt_cross.setter
     def opt_cross(self, value):
-        self.options['opt_cross'] = value
+        self.options.opt_cross = value
 
     @property
     def SCALE_CLIMB(self):
-        return self.options['SCALE_CLIMB']
+        return self.options.SCALE_CLIMB
 
     @SCALE_CLIMB.setter
     def SCALE_CLIMB(self, value):
-        self.options['SCALE_CLIMB'] = value
+        self.options.SCALE_CLIMB = value
 
     @property
     def DMAX(self):
-        return self.options['DMAX']
+        return self.options.DMAX
 
     @DMAX.setter
     def DMAX(self, value):
-        self.options['DMAX'] = value
+        self.options.DMAX = value
 
     def get_nconstraints(self, opt_type):
         if opt_type in ['ICTAN', 'CLIMB']:
@@ -348,7 +265,7 @@ class base_optimizer:
         """takes a linear step along dgrad"""
 
         norm_dg = np.linalg.norm(molecule.difference_gradient)
-        if self.options['print_level'] > 0:
+        if self.options.print_level > 0:
             print(f' norm_dg is {norm_dg:1.4f}')
             print(f' dE is {molecule.difference_energy:1.4f}')
 
@@ -368,7 +285,7 @@ class base_optimizer:
                 print('sign problem, decreasing DMAX')
                 self.DMAX /= 1.35
             elif ratio < 0.75 or ratio > 1.5:  # and abs(dEpre)>0.05:
-                if self.options['print_level'] > 0:
+                if self.options.print_level > 0:
                     print(' decreasing DMAX')
                 if step < self.DMAX:
                     self.DMAX = step / 1.1
@@ -393,21 +310,21 @@ class base_optimizer:
                 self.DMAX = 0.25
         else:
             if dE_iter > 0.001 and opt_type in ['UNCONSTRAINED', 'ICTAN']:
-                if self.options['print_level'] > 0:
+                if self.options.print_level > 0:
                     print(' decreasing DMAX')
                 if step < self.DMAX:
                     self.DMAX = step / 1.5
                 else:
                     self.DMAX = self.DMAX / 1.5
             elif (ratio < 0.25 or ratio > 1.5) and abs(dEpre) > 0.05:
-                if self.options['print_level'] > 0:
+                if self.options.print_level > 0:
                     print(' decreasing DMAX')
                 if step < self.DMAX:
                     self.DMAX = step / 1.1
                 else:
                     self.DMAX = self.DMAX / 1.2
             elif ratio > 0.75 and ratio < 1.25 and step > self.DMAX and gradrms < (pgradrms * 1.35):
-                if self.options['print_level'] > 0:
+                if self.options.print_level > 0:
                     print(' increasing DMAX')
                 self.DMAX = self.DMAX * 1.1 + 0.01
             if self.DMAX > 0.25:
@@ -417,16 +334,16 @@ class base_optimizer:
             self.DMAX = self.DMIN
 
     def eigenvector_step(self, molecule, g):
-        SCALE = self.options['SCALEQN']
+        SCALE = self.options.SCALEQN
         if molecule.newHess > 0:
-            SCALE = self.options['SCALEQN'] * molecule.newHess
-        if self.options['SCALEQN'] > 10.0:
+            SCALE = self.options.SCALEQN * molecule.newHess
+        if self.options.SCALEQN > 10.0:
             SCALE = 10.0
 
-        if self.options['print_level'] > 1:
+        if self.options.print_level > 1:
             print(f'new_hess {molecule.newHess}')
 
-        if self.options['print_level'] > 1:
+        if self.options.print_level > 1:
             print('constraints')
             print(molecule.constraints.T)
 
@@ -439,31 +356,31 @@ class base_optimizer:
         gqe = np.dot(v_temp.T, g)
         lambda1 = self.set_lambda1('NOT-TS', e)
 
-        if self.options['print_level'] > 1:
+        if self.options.print_level > 1:
             print(' eigenvalues ', e)
-        if self.options['print_level'] > 1:
+        if self.options.print_level > 1:
             print(' eigenvectors ', v_temp)
 
-        if self.options['print_level'] > 1:
+        if self.options.print_level > 1:
             print(' g ', g.T)
 
-        if self.options['print_level'] > 1:
+        if self.options.print_level > 1:
             print(' gqe ', gqe.T)
 
         dqe0 = -gqe.flatten() / (e + lambda1) / SCALE
-        dqe0 = [np.sign(i) * self.options['MAXAD'] if abs(i) > self.options['MAXAD'] else i for i in dqe0]
+        dqe0 = [np.sign(i) * self.options.MAXAD if abs(i) > self.options.MAXAD else i for i in dqe0]
         dqe0 = np.asarray(dqe0)
 
         # => Convert step back to DLC basis <= #
         dq = np.dot(v_temp, dqe0)
-        dq = [np.sign(i) * self.options['MAXAD'] if abs(i) > self.options['MAXAD'] else i for i in dq]
+        dq = [np.sign(i) * self.options.MAXAD if abs(i) > self.options.MAXAD else i for i in dq]
         dq = np.asarray(dq)
 
         dq = np.reshape(dq, (-1, 1))
         for c in molecule.constraints.T:
             dq -= np.dot(c[:, np.newaxis].T, dq) * c[:, np.newaxis]
 
-        if self.options['print_level'] > 1:
+        if self.options.print_level > 1:
             print(' dq ', dq.T)
         return np.reshape(dq, (-1, 1))
 
@@ -474,10 +391,10 @@ class base_optimizer:
         direction of the reaction path.
 
         """
-        SCALE = self.options['SCALEQN']
+        SCALE = self.options.SCALEQN
         if molecule.newHess > 0:
-            SCALE = self.options['SCALEQN'] * molecule.newHess
-        if self.options['SCALEQN'] > 10.0:
+            SCALE = self.options.SCALEQN * molecule.newHess
+        if self.options.SCALEQN > 10.0:
             SCALE = 10.0
 
         # constraint vector
@@ -509,7 +426,7 @@ class base_optimizer:
         lambda1 = self.set_lambda1('TS', eigen, maxoln)
 
         self.maxol_good = True
-        if path_overlap < self.options['HESS_TANG_TOL_TS']:
+        if path_overlap < self.options.HESS_TANG_TOL_TS:
             self.maxol_good = False
 
         if self.maxol_good:
@@ -529,7 +446,7 @@ class base_optimizer:
 
             # => Convert step back to DLC basis <= #
             dq = np.dot(tmph.T, dqe0)  # should it be transposed?
-            dq = [np.sign(i) * self.options['MAXAD'] if abs(i) > self.options['MAXAD'] else i for i in dq]
+            dq = [np.sign(i) * self.options.MAXAD if abs(i) > self.options.MAXAD else i for i in dq]
             dq = np.asarray(dq)
 
             dq = np.reshape(dq, (-1, 1))
@@ -560,7 +477,7 @@ class base_optimizer:
 
         if isinstance(molecule.coord_obj, DelocalizedInternalCoordinates):
             molecule.update_Primitive_Hessian(change=change)
-            if self.options['print_level'] > 1:
+            if self.options.print_level > 1:
                 print('change')
                 print(change)
                 print(' updated primitive internals Hessian')
@@ -581,7 +498,7 @@ class base_optimizer:
             raise NotImplementedError
 
     def update_bfgsp(self, molecule):
-        if self.options['print_level'] > 1:
+        if self.options.print_level > 1:
             print('In update bfgsp')
             print('dx_prim ', self.dx_prim.T)
             print('dg_prim ', self.dg_prim.T)
@@ -592,7 +509,7 @@ class base_optimizer:
         dgtdx = np.dot(np.transpose(self.dg_prim), self.dx_prim)
         change = np.zeros_like(molecule.Primitive_Hessian)
 
-        if self.options['print_level'] > 1:
+        if self.options.print_level > 1:
             print('Hdx')
             print(Hdx.T)
             print(f'dgtdx: {dgtdx:1.8f} dxHdx: {dxHdx:1.8f} dgdg')

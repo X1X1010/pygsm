@@ -57,11 +57,11 @@ class GrowthMixin:
             is_grown = self.check_if_grown()
 
         print(' creating newic molecule--used for ic_reparam')
-        self.newic = Molecule.copy_from_options(self.nodes[0])
+        self.newic = Molecule.copy_from(self.nodes[0])
 
         if self.growth_direction == 1:
             print('Setting LOT of last node')
-            self.nodes[-1] = Molecule.copy_from_options(
+            self.nodes[-1] = Molecule.copy_from(
                 MoleculeA=self.nodes[-2],
                 xyz=self.nodes[-1].xyz,
                 new_node_id=self.nnodes - 1,

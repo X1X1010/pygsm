@@ -150,11 +150,11 @@ class eigenvector_follow(base_optimizer):
                 molecule.newHess = 5
 
             if ls['step'] > self.DMAX:
-                if ls['step'] <= self.options['abs_max_step']:  # absolute max
+                if ls['step'] <= self.options.abs_max_step:  # absolute max
                     print(' Increasing DMAX to {}'.format(ls['step']))
                     self.DMAX = ls['step']
                 else:
-                    self.DMAX = self.options['abs_max_step']
+                    self.DMAX = self.options.abs_max_step
             elif ls['step'] < self.DMAX:
                 if ls['step'] >= self.DMIN:  # absolute min
                     print(' Decreasing DMAX to {}'.format(ls['step']))
@@ -206,7 +206,7 @@ class eigenvector_follow(base_optimizer):
             else:
                 raise NotImplementedError(' ef not implemented for CART')
 
-            if self.options['print_level'] > 0:
+            if self.options.print_level > 0:
                 print(
                     f' Node: {molecule.node_id} Opt step: {ostep + 1} E: {fx - refE:5.4f} predE: {dEpre:5.4f} ratio: {ratio:1.3f} gradrms: {molecule.gradrms:1.5f} ss: {step:1.3f} DMAX: {self.DMAX:1.3f}'
                 )

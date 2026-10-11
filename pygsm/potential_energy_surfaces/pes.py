@@ -1,71 +1,49 @@
+# standard library imports
+from dataclasses import dataclass
+from typing import Any
+
 # third party
 import numpy as np
 
 # local application imports
-from ..utilities import elements, options, units
+from ..utilities import elements, units
+from ..utilities.config import Config, option
 
 ELEMENT_TABLE = elements.ElementData()
 
 
+@dataclass(kw_only=True)
+class PESConfig(Config):
+    lot: Any = option(doc='level of theory object')
+    ad_idx: int = option(0, doc='adiabatic index')
+    multiplicity: int = option(1, doc='spin multiplicity')
+    FORCE: list | None = option(
+        None,
+        doc='constant force between atom pairs in AU, e.g. [(1, 2, 0.1214)]; negative is tensile, positive compressive',
+    )
+    RESTRAINTS: list | None = option(None, doc='translational harmonic restraints')
+
+
 class PES:
-    """PES object"""
+    """Single adiabatic potential energy surface of a level of theory."""
 
-    @staticmethod
-    def default_options():
-        if hasattr(PES, '_default_options'):
-            return PES._default_options.copy()
-        opt = options.Options()
-
-        opt.add_option(key='lot', value=None, required=True, doc='Level of theory object')
-
-        opt.add_option(key='ad_idx', value=0, required=True, doc='adiabatic index')
-
-        opt.add_option(key='multiplicity', value=1, required=True, doc='multiplicity')
-
-        opt.add_option(
-            key='FORCE',
-            value=None,
-            required=False,
-            doc='Apply a constant force between atoms in units of AU, e.g. [(1,2,0.1214)]. Negative is tensile, positive is compresive',
-        )
-
-        opt.add_option(key='RESTRAINTS', value=None, required=False, doc='Translational harmonic constraint')
-
-        opt.add_option(key='mass', value=None, required=False, doc='Mass is sometimes required')
-
-        PES._default_options = opt
-        return PES._default_options.copy()
-
-    @classmethod
-    def from_options(cls, **kwargs):
-        """Returns an instance of this class with default options updated from values in kwargs"""
-        return cls(cls.default_options().set_values(kwargs))
+    config_class = PESConfig
 
     # TODO make kwargs
     @classmethod
     def create_pes_from(cls, PES, options=None, copy_wavefunction=True):
         lot = type(PES.lot).copy(PES.lot, options or {}, copy_wavefunction)
 
-        return cls(
-            PES.options.copy().set_values(
-                {
-                    'lot': lot,
-                }
-            )
-        )
+        return cls(PES.options.replace(lot=lot))
 
-    def __init__(
-        self,
-        options,
-    ):
-        """Constructor"""
-        self.options = options
+    def __init__(self, options=None, **kwargs):
+        self.options = self.config_class.build(options, **kwargs)
 
-        self.lot = self.options['lot']
-        self.ad_idx = self.options['ad_idx']
-        self.multiplicity = self.options['multiplicity']
-        self.FORCE = self.options['FORCE']
-        self.RESTRAINTS = self.options['RESTRAINTS']
+        self.lot = self.options.lot
+        self.ad_idx = self.options.ad_idx
+        self.multiplicity = self.options.multiplicity
+        self.FORCE = self.options.FORCE
+        self.RESTRAINTS = self.options.RESTRAINTS
         self._dE = 1000.0
 
     @property

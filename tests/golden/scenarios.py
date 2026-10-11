@@ -98,10 +98,10 @@ def _union_dlc(xyz1, xyz2, atoms, coordinate_type):
 
     flags = _coord_flags(coordinate_type)
     top = _union_topology(xyz1, xyz2, atoms)
-    p1 = PrimitiveInternalCoordinates.from_options(xyz=xyz1, atoms=atoms, topology=top, **flags)
-    p2 = PrimitiveInternalCoordinates.from_options(xyz=xyz2, atoms=atoms, topology=top, **flags)
+    p1 = PrimitiveInternalCoordinates(xyz=xyz1, atoms=atoms, topology=top, **flags)
+    p2 = PrimitiveInternalCoordinates(xyz=xyz2, atoms=atoms, topology=top, **flags)
     p1.add_union_primitives(p2)
-    dlc = DelocalizedInternalCoordinates.from_options(xyz=xyz1, atoms=atoms, primitives=p1, **flags)
+    dlc = DelocalizedInternalCoordinates(xyz=xyz1, atoms=atoms, primitives=p1, **flags)
     return top, p1, dlc
 
 
@@ -183,16 +183,16 @@ def _molecule(geom, xyz2=None, coordinate_type='TRIC', form_hessian=True, counte
     calc = calc if calc is not None else _tblite()
     if counter is not None:
         counter.wrap(calc)
-    lot = ASELoT.from_options(calculator=calc, geom=geom, ID=0)
-    pes = PES.from_options(lot=lot, ad_idx=0)
-    return Molecule.from_options(geom=geom, PES=pes, coord_obj=dlc, Form_Hessian=form_hessian)
+    lot = ASELoT(calculator=calc, geom=geom, ID=0)
+    pes = PES(lot=lot, ad_idx=0)
+    return Molecule(geom=geom, PES=pes, coord_obj=dlc, Form_Hessian=form_hessian)
 
 
 def _optimizer(method, **opts):
     from pygsm.optimizers import eigenvector_follow, lbfgs
 
     cls = {'ef': eigenvector_follow, 'lbfgs': lbfgs}[method]
-    return cls.from_options(**opts)
+    return cls(**opts)
 
 
 def _opt(method, linesearch):
@@ -259,9 +259,7 @@ def _de_gsm(
             form_hessian=method == 'ef',
             counter=counter,
         )
-        product = Molecule.copy_from_options(
-            reactant, xyz=_xyz(geoms[1]), new_node_id=num_nodes - 1, copy_wavefunction=False
-        )
+        product = Molecule.copy_from(reactant, xyz=_xyz(geoms[1]), new_node_id=num_nodes - 1, copy_wavefunction=False)
         opt = _optimizer(
             method,
             print_level=1,
@@ -272,7 +270,7 @@ def _de_gsm(
             DMAX=0.1,
             opt_climb=climb,
         )
-        gsm = DE_GSM.from_options(
+        gsm = DE_GSM(
             reactant=reactant,
             product=product,
             nnodes=num_nodes,
@@ -350,14 +348,14 @@ def segsm_ef():
                 continue
             top.add_edge(bond[0], bond[1])
         flags = _coord_flags('TRIC')
-        p1 = PrimitiveInternalCoordinates.from_options(xyz=xyz1, atoms=atoms, topology=top, **flags)
+        p1 = PrimitiveInternalCoordinates(xyz=xyz1, atoms=atoms, topology=top, **flags)
         p1.newMakePrimitives(xyz1)
-        dlc = DelocalizedInternalCoordinates.from_options(xyz=xyz1, atoms=atoms, primitives=p1, **flags)
-        lot = ASELoT.from_options(calculator=counter.wrap(_tblite()), geom=geom, ID=0)
-        pes = PES.from_options(lot=lot, ad_idx=0)
-        reactant = Molecule.from_options(geom=geom, PES=pes, coord_obj=dlc, Form_Hessian=True)
+        dlc = DelocalizedInternalCoordinates(xyz=xyz1, atoms=atoms, primitives=p1, **flags)
+        lot = ASELoT(calculator=counter.wrap(_tblite()), geom=geom, ID=0)
+        pes = PES(lot=lot, ad_idx=0)
+        reactant = Molecule(geom=geom, PES=pes, coord_obj=dlc, Form_Hessian=True)
         opt = _optimizer('ef', Linesearch='NoLineSearch', DMAX=0.1, conv_Ediff=100.0, conv_gmax=100.0, print_level=1)
-        gsm = SE_GSM.from_options(
+        gsm = SE_GSM(
             reactant=reactant,
             nnodes=30,
             DQMAG_MAX=0.8,
@@ -420,17 +418,17 @@ def mecp_penalty_ethylene():
     Path('scratch/mecp').mkdir(parents=True)
     with _quiet():
         TwoStateTBLite = _two_state_lot_class()
-        lot = TwoStateTBLite.from_options(
+        lot = TwoStateTBLite(
             calculator=_tblite(), geom=geom, ID=0, states=[(1, 0), (3, 0)], gradient_states=[(1, 0), (3, 0)]
         )
-        pes1 = PES.from_options(lot=lot, multiplicity=1, ad_idx=0)
-        pes2 = PES.from_options(lot=lot, multiplicity=3, ad_idx=0)
+        pes1 = PES(lot=lot, multiplicity=1, ad_idx=0)
+        pes2 = PES(lot=lot, multiplicity=3, ad_idx=0)
         pes = Penalty_PES(PES1=pes1, PES2=pes2, lot=lot, sigma=3.5)
         top = build_topology(xyz, atoms)
         flags = _coord_flags('TRIC')
-        p1 = PrimitiveInternalCoordinates.from_options(xyz=xyz, atoms=atoms, topology=top, **flags)
-        dlc = DelocalizedInternalCoordinates.from_options(xyz=xyz, atoms=atoms, primitives=p1, **flags)
-        mol = Molecule.from_options(geom=geom, PES=pes, coord_obj=dlc, Form_Hessian=True)
+        p1 = PrimitiveInternalCoordinates(xyz=xyz, atoms=atoms, topology=top, **flags)
+        dlc = DelocalizedInternalCoordinates(xyz=xyz, atoms=atoms, primitives=p1, **flags)
+        mol = Molecule(geom=geom, PES=pes, coord_obj=dlc, Form_Hessian=True)
         opt = _optimizer(
             'ef', Linesearch='backtrack', DMAX=0.05, conv_Ediff=0.1, conv_dE=0.1, conv_gmax=0.005, opt_cross=True
         )

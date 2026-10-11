@@ -1,12 +1,15 @@
 # standard library imports
 import os
 from collections import namedtuple
+from dataclasses import dataclass
+from typing import Any
 
 # third party
 import numpy as np
 
 # local application imports
-from ..utilities import manage_xyz, options, units
+from ..utilities import manage_xyz, units
+from ..utilities.config import Config, option
 from ._lot_helpers import (
     energy_file_path,
     ensure_node_scratch_dir,
@@ -25,113 +28,34 @@ Gradient = namedtuple('Gradient', 'value unit')
 Coupling = namedtuple('Coupling', 'value unit')
 
 
+@dataclass(kw_only=True)
+class LotConfig(Config):
+    fnm: str | None = option(None, doc='File name to create the LOT object from. Only used if geom is none.')
+    geom: Any = option(None, doc='geometry object required to get the atom names and initial coords')
+    states: list = option(
+        default_factory=lambda: [(1, 0)], doc='list of (multiplicity, adiabatic index) states, 0-indexed'
+    )
+    gradient_states: list | None = option(None, doc='states to calculate gradients for; defaults to states')
+    coupling_states: Any = option(
+        None, doc='states to calculate the derivative coupling between (one pair per level of theory)'
+    )
+    charge: int = option(0, doc='charge of molecule')
+    nproc: int = option(1, doc='number of processors')
+    do_coupling: bool = option(False, doc='calculate the derivative coupling')
+    node_id: int = option(0, doc='node id used for storing orbs, etc.')
+    ID: int = option(0, doc='string id used for storing orbs, etc.')
+    calc_grad: bool = option(True, doc='calculate gradient or not')
+    scratch_root: str = option('scratch', doc='root directory for scratch outputs')
+    write_energy_file: bool = option(True, doc='write cached state energies to scratch output')
+
+
 class Lot:
-    """Lot object for level of theory calculators"""
+    """Level-of-theory base class: caches energies/gradients/couplings per (multiplicity, state)."""
 
-    @staticmethod
-    def default_options():
-        """Lot default options."""
+    config_class = LotConfig
 
-        if hasattr(Lot, '_default_options'):
-            return Lot._default_options.copy()
-        opt = options.Options()
-
-        opt.add_option(
-            key='fnm',
-            value=None,
-            required=False,
-            allowed_types=[str],
-            doc='File name to create the LOT object from. Only used if geom is none.',
-        )
-
-        opt.add_option(
-            key='geom',
-            value=None,
-            required=False,
-            doc='geometry object required to get the atom names and initial coords',
-        )
-
-        opt.add_option(key='states', value=[(1, 0)], required=False, doc='list of states 0-indexed')
-
-        opt.add_option(
-            key='gradient_states',
-            value=None,
-            required=False,
-            doc='list of states to calculate gradients for, will assume same as states if not given',
-        )
-
-        opt.add_option(
-            key='coupling_states',
-            value=None,
-            required=False,
-            doc='states to calculate derivative coupling. Currently only one coupling can be calculated per level of theory object.',
-        )
-
-        opt.add_option(key='charge', value=0, required=False, allowed_types=[int], doc='charge of molecule')
-
-        opt.add_option(
-            key='nproc',
-            required=False,
-            value=1,
-            allowed_types=[int],
-            doc='number of processors',
-        )
-
-        opt.add_option(key='do_coupling', required=False, value=False, doc='derivative coupling')
-
-        opt.add_option(
-            key='node_id', required=False, value=0, allowed_types=[int], doc='node id used for storing orbs,etc'
-        )
-
-        opt.add_option(
-            key='ID', required=False, value=0, allowed_types=[int], doc=' id used for storing orbs,etc for string'
-        )
-
-        opt.add_option(
-            key='calc_grad', required=False, value=True, allowed_types=[bool], doc=' calculate gradient or not'
-        )
-
-        opt.add_option(
-            key='xTB_Hamiltonian', value='GFN2-xTB', required=False, allowed_types=[str], doc='xTB hamiltonian'
-        )
-
-        opt.add_option(key='xTB_accuracy', value=1.0, required=False, allowed_types=[float], doc='xTB accuracy')
-
-        opt.add_option(
-            key='xTB_electronic_temperature',
-            value=300,
-            required=False,
-            allowed_types=[float],
-            doc='xTB electronic_temperature',
-        )
-
-        opt.add_option(key='solvent', value=None, required=False, allowed_types=[str], doc='xTB solvent')
-
-        opt.add_option(
-            key='scratch_root',
-            value='scratch',
-            required=False,
-            allowed_types=[str],
-            doc='root directory for scratch outputs',
-        )
-
-        opt.add_option(
-            key='write_energy_file',
-            value=True,
-            required=False,
-            allowed_types=[bool],
-            doc='write cached state energies to scratch output',
-        )
-
-        Lot._default_options = opt
-        return Lot._default_options.copy()
-
-    def __init__(
-        self,
-        options,
-    ):
-        """Constructor"""
-        self.options = options
+    def __init__(self, options=None, **kwargs):
+        self.options = self.config_class.build(options, **kwargs)
         # properties
         self.Energy = Energy
         self.Gradient = Gradient
@@ -141,9 +65,9 @@ class Lot:
         self._Couplings = {}
 
         # count number of states
-        self.options['gradient_states'] = infer_gradient_states(
+        self.options.gradient_states = infer_gradient_states(
             self.states,
-            self.options['gradient_states'],
+            self.options.gradient_states,
             self.calc_grad,
         )
         normalized_states, did_normalize = normalize_states(self.states)
@@ -152,39 +76,30 @@ class Lot:
             self.states = normalized_states
             print(' New states ', self.states)
 
-        self.geom = self.options['geom']
+        self.geom = self.options.geom
         if self.geom is not None:
             print(' initializing LOT from geom')
-        elif self.options['fnm'] is not None:
+        elif self.options.fnm is not None:
             print(' initializing LOT from file')
-            if not os.path.exists(self.options['fnm']):
+            if not os.path.exists(self.options.fnm):
                 raise OSError
-            self.geom = manage_xyz.read_xyz(self.options['fnm'], scale=1.0)
+            self.geom = manage_xyz.read_xyz(self.options.fnm, scale=1.0)
         else:
             raise RuntimeError('Need to initialize LOT object')
 
         # Cache some useful atributes - other useful attributes are properties
         self.currentCoords = manage_xyz.xyz_to_np(self.geom)
         self.atoms = manage_xyz.get_atoms(self.geom)
-        self.ID = self.options['ID']
-        self.nproc = self.options['nproc']
-        self.charge = self.options['charge']
-        self.node_id = self.options['node_id']
-        self.xTB_Hamiltonian = self.options['xTB_Hamiltonian']
-        self.xTB_accuracy = self.options['xTB_accuracy']
-        self.xTB_electronic_temperature = self.options['xTB_electronic_temperature']
-        self.solvent = self.options['solvent']
-        self.scratch_root = self.options['scratch_root']
+        self.ID = self.options.ID
+        self.nproc = self.options.nproc
+        self.charge = self.options.charge
+        self.node_id = self.options.node_id
+        self.scratch_root = self.options.scratch_root
 
         # Bools for running
         self.hasRanForCurrentCoords = False
 
         ensure_node_scratch_dir(self.scratch_root, self.ID, self.node_id)
-
-    @classmethod
-    def from_options(cls, **kwargs):
-        """Returns an instance of this class with default options updated from values in kwargs"""
-        return cls(cls.default_options().set_values(kwargs))
 
     @property
     def Energies(self):
@@ -221,52 +136,52 @@ class Lot:
 
     @property
     def do_coupling(self):
-        return self.options['do_coupling']
+        return self.options.do_coupling
 
     @do_coupling.setter
     def do_coupling(self, value):
         assert isinstance(value, bool), 'incorrect type for do_coupling'
-        self.options['do_coupling'] = value
+        self.options.do_coupling = value
 
     @property
     def coupling_states(self):
-        return self.options['coupling_states']
+        return self.options.coupling_states
 
     @coupling_states.setter
     def coupling_states(self, value):
         assert isinstance(value, tuple), 'incorrect type for coupling,currently only support a tuple'
-        self.options['coupling_states'] = value
+        self.options.coupling_states = value
 
     @property
     def gradient_states(self):
-        return self.options['gradient_states']
+        return self.options.gradient_states
 
     @gradient_states.setter
     def gradient_states(self, value):
         assert isinstance(value, list), 'incorrect type for gradient'
-        self.options['gradient_states'] = value
+        self.options.gradient_states = value
 
     @property
     def states(self):
-        return self.options['states']
+        return self.options.states
 
     @states.setter
     def states(self, value):
         assert isinstance(value, list), 'incorrect type for gradient'
-        self.options['states'] = value
+        self.options.states = value
 
     @property
     def calc_grad(self):
-        return self.options['calc_grad']
+        return self.options.calc_grad
 
     @calc_grad.setter
     def calc_grad(self, value):
         assert isinstance(value, bool), 'incorrect type for calc_grad'
-        self.options['calc_grad'] = value
+        self.options.calc_grad = value
 
     @classmethod
     def copy(cls, lot, options=None, copy_wavefunction=True):
-        return cls(lot.options.copy().set_values(options or {}))
+        return cls(lot.options.replace(**(options or {})))
 
     def get_energy(self, coords, multiplicity, state, runtype=None):
         if self._coords_changed(coords):
@@ -323,7 +238,7 @@ class Lot:
             return None
 
     def write_E_to_file(self):
-        if not self.options['write_energy_file']:
+        if not self.options.write_energy_file:
             return
         with open(self.energy_file_path, 'w') as f:
             for key, Energy in self.Energies.items():

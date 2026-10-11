@@ -2,12 +2,15 @@
 
 # standard library imports
 
-# third party
 from collections import OrderedDict
+from dataclasses import dataclass
+from typing import Any
 
+# third party
 import numpy as np
 
-from pygsm.utilities import block_matrix, elements, options, output
+from pygsm.utilities import block_matrix, elements, output
+from pygsm.utilities.config import Config, option
 
 ELEMENT_TABLE = elements.ElementData()
 
@@ -16,86 +19,28 @@ _CACHE_WARNING_ISSUED = False
 _CACHE_WARNING_SIZE = 1000
 
 
+@dataclass(kw_only=True)
+class CoordinateConfig(Config):
+    xyz: Any = option(doc='cartesian coordinates in angstrom')
+    atoms: list = option(doc='list of elements.Element for each atom')
+    connect: bool = option(
+        False, doc='connect fragments with a minimum spanning bond (DLC); do not use for TRIC or HDLC'
+    )
+    addcart: bool = option(False, doc='add Cartesian coordinates (HDLC); do not use for TRIC or DLC')
+    addtr: bool = option(False, doc='add translation and rotation coordinates (TRIC)')
+    constraints: list | None = option(None, doc='Distance/Angle/Dihedral primitives to constrain (see slots.py)')
+    cVals: list | None = option(None, doc='target values of the constraints')
+    form_topology: bool = option(True, doc='build the topology and primitives on construction')
+    primitives: Any = option(None, doc='PrimitiveInternalCoordinates to reuse instead of building new ones')
+    topology: Any = option(None, doc='molecule topology used to build the primitives')
+    print_level: int = option(1, doc='0: no printing, 1: printing')
+
+
 class InternalCoordinates:
-    @staticmethod
-    def default_options():
-        """InternalCoordinates default options."""
+    config_class = CoordinateConfig
 
-        if hasattr(InternalCoordinates, '_default_options'):
-            return InternalCoordinates._default_options.copy()
-        opt = options.Options()
-
-        opt.add_option(key='xyz', required=True, doc='cartesian coordinates in angstrom')
-
-        opt.add_option(
-            key='atoms', required=True, doc='atom element named tuples/dictionary must be of type list[elements].'
-        )
-
-        opt.add_option(
-            key='connect',
-            value=False,
-            allowed_types=[bool],
-            doc="Connect the fragments/residues together with a minimum spanning bond,\
-                    use for DLC, Don't use for TRIC, or HDLC.",
-        )
-
-        opt.add_option(
-            key='addcart',
-            value=False,
-            allowed_types=[bool],
-            doc="Add cartesian coordinates\
-                    use to form HDLC ,Don't use for TRIC, DLC.",
-        )
-
-        opt.add_option(
-            key='addtr',
-            value=False,
-            allowed_types=[bool],
-            doc='Add translation and rotation coordinates\
-                    use for TRIC.',
-        )
-
-        opt.add_option(
-            key='constraints',
-            value=None,
-            allowed_types=[list],
-            doc='A list of Distance,Angle,Torsion constraints (see slots.py),\
-                    This is only useful if doing a constrained geometry optimization\
-                    since GSM will handle the constraint automatically.',
-        )
-        opt.add_option(
-            key='cVals', value=None, allowed_types=[list], doc='List of Distance,Angle,Torsion constraints values'
-        )
-
-        opt.add_option(
-            key='form_topology',
-            value=True,
-            doc='A lazy argument for forming the topology on the fly, dont use this',
-        )
-
-        opt.add_option(
-            key='primitives',
-            value=None,
-            doc='This is a Primitive internal coordinates object -- can be used instead \
-                        of creating new primitive object',
-        )
-
-        opt.add_option(key='topology', value=None, doc='This is the molecule topology, used for building primitives')
-
-        opt.add_option(
-            key='print_level', value=1, required=False, allowed_types=[int], doc='0-- no printing, 1-- printing'
-        )
-
-        InternalCoordinates._default_options = opt
-        return InternalCoordinates._default_options.copy()
-
-    @classmethod
-    def from_options(cls, **kwargs):
-        """Returns an instance of this class with default options updated from values in kwargs"""
-        return cls(cls.default_options().set_values(kwargs))
-
-    def __init__(self, options):
-        self.options = options
+    def __init__(self, options=None, **kwargs):
+        self.options = self.config_class.build(options, **kwargs)
         self.stored_wilsonB = OrderedDict()
 
     def addConstraint(self, cPrim, cVal):

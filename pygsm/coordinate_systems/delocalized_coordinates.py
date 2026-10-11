@@ -13,39 +13,37 @@ from .slots import RotationA, RotationB, RotationC
 
 
 class DelocalizedInternalCoordinates(InternalCoordinates):
-    def __init__(self, options):
-        super().__init__(options)
+    def __init__(self, options=None, **kwargs):
+        super().__init__(options, **kwargs)
+        options = self.options
 
         # Cache  some useful attributes
-        self.options = options
-        options['constraints']
-        options['cVals']
-        self.atoms = options['atoms']
+        self.atoms = options.atoms
         self.natoms = len(self.atoms)
 
         # The DLC contains an instance of primitive internal coordinates.
-        if self.options['primitives'] is None:
+        if self.options.primitives is None:
             print(' making primitives ')
             t1 = time()
-            self.Prims = PrimitiveInternalCoordinates(options.copy())
+            self.Prims = PrimitiveInternalCoordinates(options.replace())
             dt = time() - t1
             print(f' Time to make prims {dt:.3f}')
-            self.options['primitives'] = self.Prims
+            self.options.primitives = self.Prims
         else:
             print(' setting primitives from options!')
             t0 = time()
-            self.Prims = PrimitiveInternalCoordinates.copy(self.options['primitives'])
+            self.Prims = PrimitiveInternalCoordinates.copy(self.options.primitives)
 
             print(f' num of primitives {len(self.Prims.Internals)}')
             dt = time() - t0
             print(f' Time to copy prims {dt:.3f}')
             self.Prims.clearCache()
 
-        xyz = options['xyz']
+        xyz = options.xyz
         xyz = xyz.flatten()
-        connect = options['connect']
-        addcart = options['addcart']
-        addtr = options['addtr']
+        connect = options.connect
+        addcart = options.addcart
+        addtr = options.addtr
         if addtr:
             if connect:
                 raise RuntimeError(
@@ -77,7 +75,7 @@ class DelocalizedInternalCoordinates(InternalCoordinates):
         return self.Prims.join(other.Prims)
 
     def copy(self, xyz):
-        return type(self)(self.options.copy().set_values({'xyz': xyz}))
+        return type(self)(self.options.replace(xyz=xyz))
 
     def addConstraint(self, cPrim, cVal, xyz):
         self.Prims.addConstraint(cPrim, cVal, xyz)

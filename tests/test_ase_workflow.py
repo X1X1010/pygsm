@@ -31,12 +31,12 @@ def _build_ase_molecule():
     geom = _load_ethene_geom()
     xyz = manage_xyz.xyz_to_np(geom)
     atoms = _build_atom_list(geom)
-    coord_obj = DelocalizedInternalCoordinates.from_options(
+    coord_obj = DelocalizedInternalCoordinates(
         xyz=xyz,
         atoms=atoms,
         addtr=False,
     )
-    lot = ASELoT.from_options(
+    lot = ASELoT(
         MorsePotential(),
         geom=geom,
         ID=0,
@@ -44,8 +44,8 @@ def _build_ase_molecule():
         states=[(1, 0)],
         gradient_states=[(1, 0)],
     )
-    pes = PES.from_options(lot=lot, multiplicity=1, ad_idx=0)
-    molecule = Molecule.from_options(
+    pes = PES(lot=lot, multiplicity=1, ad_idx=0)
+    molecule = Molecule(
         geom=geom,
         PES=pes,
         coord_obj=coord_obj,
@@ -96,10 +96,10 @@ def test_gsm_energy_cache_invalidates_when_node_geometry_changes():
     displaced[0, 1] += 0.05
     midpoint = 0.5 * (xyz + displaced)
 
-    middle = Molecule.copy_from_options(reactant, xyz=midpoint, new_node_id=1, copy_wavefunction=False)
-    product = Molecule.copy_from_options(reactant, xyz=displaced, new_node_id=2, copy_wavefunction=False)
-    optimizer = eigenvector_follow.from_options(Linesearch='backtrack', OPTTHRESH=0.0005, DMAX=0.1)
-    gsm = GSM.from_options(reactant=reactant, product=product, nnodes=3, optimizer=optimizer)
+    middle = Molecule.copy_from(reactant, xyz=midpoint, new_node_id=1, copy_wavefunction=False)
+    product = Molecule.copy_from(reactant, xyz=displaced, new_node_id=2, copy_wavefunction=False)
+    optimizer = eigenvector_follow(Linesearch='backtrack', OPTTHRESH=0.0005, DMAX=0.1)
+    gsm = GSM(reactant=reactant, product=product, nnodes=3, optimizer=optimizer)
     gsm.nodes[1] = middle
 
     energies_before = list(gsm.energies)

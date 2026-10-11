@@ -82,7 +82,7 @@ class OptimizationMixin:
                 printcool(' There is no TS, turning off TS search')
                 rtype = 0
                 self.climber = self.finder = self.find = self.climb = False
-                self.CONV_TOL = self.options['CONV_TOL'] * 5
+                self.CONV_TOL = self.options.CONV_TOL * 5
 
             self.isConverged = self.is_converged(totalgrad, fp, rtype, ts_cgradq)
             stage_changed = self.set_stage(totalgrad, sum_gradrms, ts_cgradq, ts_gradrms, fp)
@@ -203,10 +203,10 @@ class OptimizationMixin:
                 self.ictan, self.dqmaga = self.get_three_way_tangents(self.nodes, self.energies)
                 self.modify_TS_Hess()
 
-                if self.optimizer[self.TSnode].options['DMAX'] > 0.1:
-                    self.optimizer[self.TSnode].options['DMAX'] = 0.1
-                self.optimizer[self.TSnode] = eigenvector_follow(self.optimizer[self.TSnode].options.copy())
-                self.optimizer[self.TSnode].options['SCALEQN'] = 1.0
+                if self.optimizer[self.TSnode].options.DMAX > 0.1:
+                    self.optimizer[self.TSnode].options.DMAX = 0.1
+                self.optimizer[self.TSnode] = eigenvector_follow(self.optimizer[self.TSnode].options.replace())
+                self.optimizer[self.TSnode].options.SCALEQN = 1.0
                 self.nhessreset = 10  # are these used??? TODO
                 self.hessrcount = 0  # are these used?!  TODO
                 stage_changed = True
@@ -405,10 +405,10 @@ class OptimizationMixin:
             new_optimizers[n] = self.optimizer[n]
 
         new_node_list[self.TSnode] = new_node
-        new_optimizers[self.TSnode] = self.optimizer[0].__class__(self.optimizer[0].options.copy())
+        new_optimizers[self.TSnode] = self.optimizer[0].__class__(self.optimizer[0].options.replace())
 
         for n in range(self.TSnode + 1, self.nnodes + 1):
-            new_node_list[n] = Molecule.copy_from_options(MoleculeA=self.nodes[n - 1], new_node_id=n)
+            new_node_list[n] = Molecule.copy_from(MoleculeA=self.nodes[n - 1], new_node_id=n)
             new_optimizers[n] = self.optimizer[n - 1]
 
         self.nodes = new_node_list
@@ -439,10 +439,10 @@ class OptimizationMixin:
             new_node_list[n] = self.nodes[n]
             new_optimizers[n] = self.optimizer[n]
         new_node_list[self.TSnode + 1] = new_node
-        new_optimizers[self.TSnode + 1] = self.optimizer[0].__class__(self.optimizer[0].options.copy())
+        new_optimizers[self.TSnode + 1] = self.optimizer[0].__class__(self.optimizer[0].options.replace())
 
         for n in range(self.TSnode + 2, self.nnodes + 1):
-            new_node_list[n] = Molecule.copy_from_options(MoleculeA=self.nodes[n - 1], new_node_id=n)
+            new_node_list[n] = Molecule.copy_from(MoleculeA=self.nodes[n - 1], new_node_id=n)
             new_optimizers[n] = self.optimizer[n - 1]
         self.nodes = new_node_list
         self.optimizer = new_optimizers
@@ -460,29 +460,29 @@ class OptimizationMixin:
         for n in range(1, self.nnodes - 1):
             if self.nodes[n] is not None:
                 self.optimizer[n].conv_grms = self.CONV_TOL * factor
-                self.optimizer[n].conv_gmax = self.options['CONV_gmax'] * factor
-                self.optimizer[n].conv_Ediff = self.options['CONV_Ediff'] * factor
+                self.optimizer[n].conv_gmax = self.options.CONV_gmax * factor
+                self.optimizer[n].conv_Ediff = self.options.CONV_Ediff * factor
                 if self.optimizer[n].converged and n != TSnode:
                     self.optimizer[n].check_only_grad_converged = True
                 if (self.climb or self.find) and self.energies[n] > self.energies[TSnode] * 0.75 and n != TSnode:
                     self.optimizer[n].conv_grms = self.CONV_TOL
-                    self.optimizer[n].conv_gmax = self.options['CONV_gmax']
-                    self.optimizer[n].conv_Ediff = self.options['CONV_Ediff']
+                    self.optimizer[n].conv_gmax = self.options.CONV_gmax
+                    self.optimizer[n].conv_Ediff = self.options.CONV_Ediff
                     self.optimizer[n].check_only_grad_converged = False
                 if n == self.TSnode and (self.climb or self.find):
                     self.optimizer[n].conv_grms = self.CONV_TOL
-                    self.optimizer[n].conv_gmax = self.options['CONV_gmax']
-                    self.optimizer[n].conv_Ediff = self.options['CONV_Ediff']
+                    self.optimizer[n].conv_gmax = self.options.CONV_gmax
+                    self.optimizer[n].conv_Ediff = self.options.CONV_Ediff
                     self.optimizer[n].check_only_grad_converged = False
 
     def slow_down_climb(self):
         if self.climb and not self.find:
             print(' slowing down climb optimization')
-            self.optimizer[self.TSnode].options['DMAX'] /= self.newclimbscale
-            self.optimizer[self.TSnode].options['SCALEQN'] = 2.0
+            self.optimizer[self.TSnode].options.DMAX /= self.newclimbscale
+            self.optimizer[self.TSnode].options.SCALEQN = 2.0
             if self.optimizer[self.TSnode].SCALE_CLIMB < 5.0:
                 self.optimizer[self.TSnode].SCALE_CLIMB += 1.0
-            self.optimizer[self.pTSnode].options['SCALEQN'] = 1.0
+            self.optimizer[self.pTSnode].options.SCALEQN = 1.0
             self.ts_exsteps = 1
             if self.newclimbscale < 5.0:
                 self.newclimbscale += 1.0

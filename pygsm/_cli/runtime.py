@@ -138,7 +138,7 @@ def _build_coordinate_object(inpfileq: dict, atoms, xyz1, xyz2, top1, hybrid_ind
     connect, addtr, addcart = _coordinate_flags(inpfileq['coordinate_type'])
 
     output.printcool('Building Primitive Internal Coordinates')
-    p1 = PrimitiveInternalCoordinates.from_options(
+    p1 = PrimitiveInternalCoordinates(
         xyz=xyz1,
         atoms=atoms,
         connect=connect,
@@ -153,7 +153,7 @@ def _build_coordinate_object(inpfileq: dict, atoms, xyz1, xyz2, top1, hybrid_ind
 
     if inpfileq['gsm_type'] == 'DE_GSM':
         output.printcool('Building Primitive Internal Coordinates 2')
-        p2 = PrimitiveInternalCoordinates.from_options(
+        p2 = PrimitiveInternalCoordinates(
             xyz=xyz2,
             atoms=atoms,
             addtr=addtr,
@@ -177,7 +177,7 @@ def _build_coordinate_object(inpfileq: dict, atoms, xyz1, xyz2, top1, hybrid_ind
                 p1.append_prim_to_block(primitive)
 
     output.printcool('Building Delocalized Internal Coordinates')
-    return DelocalizedInternalCoordinates.from_options(
+    return DelocalizedInternalCoordinates(
         xyz=xyz1,
         atoms=atoms,
         addtr=addtr,
@@ -190,7 +190,7 @@ def _build_coordinate_object(inpfileq: dict, atoms, xyz1, xyz2, top1, hybrid_ind
 def _build_gsm(inpfileq: dict, reactant: Molecule, product: Molecule | None, optimizer, driving_coordinates):
     xyz_writer = XYZ_WRITERS[inpfileq['xyz_output_format']]
     if inpfileq['gsm_type'] == 'DE_GSM':
-        return DE_GSM.from_options(
+        return DE_GSM(
             reactant=reactant,
             product=product,
             nnodes=inpfileq['num_nodes'],
@@ -209,7 +209,7 @@ def _build_gsm(inpfileq: dict, reactant: Molecule, product: Molecule | None, opt
         )
 
     gsm_class = SE_GSM if inpfileq['gsm_type'] == 'SE_GSM' else SE_Cross
-    return gsm_class.from_options(
+    return gsm_class(
         reactant=reactant,
         nnodes=inpfileq['num_nodes'],
         DQMAG_MAX=inpfileq['DQMAG_MAX'],
@@ -295,7 +295,7 @@ def main(argv: Sequence[str] | None = None):
     coord_obj1 = _build_coordinate_object(inpfileq, atoms, xyz1, xyz2, top1, hybrid_indices, driving_coord_prims)
 
     output.printcool(f'Building the reactant object with {inpfileq["coordinate_type"]}')
-    reactant = Molecule.from_options(
+    reactant = Molecule(
         geom=geoms[0],
         PES=pes,
         coord_obj=coord_obj1,
@@ -306,7 +306,7 @@ def main(argv: Sequence[str] | None = None):
     product = None
     if inpfileq['gsm_type'] == 'DE_GSM':
         output.printcool('Building the product object')
-        product = Molecule.copy_from_options(
+        product = Molecule.copy_from(
             reactant,
             xyz=xyz2,
             new_node_id=inpfileq['num_nodes'] - 1,

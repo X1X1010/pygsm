@@ -10,20 +10,20 @@ from pygsm.utilities import manage_xyz
 
 
 def load_geometry_inputs(data):
-    if data['geom'] is not None:
+    if data.geom is not None:
         print(' getting cartesian coordinates from geom')
-        geom = data['geom']
+        geom = data.geom
         atoms = manage_xyz.get_atoms(geom)
         xyz = manage_xyz.xyz_to_np(geom)
         return geom, atoms, xyz
 
-    if data['fnm'] is not None:
+    if data.fnm is not None:
         print(' reading cartesian coordinates from file')
-        if data['ftype'] is None:
-            data['ftype'] = os.path.splitext(data['fnm'])[1][1:]
-        if not os.path.exists(data['fnm']):
+        if data.ftype is None:
+            data.ftype = os.path.splitext(data.fnm)[1][1:]
+        if not os.path.exists(data.fnm):
             raise OSError
-        geom = manage_xyz.read_xyz(data['fnm'], scale=1.0)
+        geom = manage_xyz.read_xyz(data.fnm, scale=1.0)
         atoms = manage_xyz.get_atoms(geom)
         xyz = manage_xyz.xyz_to_np(geom)
         return geom, atoms, xyz

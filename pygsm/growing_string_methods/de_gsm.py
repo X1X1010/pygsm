@@ -6,11 +6,8 @@ from .main_gsm import MainGSM
 class DE_GSM(MainGSM):
     is_double_ended = True
 
-    def __init__(
-        self,
-        options,
-    ):
-        super().__init__(options)
+    def __init__(self, options=None, **kwargs):
+        super().__init__(options, **kwargs)
 
         print(' Assuming primitives are union!')
         print(' number of primitives is', self.nodes[0].num_primitives)
@@ -53,8 +50,8 @@ class DE_GSM(MainGSM):
         for i in range(self.nnodes):
             if self.nodes[i] is not None:
                 self.optimizer[i].conv_grms = self.CONV_TOL * 2.0
-        self.optimizer[nR].conv_grms = self.options['ADD_NODE_TOL']
-        self.optimizer[nP].conv_grms = self.options['ADD_NODE_TOL']
+        self.optimizer[nR].conv_grms = self.options.ADD_NODE_TOL
+        self.optimizer[nP].conv_grms = self.options.ADD_NODE_TOL
         print(f' conv_tol of node {nR} is {self.optimizer[nR].conv_grms:.4f}')
         print(f' conv_tol of node {nP} is {self.optimizer[nP].conv_grms:.4f}')
         self.active[nR] = True

@@ -35,7 +35,7 @@ def create_lot(inpfileq: dict, geom):
             **lot_options,
         )
     if inpfileq['EST_Package'] == 'xTB':
-        return xTB_lot.from_options(
+        return xTB_lot(
             xTB_Hamiltonian=inpfileq['xTB_Hamiltonian'],
             xTB_accuracy=inpfileq['xTB_accuracy'],
             xTB_electronic_temperature=inpfileq['xTB_electronic_temperature'],
@@ -47,7 +47,7 @@ def create_lot(inpfileq: dict, geom):
 
 def choose_pes(lot, inpfileq: dict):
     if inpfileq['PES_type'] == 'PES':
-        return PES.from_options(
+        return PES(
             lot=lot,
             ad_idx=inpfileq['adiabatic_index'][0],
             multiplicity=inpfileq['multiplicity'][0],
@@ -55,14 +55,14 @@ def choose_pes(lot, inpfileq: dict):
             RESTRAINTS=inpfileq['RESTRAINTS'],
         )
 
-    pes1 = PES.from_options(
+    pes1 = PES(
         lot=lot,
         multiplicity=inpfileq['states'][0][0],
         ad_idx=inpfileq['states'][0][1],
         FORCE=inpfileq['FORCE'],
         RESTRAINTS=inpfileq['RESTRAINTS'],
     )
-    pes2 = PES.from_options(
+    pes2 = PES(
         lot=lot,
         multiplicity=inpfileq['states'][1][0],
         ad_idx=inpfileq['states'][1][1],
@@ -90,7 +90,7 @@ def choose_optimizer(inpfileq: dict):
     except KeyError as exc:
         raise NotImplementedError(f'Optimizer `{inpfileq["optimizer"]}` not implemented') from exc
 
-    return opt_class.from_options(
+    return opt_class(
         print_level=inpfileq['opt_print_level'],
         Linesearch=inpfileq['linesearch'],
         update_hess_in_bg=update_hess_in_bg,
