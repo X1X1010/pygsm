@@ -1,7 +1,7 @@
 import collections
 
 
-class Option(object):
+class Option:
 
     """ Class Option represents a key, value Option, with possible restrictions
         on type and value, and with documentation.
@@ -24,13 +24,13 @@ class Option(object):
             required - True if the user is required to specify the option,
                 False if the default value is acceptable. If required is True,
                 an error will be raised when get_value is called if value is
-                None. 
+                None.
             allowed_types - array of allowed types of value. If this field is
                 not None, a check will be performed on each call to set_value
                 and get_value to ensure that value isinstance of at least one
                 of the allowed_types.
             allowed_values - list of allowed values of value. If this field is
-                not None, a check will be performed on each call to set_value 
+                not None, a check will be performed on each call to set_value
                 and get_value to ensure the value is one of the allowed_values.
             doc - string message providing helpful documentation about the
                 option.
@@ -89,7 +89,7 @@ class Option(object):
         return s
 
 
-class Options(object):
+class Options:
 
     """ Class Options represents a dict of key, value Option objects, including
         restrictions on type, value, etc. Users should interact only with the
@@ -99,7 +99,7 @@ class Options(object):
         define the valid options, rules, and defaults by using the "add_option"
         method. Then, when the user wishes to set or get the values of specific
         options, a copy of the Options object should be provided for the user
-        by calling the "copy" method of Options. 
+        by calling the "copy" method of Options.
 
         The underlying Option objects are stored in the options field, which is
         presently a collections.OrderedDict to remember the order of Option
@@ -136,7 +136,7 @@ class Options(object):
             rules, and documentation.
 
             Params: See Option constructor for valid kwargs
-            Result: Options updated with new Option corresponding to key 
+            Result: Options updated with new Option corresponding to key
         """
 
         self.options[kwargs['key']] = Option(
@@ -199,7 +199,7 @@ class Options(object):
         self,
         options,
     ):
-        """ Set the values of multiple options. 
+        """ Set the values of multiple options.
 
         Params:
             - options - dict of key, value pairs to set (calls __setitem__ once

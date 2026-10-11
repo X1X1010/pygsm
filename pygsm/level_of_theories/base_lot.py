@@ -15,6 +15,7 @@ from ._lot_helpers import (
     normalize_states,
 )
 
+
 class LoTError(Exception):
     pass
 
@@ -22,7 +23,7 @@ Energy = namedtuple('Energy','value unit')
 Gradient = namedtuple('Gradient','value unit')
 Coupling = namedtuple('Coupling','value unit')
 
-class Lot(object):
+class Lot:
     """ Lot object for level of theory calculators """
 
     @staticmethod
@@ -196,7 +197,7 @@ class Lot(object):
         elif self.options['fnm'] is not None:
             print(" initializing LOT from file")
             if not os.path.exists(self.options['fnm']):
-                raise IOError
+                raise OSError
             self.geom = manage_xyz.read_xyz(self.options['fnm'], scale=1.)
         else:
             raise RuntimeError("Need to initialize LOT object")
@@ -238,7 +239,7 @@ class Lot(object):
     @property
     def Gradients(self):
         '''
-        A list of tuples with multiplicity, state and energy 
+        A list of tuples with multiplicity, state and energy
         '''
 
         return self._Gradients
@@ -264,7 +265,7 @@ class Lot(object):
 
     @do_coupling.setter
     def do_coupling(self, value):
-        assert type(value) == bool, "incorrect type for do_coupling"
+        assert isinstance(value, bool), "incorrect type for do_coupling"
         self.options['do_coupling'] = value
 
     @property
@@ -273,7 +274,7 @@ class Lot(object):
 
     @coupling_states.setter
     def coupling_states(self, value):
-        assert type(value) == tuple, "incorrect type for coupling,currently only support a tuple"
+        assert isinstance(value, tuple), "incorrect type for coupling,currently only support a tuple"
         self.options['coupling_states'] = value
 
     @property
@@ -282,7 +283,7 @@ class Lot(object):
 
     @gradient_states.setter
     def gradient_states(self, value):
-        assert type(value) == list, "incorrect type for gradient"
+        assert isinstance(value, list), "incorrect type for gradient"
         self.options['gradient_states'] = value
 
     @property
@@ -291,7 +292,7 @@ class Lot(object):
 
     @states.setter
     def states(self, value):
-        assert type(value) == list, "incorrect type for gradient"
+        assert isinstance(value, list), "incorrect type for gradient"
         self.options['states'] = value
 
     @property
@@ -300,12 +301,12 @@ class Lot(object):
 
     @calc_grad.setter
     def calc_grad(self, value):
-        assert type(value) == bool, "incorrect type for calc_grad"
+        assert isinstance(value, bool), "incorrect type for calc_grad"
         self.options['calc_grad'] = value
 
     @classmethod
-    def copy(cls, lot, options={}, copy_wavefunction=True):
-        return cls(lot.options.copy().set_values(options))
+    def copy(cls, lot, options=None, copy_wavefunction=True):
+        return cls(lot.options.copy().set_values(options or {}))
 
     def get_energy(self, coords, multiplicity, state, runtype=None):
         if self._coords_changed(coords):
@@ -313,13 +314,11 @@ class Lot(object):
             geom = manage_xyz.np_to_xyz(self.geom, self.currentCoords)
             self.runall(geom, runtype)
             self.hasRanForCurrentCoords = True
-        
+
         Energy = self.Energies[(multiplicity,state)]
         if Energy.unit=="Hartree":
             return Energy.value*units.KCAL_MOL_PER_AU
-        elif Energy.unit == 'kcal/mol':
-            return Energy.value
-        elif Energy.unit is None:
+        elif Energy.unit == 'kcal/mol' or Energy.unit is None:
             return Energy.value
 
     def get_gradient(self, coords, multiplicity, state, frozen_atoms=None):

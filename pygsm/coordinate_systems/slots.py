@@ -1,10 +1,11 @@
 import numpy as np
 
-from pygsm.utilities import output, math_utils
-from .rotate import get_expmap, get_expmap_der, is_linear, calc_rot_vec_diff
+from pygsm.utilities import math_utils, output
+
+from .rotate import calc_rot_vec_diff, get_expmap, get_expmap_der, is_linear
 
 
-class PrimitiveCoordinate(object):
+class PrimitiveCoordinate:
     """
     Parent class for primitive internal coordinate objects with common methods.
     """
@@ -23,9 +24,7 @@ class PrimitiveCoordinate(object):
         val2 : float
             If provided, this is the value to subtract
         """
-        if xyz2 is None and val2 is None:
-            raise RuntimeError("Provide exactly one of xyz2 and val2")
-        elif xyz2 is not None and val2 is not None:
+        if (xyz2 is None and val2 is None) or (xyz2 is not None and val2 is not None):
             raise RuntimeError("Provide exactly one of xyz2 and val2")
         if xyz2 is not None:
             val2 = self.value(xyz2)
@@ -50,7 +49,7 @@ class PrimitiveCoordinate(object):
 
 
 class CartesianX(PrimitiveCoordinate):
-    __slots__ = ['a', 'w', 'isAngular', 'isPeriodic']
+    __slots__ = ['a', 'isAngular', 'isPeriodic', 'w']
 
     def __init__(self, a, w=1.0):
         self.a = a
@@ -59,7 +58,7 @@ class CartesianX(PrimitiveCoordinate):
         self.isPeriodic = False
 
     def __repr__(self):
-        return "Cartesian-X %s" % (self.a+1)
+        return f"Cartesian-X {self.a+1}"
 
     @property
     def atoms(self):
@@ -99,7 +98,7 @@ class CartesianX(PrimitiveCoordinate):
 
 
 class CartesianY(PrimitiveCoordinate):
-    __slots__ = ['a', 'w', 'isAngular', 'isPeriodic']
+    __slots__ = ['a', 'isAngular', 'isPeriodic', 'w']
 
     def __init__(self, a, w=1.0):
         self.a = a
@@ -108,7 +107,7 @@ class CartesianY(PrimitiveCoordinate):
         self.isPeriodic = False
 
     def __repr__(self):
-        return "Cartesian-Y %s" % (self.a+1)
+        return f"Cartesian-Y {self.a+1}"
 
     @property
     def atoms(self):
@@ -141,7 +140,6 @@ class CartesianY(PrimitiveCoordinate):
         derivatives[relative_a][1] = self.w
         return derivatives
 
-    #def second_derivative(self, xyz):
     def second_derivative(self, xyz, start_idx=0):
         xyz = xyz.reshape(-1, 3)
         deriv2 = np.zeros((xyz.shape[0], xyz.shape[1], xyz.shape[0], xyz.shape[1]))
@@ -149,7 +147,7 @@ class CartesianY(PrimitiveCoordinate):
 
 
 class CartesianZ(PrimitiveCoordinate):
-    __slots__ = ['a', 'w', 'isAngular', 'isPeriodic']
+    __slots__ = ['a', 'isAngular', 'isPeriodic', 'w']
 
     def __init__(self, a, w=1.0):
         self.a = a
@@ -158,7 +156,7 @@ class CartesianZ(PrimitiveCoordinate):
         self.isPeriodic = False
 
     def __repr__(self):
-        return "Cartesian-Z %s" % (self.a+1)
+        return f"Cartesian-Z {self.a+1}"
 
     @property
     def atoms(self):
@@ -191,7 +189,6 @@ class CartesianZ(PrimitiveCoordinate):
         derivatives[relative_a][2] = self.w
         return derivatives
 
-    #def second_derivative(self, xyz):
     def second_derivative(self, xyz, start_idx=0):
         xyz = xyz.reshape(-1, 3)
         deriv2 = np.zeros((xyz.shape[0], xyz.shape[1], xyz.shape[0], xyz.shape[1]))
@@ -199,7 +196,7 @@ class CartesianZ(PrimitiveCoordinate):
 
 
 class TranslationX(PrimitiveCoordinate):
-    __slots__ = ['a', 'w', 'isAngular', 'isPeriodic']
+    __slots__ = ['a', 'isAngular', 'isPeriodic', 'w']
 
     def __init__(self, a, w):
         self.a = a
@@ -235,9 +232,7 @@ class TranslationX(PrimitiveCoordinate):
     def calcDiff(self, xyz1, xyz2=None, val2=None):
         # Translation ICs require an explicit implementation of calcDiff
         # because self.w is not a float but an array
-        if xyz2 is None and val2 is None:
-            raise RuntimeError("Provide exactly one of xyz2 and val2")
-        elif xyz2 is not None and val2 is not None:
+        if (xyz2 is None and val2 is None) or (xyz2 is not None and val2 is not None):
             raise RuntimeError("Provide exactly one of xyz2 and val2")
         if xyz2 is not None:
             val2 = self.value(xyz2)
@@ -259,7 +254,7 @@ class TranslationX(PrimitiveCoordinate):
 
 
 class TranslationY(PrimitiveCoordinate):
-    __slots__ = ['a', 'w', 'isAngular', 'isPeriodic']
+    __slots__ = ['a', 'isAngular', 'isPeriodic', 'w']
 
     def __init__(self, a, w):
         self.a = a
@@ -295,9 +290,7 @@ class TranslationY(PrimitiveCoordinate):
     def calcDiff(self, xyz1, xyz2=None, val2=None):
         # Translation ICs require an explicit implementation of calcDiff
         # because self.w is not a float but an array
-        if xyz2 is None and val2 is None:
-            raise RuntimeError("Provide exactly one of xyz2 and val2")
-        elif xyz2 is not None and val2 is not None:
+        if (xyz2 is None and val2 is None) or (xyz2 is not None and val2 is not None):
             raise RuntimeError("Provide exactly one of xyz2 and val2")
         if xyz2 is not None:
             val2 = self.value(xyz2)
@@ -319,7 +312,7 @@ class TranslationY(PrimitiveCoordinate):
 
 
 class TranslationZ(PrimitiveCoordinate):
-    __slots__ = ['a', 'w', 'isAngular', 'isPeriodic']
+    __slots__ = ['a', 'isAngular', 'isPeriodic', 'w']
 
     def __init__(self, a, w):
         self.a = a
@@ -355,9 +348,7 @@ class TranslationZ(PrimitiveCoordinate):
     def calcDiff(self, xyz1, xyz2=None, val2=None):
         # Translation ICs require an explicit implementation of calcDiff
         # because self.w is not a float but an array
-        if xyz2 is None and val2 is None:
-            raise RuntimeError("Provide exactly one of xyz2 and val2")
-        elif xyz2 is not None and val2 is not None:
+        if (xyz2 is None and val2 is None) or (xyz2 is not None and val2 is not None):
             raise RuntimeError("Provide exactly one of xyz2 and val2")
         if xyz2 is not None:
             val2 = self.value(xyz2)
@@ -378,8 +369,8 @@ class TranslationZ(PrimitiveCoordinate):
         return deriv2
 
 
-class Rotator(object):
-    __slots__ = ['a', 'x0', 'stored_value', 'stored_value2', 'stored_valxyz', 'stored_valxyz2', 'stored_deriv', 'stored_derxyz', 'stored_deriv2', 'stored_deriv2xyz', 'stored_norm', 'e0', 'stored_dot2', 'linear']
+class Rotator:
+    __slots__ = ['a', 'e0', 'linear', 'stored_deriv', 'stored_deriv2', 'stored_deriv2xyz', 'stored_derxyz', 'stored_dot2', 'stored_norm', 'stored_value', 'stored_value2', 'stored_valxyz', 'stored_valxyz2', 'x0']
 
     def __init__(self, a, x0):
         self.a = list(tuple(sorted(a)))
@@ -461,7 +452,6 @@ class Rotator(object):
             xmean = np.mean(xsel, axis=0)
             ymean = np.mean(ysel, axis=0)
             if not self.linear and is_linear(xsel, ysel):
-                # print "Setting linear flag for", self
                 self.linear = True
             if self.linear:
                 # Handle linear molecules.
@@ -494,9 +484,7 @@ class Rotator(object):
         Return the difference of the internal coordinate
         calculated for (xyz1 - xyz2).
         """
-        if xyz2 is None and val2 is None:
-            raise RuntimeError("Provide exactly one of xyz2 and val2")
-        elif xyz2 is not None and val2 is not None:
+        if (xyz2 is None and val2 is None) or (xyz2 is not None and val2 is not None):
             raise RuntimeError("Provide exactly one of xyz2 and val2")
         val1 = self.value(xyz1)
         if xyz2 is not None:
@@ -542,7 +530,6 @@ class Rotator(object):
         xmean = np.mean(xsel, axis=0)
         ymean = np.mean(ysel, axis=0)
         if not self.linear and is_linear(xsel, ysel):
-            # print "Setting linear flag for", self
             self.linear = True
         if self.linear:
             vx = xsel[-1]-xsel[0]
@@ -565,9 +552,6 @@ class Rotator(object):
             # Derivative of dummy atom position w/r.t. molecular axis vector
             dexdum = (dxdum*nxdum - np.outer(dnxdum, xdum))/nxdum**2
             # Here we may compute finite difference derivatives to check
-            # for i in range(3):
-            # if np.linalg.norm(dexdum - fdxdum) > 1e-6:
-            #     print dexdum - fdxdum
             # Apply terms from chain rule
             deriv_raw[0] -= np.dot(dexdum, deriv_raw[-1])
             for i in range(len(relative_a)):
@@ -582,44 +566,14 @@ class Rotator(object):
 
         return derivatives
 
-    #def second_derivative(self, xyz):
-    #    if np.max(np.abs(xyz-self.stored_deriv2xyz)) < 1e-12:
-    #        if not self.linear and is_linear(xsel, ysel):
-    #            # print "Setting linear flag for", self
-    #        if self.linear:
-
-    #        if self.linear:
-    #            # Chain rule is applied to get terms from dummy atom derivatives
-    #            def dexdum_(vx_):
-
-    #            # First indices: elements of vx that are being differentiated w/r.t.
-    #            # Last index: elements of exdum itself
-    #            for i in range(3):
-    #            # Build arrays that contain derivative of dummy atom position
-    #            # w/r.t. real atom positions
-    #            for i in range(len(self.a)):
-    #            # =====
-
-    #            # Do not delete - reference codes using loops for chain rule terms
-    #            # for j in range(len(self.a)): # Loop over atom 1
-    #            #     for m in range(3):       # Loop over xyz of atom 1
-    #            #         for k in range(len(self.a)): # Loop over atom 2
-    #            #             for n in range(3):       # Loop over xyz of atom 2
-    #            #                 for i in range(3):   # Loop over elements of exponential map
-    #            #                     for p in range(3): # Loop over xyz of dummy atom
-    #            #                         for q in range(3):
-    #            # =====
 
 
-    #        for i, a in enumerate(self.a):
-    #            for j, b in enumerate(self.a):
 
     def second_derivative(self, xyz, start_idx=0):
         xyz = xyz.reshape(-1, 3)
         relative_a = [a-start_idx for a in self.a]
 
         # Does not work with BM
-        #if np.max(np.abs(xyz-self.stored_deriv2xyz[relative_a])) < 1e-12:
         ##
 
         xsel = xyz[relative_a, :]
@@ -629,7 +583,6 @@ class Rotator(object):
         ymean = np.mean(ysel, axis=0)
 
         if not self.linear and is_linear(xsel, ysel):
-            # print "Setting linear flag for", self
             self.linear = True
         if self.linear:
             vx = xsel[-1]-xsel[0]
@@ -671,7 +624,6 @@ class Rotator(object):
             ddum1 = np.zeros((len(relative_a), 3, 3), dtype=float)
             ddum1[0] = -dexdum
             ddum1[-1] = dexdum
-            #for i in range(len(self.a)):
             for i in range(len(relative_a)):
                 ddum1[i] += np.eye(3)/len(self.a)
             ddum2 = np.zeros((len(relative_a), 3, len(relative_a), 3, 3), dtype=float)
@@ -688,7 +640,6 @@ class Rotator(object):
             #             for n in range(3):       # Loop over xyz of atom 2
             #                 for i in range(3):   # Loop over elements of exponential map
             #                     for p in range(3): # Loop over xyz of dummy atom
-            #                         for q in range(3):
             # =====
 
             deriv2_raw[:-1, :, :-1, :] += np.einsum('jmpi,knp->jmkni', deriv2_raw[:-1, :, -1, :, :], ddum1, optimize=True)
@@ -698,8 +649,6 @@ class Rotator(object):
             deriv2_raw = deriv2_raw[:-1, :, :-1, :, :]
         second_derivatives = np.zeros((xyz.shape[0], 3, xyz.shape[0], 3, 3), dtype=float)
 
-        #for i, a in enumerate(self.a):
-        #    for j, b in enumerate(self.a):
         for i, a in enumerate(relative_a):
             for j, b in enumerate(relative_a):
                 second_derivatives[a, :, b, :, :] = deriv2_raw[i, :, j, :, :]
@@ -707,7 +656,7 @@ class Rotator(object):
 
 
 class RotationA(PrimitiveCoordinate):
-    __slots__ = ['a', 'x0', 'w', 'Rotator', 'isAngular', 'isPeriodic']
+    __slots__ = ['Rotator', 'a', 'isAngular', 'isPeriodic', 'w', 'x0']
 
     def __init__(self, a, x0, Rotators, w=1.0):
         self.a = tuple(sorted(a))
@@ -730,10 +679,6 @@ class RotationA(PrimitiveCoordinate):
         if type(self) is not type(other):
             return False
         eq = set(self.a) == set(other.a)
-        # if eq and np.sum((self.w-other.w)**2) > 1e-6:
-        #     print "Warning: RotationA same atoms, different weights"
-        # if eq and np.sum((self.x0-other.x0)**2) > 1e-6:
-        #     print "Warning: RotationA same atoms, different reference positions"
         return eq
 
     def __ne__(self, other):
@@ -757,7 +702,7 @@ class RotationA(PrimitiveCoordinate):
 
 
 class RotationB(PrimitiveCoordinate):
-    __slots__ = ['a', 'x0', 'w', 'Rotator', 'isAngular', 'isPeriodic']
+    __slots__ = ['Rotator', 'a', 'isAngular', 'isPeriodic', 'w', 'x0']
 
     def __init__(self, a, x0, Rotators, w=1.0):
         self.a = tuple(sorted(a))
@@ -780,10 +725,6 @@ class RotationB(PrimitiveCoordinate):
         if type(self) is not type(other):
             return False
         eq = set(self.a) == set(other.a)
-        # if eq and np.sum((self.w-other.w)**2) > 1e-6:
-        #     print "Warning: RotationB same atoms, different weights"
-        # if eq and np.sum((self.x0-other.x0)**2) > 1e-6:
-        #     print "Warning: RotationB same atoms, different reference positions"
         return eq
 
     def __ne__(self, other):
@@ -807,7 +748,7 @@ class RotationB(PrimitiveCoordinate):
 
 
 class RotationC(PrimitiveCoordinate):
-    __slots__ = ['a', 'x0', 'w', 'Rotator', 'isAngular', 'isPeriodic']
+    __slots__ = ['Rotator', 'a', 'isAngular', 'isPeriodic', 'w', 'x0']
 
     def __init__(self, a, x0, Rotators, w=1.0):
         self.a = tuple(sorted(a))
@@ -830,10 +771,6 @@ class RotationC(PrimitiveCoordinate):
         if type(self) is not type(other):
             return False
         eq = set(self.a) == set(other.a)
-        # if eq and np.sum((self.w-other.w)**2) > 1e-6:
-        #     print "Warning: RotationC same atoms, different weights"
-        # if eq and np.sum((self.x0-other.x0)**2) > 1e-6:
-        #     print "Warning: RotationC same atoms, different reference positions"
         return eq
 
     def __ne__(self, other):
@@ -877,13 +814,7 @@ class Distance(PrimitiveCoordinate):
     def __eq__(self, other):
         if type(self) is not type(other):
             return False
-        if self.a == other.a:
-            if self.b == other.b:
-                return True
-        if self.a == other.b:
-            if self.b == other.a:
-                return True
-        return False
+        return (self.a == other.a and self.b == other.b) or (self.a == other.b and self.b == other.a)
 
     def __ne__(self, other):
         return not self.__eq__(other)
@@ -942,12 +873,10 @@ class Angle(PrimitiveCoordinate):
         if type(self) is not type(other):
             return False
         if self.b == other.b:
-            if self.a == other.a:
-                if self.c == other.c:
-                    return True
-            if self.a == other.c:
-                if self.c == other.a:
-                    return True
+            if self.a == other.a and self.c == other.c:
+                return True
+            if self.a == other.c and self.c == other.a:
+                return True
         return False
 
     def __ne__(self, other):
@@ -1068,7 +997,7 @@ class Angle(PrimitiveCoordinate):
 
 
 class LinearAngle(PrimitiveCoordinate):
-    __slots__ = ['a', 'b', 'c', 'axis', 'e0', 'stored_dot2', 'isAngular', 'isPeriodic']
+    __slots__ = ['a', 'axis', 'b', 'c', 'e0', 'isAngular', 'isPeriodic', 'stored_dot2']
 
     def __init__(self, a, b, c, axis):
         self.a = a
@@ -1117,12 +1046,10 @@ class LinearAngle(PrimitiveCoordinate):
         if type(self) is not type(other):
             return False
         if self.b == other.b:
-            if self.a == other.a:
-                if self.c == other.c:
-                    return True
-            if self.a == other.c:
-                if self.c == other.a:
-                    return True
+            if self.a == other.a and self.c == other.c:
+                return True
+            if self.a == other.c and self.c == other.a:
+                return True
         return False
 
     def __ne__(self, other):
@@ -1203,8 +1130,6 @@ class LinearAngle(PrimitiveCoordinate):
             derivatives[b, :] = np.dot(-deba, e2) + np.dot(-debc, e2)
             derivatives[c, :] = np.dot(de2, eba) + np.dot(de2, ebc) + np.dot(debc, e2)
         # Finite difference derivatives
-        # if np.linalg.norm(derivatives - fderivatives) > 1e-6:
-        #     print np.linalg.norm(derivatives - fderivatives)
         return derivatives
 
     def second_derivative(self, xyz, start_idx):
@@ -1250,17 +1175,9 @@ class Dihedral(PrimitiveCoordinate):
     def __eq__(self, other):
         if type(self) is not type(other):
             return False
-        if self.a == other.a:
-            if self.b == other.b:
-                if self.c == other.c:
-                    if self.d == other.d:
-                        return True
-        if self.a == other.d:
-            if self.b == other.c:
-                if self.c == other.b:
-                    if self.d == other.a:
-                        return True
-        return False
+        return (self.a == other.a and self.b == other.b and self.c == other.c and self.d == other.d) or (
+            self.a == other.d and self.b == other.c and self.c == other.b and self.d == other.a
+        )
 
     def __ne__(self, other):
         return not self.__eq__(other)
@@ -1409,18 +1326,10 @@ class OutOfPlane(PrimitiveCoordinate):
     def __eq__(self, other):
         if type(self) is not type(other):
             return False
-        if self.a == other.a:
-            if {self.b, self.c, self.d} == {other.b, other.c, other.d}:
-                if [self.b, self.c, self.d] != [other.b, other.c, other.d]:
-                    output.logger.warning("Warning: OutOfPlane atoms are the same, ordering is different")
-                return True
-        #     if self.b == other.b:
-        #         if self.c == other.c:
-        #             if self.d == other.d:
-        # if self.a == other.d:
-        #     if self.b == other.c:
-        #         if self.c == other.b:
-        #             if self.d == other.a:
+        if self.a == other.a and {self.b, self.c, self.d} == {other.b, other.c, other.d}:
+            if [self.b, self.c, self.d] != [other.b, other.c, other.d]:
+                output.logger.warning("Warning: OutOfPlane atoms are the same, ordering is different")
+            return True
         return False
 
     def __ne__(self, other):

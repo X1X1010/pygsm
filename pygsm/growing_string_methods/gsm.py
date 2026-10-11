@@ -1,17 +1,17 @@
-import os
 import math
 import multiprocessing as mp
+import os
 from collections import Counter
-from itertools import chain
 from copy import copy
-from typing import List
+from itertools import chain
 
 import numpy as np
 
-from pygsm.coordinate_systems import Distance, Angle, Dihedral, OutOfPlane
-from pygsm.utilities import output, options
+from pygsm.coordinate_systems import Angle, Dihedral, Distance, OutOfPlane
 from pygsm.molecule import Molecule
+from pygsm.utilities import options, output
 from pygsm.utilities.manage_xyz import write_molden_geoms
+
 from ._shared import worker
 
 #######################################################################################
@@ -24,7 +24,7 @@ from ._shared import worker
 # TODO nconstraints in ic_reparam and write_iters is irrelevant
 
 
-class GSM(object):
+class GSM:
 
     @staticmethod
     def default_options():
@@ -194,7 +194,7 @@ class GSM(object):
 
         # Cache attributes
         self.nnodes: int = self.options['nnodes']
-        self.nodes: List[Molecule] = [None for _ in range(self.nnodes)]
+        self.nodes: list[Molecule] = [None for _ in range(self.nnodes)]
         self.nodes[0] = self.options['reactant']
         self.nodes[-1] = self.options['product']
         self.driving_coords = self.options['driving_coords']
@@ -212,7 +212,7 @@ class GSM(object):
         self.xyz_writer = self.options['xyz_writer']
 
         optimizer = options['optimizer']
-        for count in range(self.nnodes):
+        for _count in range(self.nnodes):
             self.optimizer.append(optimizer.__class__(optimizer.options.copy()))
         self.print_level = options['print_level']
 
@@ -286,12 +286,10 @@ class GSM(object):
         if energies[self.nnodes-1] < energies[self.nnodes-2]:
             minnodes.append(self.nnodes-1)
         for n in range(self.n0, self.nnodes-1):
-            if energies[n+1] > energies[n]:
-                if energies[n] < energies[n-1]:
-                    minnodes.append(n)
-            if energies[n+1] < energies[n]:
-                if energies[n] > energies[n-1]:
-                    maxnodes.append(n)
+            if energies[n+1] > energies[n] and energies[n] < energies[n-1]:
+                minnodes.append(n)
+            if energies[n+1] < energies[n] and energies[n] > energies[n-1]:
+                maxnodes.append(n)
 
         return len(maxnodes)
 
@@ -334,7 +332,7 @@ class GSM(object):
         self._gradrmss = []
         for ico in self.nodes:
             if ico is not None:
-                gradrms = ico.gradrms if isinstance(ico.gradrms, float) else ico.gradrms.item()
+                gradrms = ico.gradrms
                 self._gradrmss.append(gradrms)
         return self._gradrmss
 
@@ -376,7 +374,7 @@ class GSM(object):
         '''
 
         # get driving coord
-        driving_coords = kwargs.get('driving_coords', None)
+        driving_coords = kwargs.get('driving_coords')
         DQMAG_MAX = kwargs.get('DQMAG_MAX', 0.8)
         DQMAG_MIN = kwargs.get('DQMAG_MIN', 0.2)
 
@@ -447,7 +445,6 @@ class GSM(object):
 
         if node2 is not None and node1.node_id != node2.node_id:
             print(f" getting tangent from between {node2.node_id} {node1.node_id} pointing towards {node2.node_id}")
-            assert node2 != None, 'node n2 is None'
 
             PMDiff = np.zeros(node2.num_primitives)
             for k, prim in enumerate(node2.primitive_internal_coordinates):
@@ -460,7 +457,7 @@ class GSM(object):
         else:
             print(" getting tangent from node ", node1.node_id)
 
-            driving_coords = kwargs.get('driving_coords', None)
+            driving_coords = kwargs.get('driving_coords')
             assert driving_coords is not None, " Driving coord is None!"
 
             c = Counter(elem[0] for elem in driving_coords)
@@ -494,7 +491,6 @@ class GSM(object):
 
                     # TODO don't set tangent if value is too small
                     ictan[prim_idx] = -1*(d0-current_d)
-                    # if nbreaks>0:
                     # => calc bdist <=
                     if current_d > d0:
                         bdist += np.dot(ictan[prim_idx], ictan[prim_idx])
@@ -535,10 +531,9 @@ class GSM(object):
                     ang_value = angle.value(xyz)
                     ang_diff = anglet*np.pi/180. - ang_value
                     if print_level > 0:
-                        print((f" anglev: {ang_value:4.3f} align to {anglet:4.3f} diff(rad): {ang_diff:4.3f}"))
+                        print(f" anglev: {ang_value:4.3f} align to {anglet:4.3f} diff(rad): {ang_diff:4.3f}")
                     ictan[prim_idx] = -ang_diff
                     # TODO need to come up with an adist
-                    # if abs(ang_diff)>0.1:
                 elif "TORSION" in i:
 
                     if i[1] < i[4]:
@@ -559,7 +554,7 @@ class GSM(object):
                     if tor_diff*np.pi/180. > 0.1 or tor_diff*np.pi/180. < 0.1:
                         bdist += np.dot(ictan[prim_idx], ictan[prim_idx])
                     if print_level > 0:
-                        print((f" current torv: {torv*180./np.pi:4.3f} align to {tort:4.3f} diff(deg): {tor_diff:4.3f}"))
+                        print(f" current torv: {torv*180./np.pi:4.3f} align to {tort:4.3f} diff(deg): {tor_diff:4.3f}")
 
                 elif "OOP" in i:
                     index = [i[1]-1, i[2]-1, i[3]-1, i[4]-1]
@@ -577,7 +572,7 @@ class GSM(object):
                     if oop_diff*np.pi/180. > 0.1 or oop_diff*np.pi/180. < 0.1:
                         bdist += np.dot(ictan[prim_idx], ictan[prim_idx])
                     if print_level > 0:
-                        print((f" current oopv: {oopv*180./np.pi:4.3f} align to {oopt:4.3f} diff(deg): {oop_diff:4.3f}"))
+                        print(f" current oopv: {oopv*180./np.pi:4.3f} align to {oopt:4.3f} diff(deg): {oop_diff:4.3f}")
 
             bdist = np.sqrt(bdist)
             if np.all(ictan == 0.0):
@@ -594,7 +589,6 @@ class GSM(object):
         ictan = [[]]*nnodes
 
         for n in range(n0+1, nnodes):
-            # print "getting tangent between %i %i" % (n,n-1)
             assert nodes[n] is not None, "n is bad"
             assert nodes[n-1] is not None, "n-1 is bad"
             ictan[n] = GSM.get_tangent_xyz(nodes[n-1].xyz, nodes[n].xyz, nodes[0].primitive_internal_coordinates)
@@ -608,8 +602,6 @@ class GSM(object):
             # vanilla GSM has a strange metric for distance
             # no longer following 7/1/2020
             # just a fancy way to get the normalized tangent vector
-            # for prim in self.newic.primitive_internal_coordinates:
-            #    if type(prim) is Distance:
             if dqmaga[n] < 0.:
                 raise RuntimeError
 
@@ -928,32 +920,10 @@ class GSM(object):
         return
 
     # TODO move to string utils or delete altogether
-    #def get_current_rotation(self,frag,a1,a2):
-    #    '''
-    #    calculate current rotation for single-ended nodes
-    #    '''
-    #
-    #    # Get the information on fragment to rotate
-    #
-    #    # Haven't added any nodes yet
-    #    if self.nR==1:
-
-    #    for n in range(1,self.nR):
-    #
-    #        # only want the fragment of interest
-
-    #        # Turn off
-
-    #        # ALIGN previous and current node to get rotation around axis of rotation
-    #        if v.all()==0.:
-
-    #
-    #        # Calculate dtheta
-    #
 
 
     @staticmethod
-    def calc_optimization_metrics(nodes: List[Molecule]):
+    def calc_optimization_metrics(nodes: list[Molecule]):
 
         nnodes = len(nodes)
         rn3m6 = math.sqrt(3 * nodes[0].natoms - 6)
@@ -961,7 +931,7 @@ class GSM(object):
         for i, ico in enumerate(nodes[1:nnodes-1]):
             if ico is None:
                 continue
-            ico_gradrms = ico.gradrms.item() if hasattr(ico.gradrms, 'item') else ico.gradrms
+            ico_gradrms = ico.gradrms
             print(f" node: {i:02d} gradrms: {ico_gradrms:.6f}", end='')
             if i % 5 == 0:
                 print()

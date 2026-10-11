@@ -107,7 +107,7 @@ def test_basic_penalty_opt():
     )
 
     print(' MECP optimization')
-    geoms, energies = optimizer.optimize(
+    _geoms, energies = optimizer.optimize(
         molecule=initial,
         refE=initial.energy,
         opt_steps=150,  # The max number of optimization steps, use a small number until you have your final sigma

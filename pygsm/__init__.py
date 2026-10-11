@@ -22,39 +22,39 @@ from .coordinate_systems import (
     TranslationY,
     TranslationZ,
 )
-from .growing_string_methods import DE_GSM, GSM, MainGSM, SE_Cross, SE_GSM
+from .growing_string_methods import DE_GSM, GSM, SE_GSM, MainGSM, SE_Cross
 from .molecule import Molecule
 from .optimizers import NoLineSearch, backtrack, beales_cg, conjugate_gradient, eigenvector_follow, lbfgs
-from .potential_energy_surfaces import Avg_PES, PES, Penalty_PES
+from .potential_energy_surfaces import PES, Avg_PES, Penalty_PES
 
 __all__ = [
-    '__version__',
+    'DE_GSM',
+    'GSM',
+    'PES',
+    'SE_GSM',
     'Angle',
     'Avg_PES',
     'CartesianCoordinates',
-    'DE_GSM',
     'DelocalizedInternalCoordinates',
     'Dihedral',
     'Distance',
-    'GSM',
     'InternalCoordinates',
     'MainGSM',
     'Molecule',
     'MyG',
     'NoLineSearch',
     'OutOfPlane',
-    'PES',
     'Penalty_PES',
     'PrimitiveInternalCoordinates',
     'RotationA',
     'RotationB',
     'RotationC',
     'SE_Cross',
-    'SE_GSM',
     'Topology',
     'TranslationX',
     'TranslationY',
     'TranslationZ',
+    '__version__',
     'backtrack',
     'beales_cg',
     'conjugate_gradient',

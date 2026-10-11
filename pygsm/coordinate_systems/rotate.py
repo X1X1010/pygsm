@@ -2,8 +2,7 @@
 import numpy as np
 from numpy.linalg import multi_dot
 
-from pygsm.utilities import output, manage_xyz, math_utils
-
+from pygsm.utilities import manage_xyz, math_utils, output
 
 """
 References
@@ -11,19 +10,6 @@ References
 1. E. A. Coutsias, C. Seok, K. A. Dill. "Using Quaternions to Calculate RMSD.". J. Comput. Chem 2004.
 """
 
-# def invert_svd(X,thresh=1e-12):
-
-#     """
-
-#     Invert a matrix using singular value decomposition.
-#     @param[in] X The matrix to be inverted
-#     @param[in] thresh The SVD threshold; eigenvalues below this are not inverted but set to zero
-#     @return Xt The inverted matrix
-
-#     """
-
-#     for i in range(s.shape[0]):
-#         # if abs(s[i]) > thresh:
 
 
 def build_correlation(x, y):
@@ -208,11 +194,8 @@ def is_linear(x, y):
     """
     x = x - np.mean(x, axis=0)
     y = y - np.mean(y, axis=0)
-    L, Q = sorted_eigh(build_F(x, y))
-    if L[0]/L[1] < 1.01 and L[0]/L[1] > 0.0:
-        return True
-    else:
-        return False
+    L, _Q = sorted_eigh(build_F(x, y))
+    return bool(0.0 < L[0]/L[1] < 1.01)
 
 
 def get_quat(x, y, eig=False):
@@ -515,7 +498,6 @@ def calc_fac_dfac(q0, second=False):
     """
     # Ill-defined around q0=1.0
     qm1 = q0-1.0
-    # if np.abs(q0) == 1.0:
     if np.abs(qm1) < 1e-8:
         fac = 2 - 2*qm1/3
         dfac = -2/3
@@ -540,7 +522,7 @@ def get_expmap(x, y):
     """
     Calculate the exponential map that rotates x into maximal coincidence with y
     to minimize the RMSD.
-    
+
     Parameters
     ----------
     x : numpy.ndarray
@@ -562,7 +544,7 @@ def get_expmap(x, y):
 
 def get_expmap_der(x, y, second=False, fdcheck=False, use_loops=False):
     """
-    Given trial coordinates x and target coordinates y, 
+    Given trial coordinates x and target coordinates y,
     return the derivatives of the exponential map that brings
     x into maximal coincidence (minimum RMSD) with y, with
     respect to the coordinates of x.
@@ -583,11 +565,11 @@ def get_expmap_der(x, y, second=False, fdcheck=False, use_loops=False):
     Returns
     -------
     numpy.ndarray
-        u, w, i: 
+        u, w, i:
         First two dimensions are (n_atoms, 3), the variables being differentiated
         Third dimension is 3, the elements of the exponential map derivatives with respect to atom u, dimension w
     numpy.ndarray (if second=True)
-        u, w, a, b, i: 
+        u, w, a, b, i:
         First four dimensions are (n_atoms, 3, n_atoms, 3), the variables being differentiated
         Fifth dimension is 3, the elements of the exponential map second derivatives with respect to atom u, dimension w, atom a, dimension b
     """
@@ -790,19 +772,19 @@ def vibrational_basis(
 ):
     """ Compute the vibrational basis in mass-weighted Cartesian coordinates.
     This is the null-space of the translations and rotations in the Eckart frame.
-    
-    Params: 
+
+    Params:
         geom (geometry struct) - minimimum geometry structure
         masses (list of float) - masses for the geometry
 
     Returns:
-        B ((3*natom, 3*natom-6) np.ndarray) - orthonormal basis for vibrations. Mass-weighted cartesians in rows, mass-weighted vibrations in columns. 
+        B ((3*natom, 3*natom-6) np.ndarray) - orthonormal basis for vibrations. Mass-weighted cartesians in rows, mass-weighted vibrations in columns.
 
     """
 
     # Compute Eckart frame geometry
     # L,O are the Principle moments/Principle axes of the intertial tensor
-    COM, L, O, geom2 = eckart_frame(geom, masses)
+    _COM, _L, O, geom2 = eckart_frame(geom, masses)
     G = manage_xyz.xyz_to_np(geom2)
 
     # Known basis functions for translations
@@ -821,7 +803,7 @@ def vibrational_basis(
             TR[3*A+j, 5] = + mass_12 * (G[A, 0] * O[j, 1] - G[A, 1] * O[j, 0])  # + Gx Oy - Gy Ox
 
     # Single Value Decomposition (review)
-    U, s, V = np.linalg.svd(TR, full_matrices=True)
+    U, _s, _V = np.linalg.svd(TR, full_matrices=True)
 
     # The null-space of TR
     B = U[:, 6:]
@@ -858,5 +840,4 @@ def calc_rot_vec_diff(v1_in, v2_in):
             va += 2*np.pi*vh
             revcount += 1
             break
-    # if revcount != 0:
     return v1-v2

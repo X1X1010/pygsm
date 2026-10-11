@@ -1,12 +1,13 @@
 import numpy as np
 from scipy.linalg import block_diag
-from .math_utils import orthogonalize, conjugate_orthogonalize
+
+from .math_utils import conjugate_orthogonalize, orthogonalize
 
 
 def isblock(obj):
     return hasattr(obj, "matlist")
 
-class block_matrix(object):
+class block_matrix:
 
     def __init__(self, matlist, cnorms=None):
         self.matlist = matlist
@@ -16,10 +17,8 @@ class block_matrix(object):
 
     def __repr__(self):
         lines = [f" block matrix: # blocks = {self.num_blocks}"]
-        count = 0
-        for m in self.matlist:
+        for count, m in enumerate(self.matlist, 1):
             lines.append(str(m))
-            count += 1
             if count > 10:
                 print('truncating printout')
                 break
@@ -58,7 +57,7 @@ class block_matrix(object):
 
         # (b) renormalizing the constraints on the surface G
         norms = np.sqrt(
-            (ov(constraints.T, constraints).sum(axis=0, keepdims=True)))
+            ov(constraints.T, constraints).sum(axis=0, keepdims=True))
         constraints = constraints/norms
 
         # (c) need to save the magnitude of the constraints in each segment since they
@@ -185,21 +184,14 @@ class block_matrix(object):
             num_c = 0
             flag = False
             for c in cnorms.T:
-                # if (c[sc:ec]!=0.).any():
                 if any(c[sc:ec] != 0.):
                     num_c += 1
                     flag = True
             if flag:
                 try:
                     a = orthogonalize(nb, num_c)
-                except:
-                    print(" what is happening")
-                    print("nb")
-                    print(nb)
-                    print(nb.shape)
-                    print(num_c)
-                    print("ob")
-                    print(ob)
+                except Exception as error:
+                    raise RuntimeError(f'failed to orthogonalize constraint block (shape {nb.shape}, {num_c} constraints)') from error
                 ans.append(a)
             else:
                 ans.append(ob)
@@ -209,28 +201,7 @@ class block_matrix(object):
         return block_matrix(ans, cnorms)
 
         # (d) concatenating the block to each constraint if the constraint is non-zero
-        # for block in BM.matlist:
-        #    for constraint in constraints.T:
-        #        #if (constraint[s:e]!=0.).all():
-        #        if mag>0.:
-        #    if flag==True:
-        #        if len(tmpc)!=len(block):
-        #            raise RuntimeError
 
-
-    @staticmethod
-    def qr(BM):  # only return the Q part
-        ans = []
-        for A in BM.matlist:
-            Q, R = np.linalg.qr(A)
-            indep = np.where(np.abs(R.diagonal()) > min_tol)[0]
-            ans.append(Q[:, indep])
-            if len(indep) > A.shape[1]:
-                print(" the basis dimensions are too large.")
-                raise RuntimeError
-            # for i in range(BM.cnorms.shape[1]):
-            #    if np.linalg.norm(R[-1,:])<1.e-3:
-        return block_matrix(ans, BM.cnorms)
 
     @staticmethod
     def diagonal(BM):
@@ -257,7 +228,7 @@ class block_matrix(object):
             print("adding block matrices!")
             assert(self.shape == rhs.shape)
             return block_matrix([A+B for A, B in zip(self.matlist, rhs.matlist)])
-        elif isinstance(rhs, float) or isinstance(rhs, int):
+        elif isinstance(rhs, (float, int)):
             return block_matrix([A+rhs for A in self.matlist])
         else:
             raise NotImplementedError
@@ -269,7 +240,7 @@ class block_matrix(object):
         if isinstance(rhs, self.__class__):
             assert(self.shape == rhs.shape)
             return block_matrix([A*B for A, B in zip(self.matlist, rhs.matlist)])
-        elif isinstance(rhs, float) or isinstance(rhs, int):
+        elif isinstance(rhs, (float, int)):
             return block_matrix([A*rhs for A in self.matlist])
         else:
             raise NotImplementedError
@@ -284,7 +255,7 @@ class block_matrix(object):
         if isinstance(rhs, self.__class__):
             assert(self.shape == rhs.shape)
             return block_matrix([A/B for A, B in zip(self.matlist, rhs.matlist)])
-        elif isinstance(rhs, float) or isinstance(rhs, int):
+        elif isinstance(rhs, (float, int)):
             return block_matrix([A/rhs for A in self.matlist])
         elif isinstance(rhs, np.ndarray):
             answer = []
@@ -313,7 +284,6 @@ class block_matrix(object):
         def block_vec_dot(block, vec):
             if vec.ndim == 2 and vec.shape[1] == 1:
                 vec = vec.flatten()
-            # if block.cnorms is None:
             s = 0
             result = []
             for A in block.matlist:
@@ -325,7 +295,6 @@ class block_matrix(object):
         def vec_block_dot(vec, block, **kwargs):
             if vec.ndim == 2 and vec.shape[1] == 1:
                 vec = vec.flatten()
-            # if block.cnorms is None:
             s = 0
             result = []
             for A in block.matlist:

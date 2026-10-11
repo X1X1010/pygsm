@@ -1,17 +1,17 @@
-from __future__ import print_function
 
 # standard library imports
-import sys
 import os
+import sys
 from io import StringIO
 
 # third party
 import numpy as np
 
+from ..utilities import block_matrix, manage_xyz, units
+
 # local application imports
 from ._linesearch import NoLineSearch
 from .base_optimizer import base_optimizer
-from ..utilities import block_matrix, manage_xyz, units
 
 
 class eigenvector_follow(base_optimizer):
@@ -25,16 +25,17 @@ class eigenvector_follow(base_optimizer):
             ictan=None,
             xyzframerate=4,
             verbose=False,
-            path=os.getcwd(),
+            path=None,
     ):
 
+        if path is None:
+            path = os.getcwd()
         # stash/initialize some useful attributes
         self.check_inputs(molecule, opt_type, ictan)
         nconstraints = self.get_nconstraints(opt_type)
         self.buf = StringIO()
 
-        # print " refE %5.4f" % refE
-        print(" initial E %5.4f" % (molecule.energy - refE))
+        print(f" initial E {molecule.energy - refE:5.4f}")
         print(f" CONV_TOL {self.conv_grms:1.5f}")
         geoms = []
         energies = []
@@ -82,7 +83,7 @@ class eigenvector_follow(base_optimizer):
             self.x_prim = np.zeros((molecule.num_primitives, 1), dtype=float)
             self.g_prim = np.zeros((molecule.num_primitives, 1), dtype=float)
 
-        molecule.gradrms = np.sqrt(np.dot(gc.T, gc)/n)
+        molecule.gradrms = np.sqrt(np.dot(gc.T, gc)/n).item()
         dE = molecule.difference_energy
         update_hess = False
 
@@ -124,7 +125,7 @@ class eigenvector_follow(base_optimizer):
             xyzp = xyz.copy()
             fxp = fx
             pgradrms = molecule.gradrms
-            if not molecule.coord_obj.__class__.__name__ == 'CartesianCoordinates':
+            if molecule.coord_obj.__class__.__name__ != 'CartesianCoordinates':
                 gp_prim = self.g_prim.copy()
 
             # => calculate constraint step <= #
@@ -168,8 +169,7 @@ class eigenvector_follow(base_optimizer):
             dEpre = np.dot(np.transpose(scaled_dq), gc) + 0.5*np.dot(np.transpose(dEtemp), scaled_dq)
             dEpre *= units.KCAL_MOL_PER_AU
             constraint_energy = np.dot(gp.T, constraint_steps)*units.KCAL_MOL_PER_AU
-            dEpre += constraint_energy
-            # if abs(dEpre)<0.01:
+            dEpre = (dEpre + constraint_energy).item()
 
             # project out the constraint
             gc = g.copy()
@@ -180,7 +180,7 @@ class eigenvector_follow(base_optimizer):
             dEstep = fx - fxp
             print(f" dEstep={dEstep:5.4f}")
             ratio = dEstep/dEpre
-            molecule.gradrms = np.sqrt(np.dot(gc.T, gc)/n)
+            molecule.gradrms = np.sqrt(np.dot(gc.T, gc)/n).item()
             if ls['status'] != -2:
                 self.step_controller(actual_step, ratio, molecule.gradrms, pgradrms, dEpre, opt_type, dEstep)
 
@@ -192,7 +192,7 @@ class eigenvector_follow(base_optimizer):
                 manage_xyz.write_xyzs_w_comments(f'{path}/opt_{molecule.node_id}.xyz', geoms, energies, scale=1.)
 
             # save variables for update Hessian!
-            if not molecule.coord_obj.__class__.__name__ == 'CartesianCoordinates':
+            if molecule.coord_obj.__class__.__name__ != 'CartesianCoordinates':
                 # only form g_prim for non-constrained
                 self.g_prim = block_matrix.dot(molecule.coord_basis, gc)
                 self.dx = x-xp
@@ -207,8 +207,8 @@ class eigenvector_follow(base_optimizer):
                 raise NotImplementedError(" ef not implemented for CART")
 
             if self.options['print_level'] > 0:
-                print(f" Node: {molecule.node_id} Opt step: {ostep+1} E: {fx-refE:5.4f} predE: {dEpre.item():5.4f} ratio: {ratio.item():1.3f} gradrms: {molecule.gradrms.item():1.5f} ss: {step:1.3f} DMAX: {self.DMAX:1.3f}")
-            self.buf.write(f" Node: {molecule.node_id} Opt step: {ostep+1} E: {fx-refE:5.4f} predE: {dEpre.item():5.4f} ratio: {ratio.item():1.3f} gradrms: {molecule.gradrms.item():1.5f} ss: {step:1.3f} DMAX: {self.DMAX:1.3f}")
+                print(f" Node: {molecule.node_id} Opt step: {ostep+1} E: {fx-refE:5.4f} predE: {dEpre:5.4f} ratio: {ratio:1.3f} gradrms: {molecule.gradrms:1.5f} ss: {step:1.3f} DMAX: {self.DMAX:1.3f}")
+            self.buf.write(f" Node: {molecule.node_id} Opt step: {ostep+1} E: {fx-refE:5.4f} predE: {dEpre:5.4f} ratio: {ratio:1.3f} gradrms: {molecule.gradrms:1.5f} ss: {step:1.3f} DMAX: {self.DMAX:1.3f}")
 
             # check for convergence TODO
             fx = molecule.energy
@@ -221,7 +221,7 @@ class eigenvector_follow(base_optimizer):
             if xnorm < 1.0:
                 xnorm = 1.0
 
-            print(f" gmax {gmax:5.4f} disp {disp:5.4f} Ediff {dEstep:5.4f} gradrms {molecule.gradrms.item():5.4f}\n")
+            print(f" gmax {gmax:5.4f} disp {disp:5.4f} Ediff {dEstep:5.4f} gradrms {molecule.gradrms:5.4f}\n")
 
             # TODO turn back on conv_DE
             if self.opt_cross and abs(dE) < self.conv_dE and molecule.gradrms < self.conv_grms and abs(gmax) < self.conv_gmax and abs(dEstep) < self.conv_Ediff and abs(disp) < self.conv_disp:
@@ -252,16 +252,15 @@ class eigenvector_follow(base_optimizer):
                 break
 
             # update DLC  --> this changes q, g, Hint
-            if not molecule.coord_obj.__class__.__name__ == 'CartesianCoordinates':
-                if opt_type != 'TS':
-                    constraints = self.get_constraint_vectors(molecule, opt_type, ictan)
-                    molecule.update_coordinate_basis(constraints=constraints)
-                    x = np.copy(molecule.coordinates)
-                    g = molecule.gradient.copy()
-                    # project out the constraint
-                    gc = g.copy()
-                    for c in molecule.constraints.T:
-                        gc -= np.dot(gc.T, c[:, np.newaxis])*c[:, np.newaxis]
+            if molecule.coord_obj.__class__.__name__ != 'CartesianCoordinates' and opt_type != 'TS':
+                constraints = self.get_constraint_vectors(molecule, opt_type, ictan)
+                molecule.update_coordinate_basis(constraints=constraints)
+                x = np.copy(molecule.coordinates)
+                g = molecule.gradient.copy()
+                # project out the constraint
+                gc = g.copy()
+                for c in molecule.constraints.T:
+                    gc -= np.dot(gc.T, c[:, np.newaxis])*c[:, np.newaxis]
             print()
             sys.stdout.flush()
 

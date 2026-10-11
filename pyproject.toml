@@ -92,6 +92,8 @@ ignore = [
     "E501",   # long lines are handled by the formatter
     "E741",   # single-letter names (i, j, l) are idiomatic in the numerics
     "RUF012", # mutable class attributes
+    "B905",   # zip(strict=...) would turn silent truncation into errors; not a style change
+    "SIM108", # ternaries are not always clearer in the numerics
 ]
 
 [tool.ruff.lint.per-file-ignores]

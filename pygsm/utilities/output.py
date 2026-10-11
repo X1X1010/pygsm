@@ -73,7 +73,7 @@ def printcool_dictionary(Dict, title='Dictionary Keys : Values', bold=False, col
         return
     bar = printcool(title, bold=bold, color=color, minwidth=topwidth, center=center)
     keys = list(Dict) if isinstance(Dict, OrderedDict) else sorted(Dict)
-    logger.info('\n'.join(' ' * leftpad + f'{str(key):<{keywidth}} {Dict[key]!s} ' for key in keys if Dict[key] is not None))
+    logger.info('\n'.join(' ' * leftpad + f'{key!s:<{keywidth}} {Dict[key]!s} ' for key in keys if Dict[key] is not None))
     logger.info(f'\n{bar}')
 
 

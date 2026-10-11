@@ -1,18 +1,19 @@
-from __future__ import print_function
 
 
 # local application imports
 import os
 import sys
-from ..coordinate_systems import Distance
-from .main_gsm import MainGSM
-from ..molecule import Molecule
-from ..utilities import output
-# standard library imports
 
+# standard library imports
 # third party
 from collections import Counter
+
 import numpy as np
+
+from ..coordinate_systems import Distance
+from ..molecule import Molecule
+from ..utilities import output
+from .main_gsm import MainGSM
 
 
 class SE_GSM(MainGSM):
@@ -21,7 +22,7 @@ class SE_GSM(MainGSM):
             self,
             options,
     ):
-        super(SE_GSM, self).__init__(options)
+        super().__init__(options)
         self.current_nnodes = 1
 
         print(" Assuming the isomers are initialized!")
@@ -176,9 +177,9 @@ class SE_GSM(MainGSM):
         return
 
     def add_GSM_nodes(self, newnodes=1):
-        if self.nn+newnodes > self.nnodes:
+        if self.current_nnodes+newnodes > self.nnodes:
             print("Adding too many nodes, cannot interpolate")
-        for i in range(newnodes):
+        for _i in range(newnodes):
             self.add_GSM_nodeR()
 
     def ic_reparam_g(self, ic_reparam_steps=4, n0=0, nconstraints=1):  # see line 3863 of gstring.cpp
@@ -195,7 +196,7 @@ class SE_GSM(MainGSM):
         print(f" conv_tol of node {nR} is {self.optimizer[nR].conv_grms:.4f}")
 
     def set_active(self, nR, nP=None):
-        print((f" setting active node to {nR} "))
+        print(f" setting active node to {nR} ")
 
         for i in range(self.nnodes):
             if self.nodes[i] is not None:
@@ -280,7 +281,7 @@ class SE_GSM(MainGSM):
 
         cgrad = np.linalg.norm(cgrad)*np.sign(overlap)
 
-        print((f" cgrad: {np.asarray(cgrad).item():4.3f} nodemax: {nodemax} nR: {self.nR}"))
+        print(f" cgrad: {np.asarray(cgrad).item():4.3f} nodemax: {nodemax} nR: {self.nR}")
 
         # 6/17 THIS should check if the last node is high in energy
         if cgrad > CTHRESH and not self.nodes[self.nR-1].PES.lot.do_coupling and nodemax != self.TSnode:
@@ -383,7 +384,7 @@ class SE_GSM(MainGSM):
             else:
                 return False
         else:
-            return super(SE_GSM, self).is_converged(totalgrad, fp, rtype, ts_cgradq)
+            return super().is_converged(totalgrad, fp, rtype, ts_cgradq)
 
     def check_for_reaction(self):
         '''
@@ -398,12 +399,10 @@ class SE_GSM(MainGSM):
         if energies[self.nnodes-1] < energies[self.nnodes-2]:
             minnodes.append(self.nnodes-1)
         for n in range(self.n0, self.nnodes-1):
-            if energies[n+1] > energies[n]:
-                if energies[n] < energies[n-1]:
-                    minnodes.append(n)
-            if energies[n+1] < energies[n]:
-                if energies[n] > energies[n-1]:
-                    maxnodes.append(n)
+            if energies[n+1] > energies[n] and energies[n] < energies[n-1]:
+                minnodes.append(n)
+            if energies[n+1] < energies[n] and energies[n] > energies[n-1]:
+                maxnodes.append(n)
         if len(minnodes) > 2 and len(maxnodes) > 1:
             wint = minnodes[1]  # the real reaction ends at first minimum
             print(" wint ", wint)
@@ -451,10 +450,4 @@ class SE_GSM(MainGSM):
         return isrxn
 
         # # => Convergence Criteria
-        # if self.find and self.optimizer[self.TSnode].nneg>1:
 
-        # if (rtype == 2 and self.find ):
-        #    if self.nodes[self.TSnode].gradrms< TS_conv:
-        #    if totalgrad<0.1 and self.nodes[self.TSnode].gradrms<2.5*TS_conv and dE_iter < 0.02:
-        # if rtype==1 and self.climb:
-        #    if self.nodes[self.TSnode].gradrms<TS_conv and ts_cgradq < self.options['CONV_TOL']:

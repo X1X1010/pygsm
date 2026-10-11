@@ -1,13 +1,14 @@
 # third party
 import numpy as np
 
-# local application imports
-from ._linesearch import backtrack, NoLineSearch
 from ..utilities import block_matrix, options, units
+
+# local application imports
+from ._linesearch import NoLineSearch, backtrack
 
 
 def sorted_eigh(mat, asc=False):
-    """ 
+    """
     Return eigenvalues and eigenvectors of a symmetric matrix
     in descending order and associated eigenvectors.
 
@@ -40,7 +41,7 @@ def force_positive_definite(H):
 
 
 # TODO Add primitive constraint e.g. a list of internal coordinates to be left basically frozen throughout optimization
-class base_optimizer(object):
+class base_optimizer:
     ''' some common functions that the children can use (ef, cg, hybrid ef/cg, etc).
     e.g. dgrad_step.
     '''
@@ -284,20 +285,7 @@ class base_optimizer(object):
             assert ictan is None
         if opt_type in ['ICTAN', 'CLIMB', 'TS', 'SEAM', 'TS-SEAM', 'BEALES_CG'] and ictan.any() is None:
             raise RuntimeError("Need ictan")
-        # if opt_type in ['TS','TS-SEAM']:
-        #     assert molecule.isTSnode,"only run climb and eigenvector follow on TSnode."
 
-    # def converged(self,g,nconstraints):
-    #    # check if finished
-    #    #print "current gradrms= %r au" % gradrms
-    #    #print "gnorm =",gnorm
-    #
-    #    #print "maximum gradient component (au)", gmax
-
-    #    if gradrms <self.conv_grms:
-
-    #    #    (gmax <= self.conv_gmax and self.Ediff <= self.conv_Ediff):
-    #    #    print '[INFO] converged'
 
     def set_lambda1(self, opt_type, eigen, maxoln=None):
         if opt_type == 'TS':
@@ -414,7 +402,6 @@ class base_optimizer(object):
 
             elif ratio > 0.85 and ratio < 1.3:
 
-                # if step>self.DMAX and gradrms<(pgradrms*1.35):
                 if gradrms > (pgradrms + 0.0005):
                     print(' decreasing DMAX, gradrms increased')
                     self.DMAX -= self.DMAX/10.
@@ -615,7 +602,7 @@ class base_optimizer(object):
         return change
 
     def update_bfgs(self, molecule):
-        if not molecule.coord_obj.__class__.__name__ == 'CartesianCoordinates':
+        if molecule.coord_obj.__class__.__name__ != 'CartesianCoordinates':
             return self.update_bfgsp(molecule)
         else:
             raise NotImplementedError

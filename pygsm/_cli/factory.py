@@ -7,7 +7,7 @@ import json
 from pygsm.level_of_theories.ase import ASELoT
 from pygsm.level_of_theories.xtb_lot import xTB_lot
 from pygsm.optimizers import beales_cg, conjugate_gradient, eigenvector_follow, lbfgs
-from pygsm.potential_energy_surfaces import Avg_PES, PES, Penalty_PES
+from pygsm.potential_energy_surfaces import PES, Avg_PES, Penalty_PES
 
 
 def create_lot(inpfileq: dict, geom):

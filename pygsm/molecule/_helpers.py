@@ -22,7 +22,7 @@ def load_geometry_inputs(data):
         if data['ftype'] is None:
             data['ftype'] = os.path.splitext(data['fnm'])[1][1:]
         if not os.path.exists(data['fnm']):
-            raise IOError
+            raise OSError
         geom = manage_xyz.read_xyz(data['fnm'], scale=1.0)
         atoms = manage_xyz.get_atoms(geom)
         xyz = manage_xyz.xyz_to_np(geom)

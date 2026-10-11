@@ -1,17 +1,17 @@
-from __future__ import print_function
 
 # standard library imports
-import sys
 import os
+import sys
 from io import StringIO
 
 # third party
 import numpy as np
 from scipy.optimize import LbfgsInvHessProduct
 
+from ..utilities import block_matrix, manage_xyz, units
+
 # local application imports
 from .base_optimizer import base_optimizer
-from ..utilities import block_matrix, manage_xyz, units
 
 
 class iterationData:
@@ -27,7 +27,7 @@ class lbfgs(base_optimizer):
     """the class of lbfgs method"""
 
     def __init__(self, options):
-        super(lbfgs, self).__init__(options)
+        super().__init__(options)
         self.k = 0
         self.end = 0
 
@@ -41,11 +41,13 @@ class lbfgs(base_optimizer):
             ictan=None,
             xyzframerate=4,
             verbose=False,
-            path=os.getcwd(),
+            path=None,
     ):
 
+        if path is None:
+            path = os.getcwd()
         # stash/initialize some useful attributes
-        print(" initial E %5.4f" % (molecule.energy - refE))
+        print(f" initial E {molecule.energy - refE:5.4f}")
         geoms = []
         energies = []
         geoms.append(molecule.geometry)
@@ -76,15 +78,13 @@ class lbfgs(base_optimizer):
             gc -= np.dot(gc.T, c[:, np.newaxis])*c[:, np.newaxis]
 
         g_prim = block_matrix.dot(molecule.coord_basis, gc)
-        molecule.gradrms = np.sqrt(np.dot(gc.T, gc)/num_coords)
+        molecule.gradrms = np.sqrt(np.dot(gc.T, gc)/num_coords).item()
 
         # primitive constraint step
         self.cstep_prim = np.zeros_like(g_prim)
         dE = molecule.difference_energy
 
         # Not checking convergence here anymore ...
-        # if molecule.PES.__class__.__name__!="PES" and self.opt_cross:
-        #    if molecule.gradrms < self.conv_grms and abs(dE)<1.0:
 
         # # reset k in principle k does not have to reset but . . .
         # TRY Turning off Feb 2020
@@ -95,7 +95,7 @@ class lbfgs(base_optimizer):
         # initialize the iteration data list
         if self.k == 0:
             self.lm = []
-            for i in range(0, maxcor):
+            for _i in range(0, maxcor):
                 s_prim = np.zeros_like(g_prim)
                 y_prim = np.zeros_like(g_prim)
                 self.lm.append(iterationData(0.0, s_prim.flatten(), y_prim.flatten()))
@@ -170,14 +170,13 @@ class lbfgs(base_optimizer):
             dEpre = np.dot(gc.T, dq)*units.KCAL_MOL_PER_AU
             constraint_energy = np.dot(gp.T, constraint_steps)*units.KCAL_MOL_PER_AU
             if opt_type not in ['UNCONSTRAINED', 'ICTAN']:
-                print(f"constraint_energy: {np.asarray(constraint_energy).item():1.4f}")
-            dEpre += constraint_energy
+                print(f"constraint_energy: {constraint_energy.item():1.4f}")
+            dEpre = (dEpre + constraint_energy).item()
 
-            # if abs(dEpre)<0.05:
             ratio = dEstep/dEpre
             print(f" dEstep={dEstep:5.4f}")
-            print(f" dEpre={np.asarray(dEpre).item():5.4f}")
-            print(f" ratio={np.asarray(ratio).item():5.4f}")
+            print(f" dEpre={dEpre:5.4f}")
+            print(f" ratio={ratio:5.4f}")
 
             # revert to the privious point
             if ls['status'] < 0 or (ratio < 0. and opt_type != 'CLIMB'):
@@ -192,7 +191,7 @@ class lbfgs(base_optimizer):
 
                 print('[ERROR] the point return to the previous point')
                 self.lm = []
-                for i in range(0, maxcor):
+                for _i in range(0, maxcor):
                     s_prim = np.zeros_like(g_prim)
                     y_prim = np.zeros_like(g_prim)
                     self.lm.append(iterationData(0.0, s_prim.flatten(), y_prim.flatten()))
@@ -223,15 +222,13 @@ class lbfgs(base_optimizer):
                     molecule.newHess += 1
                 flag = False
 
-                if opt_type == "CLIMB":
-                    if self.SCALE_CLIMB < 10. and opt_type == 'CLIMB':
-                        self.SCALE_CLIMB += 1.
-                        print(f'SCALING CLIMB BY {self.SCALE_CLIMB}')
+                if opt_type == "CLIMB" and self.SCALE_CLIMB < 10. and opt_type == 'CLIMB':
+                    self.SCALE_CLIMB += 1.
+                    print(f'SCALING CLIMB BY {self.SCALE_CLIMB}')
             elif ratio > 0.3:
                 molecule.newHess -= 1
-                if opt_type == "CLIMB":
-                    if self.SCALE_CLIMB > 1.:
-                        self.SCALE_CLIMB -= 1.
+                if opt_type == "CLIMB" and self.SCALE_CLIMB > 1.:
+                    self.SCALE_CLIMB -= 1.
 
             # project out the constraints
             gc = g.copy()
@@ -242,7 +239,7 @@ class lbfgs(base_optimizer):
             dE = molecule.difference_energy
             if dE < 100.:
                 print(f" difference energy is {dE:5.4f}")
-            molecule.gradrms = np.sqrt(np.dot(gc.T, gc)/num_coords)
+            molecule.gradrms = np.sqrt(np.dot(gc.T, gc)/num_coords).item()
 
             # control step size  NEW FEB 2020
             if flag:
@@ -265,7 +262,7 @@ class lbfgs(base_optimizer):
                     elif ratio > 0.85 and ratio < 1.1 and actual_step > self.DMAX and dgradrms < -0.00005:
                         print(" HERE increasing DMAX")
                         self.DMAX *= 1.1
-                        if self.DMAX > self.options['abs_max_step']:
+                        if self.options['abs_max_step'] < self.DMAX:
                             self.DMAX = self.options['abs_max_step']
                 else:
                     print("status not zero")
@@ -276,12 +273,12 @@ class lbfgs(base_optimizer):
                 manage_xyz.write_xyzs_w_comments(f'{path}/opt_{molecule.node_id}.xyz', geoms, energies, scale=1.)
 
             if self.options['print_level'] > 0:
-                print(f" Node: {molecule.node_id} Opt step: {ostep+1} E: {fx-refE:5.4f} predE: {np.asarray(dEpre).item():5.4f} ratio: {np.asarray(ratio).item():1.3f} gradrms: {np.asarray(molecule.gradrms).item():1.5f} ss: {step:1.3f} DMAX: {self.DMAX:1.3f}")
-            self.buf.write(f' Node: {molecule.node_id} Opt step: {ostep+1} E: {fx-refE:5.4f} predE: {np.asarray(dEpre).item():5.4f} ratio: {np.asarray(ratio).item():1.3f} gradrms: {np.asarray(molecule.gradrms).item():1.5f} ss: {step:1.3f} DMAX: {self.DMAX:1.3f}\n')
+                print(f" Node: {molecule.node_id} Opt step: {ostep+1} E: {fx-refE:5.4f} predE: {dEpre:5.4f} ratio: {ratio:1.3f} gradrms: {molecule.gradrms:1.5f} ss: {step:1.3f} DMAX: {self.DMAX:1.3f}")
+            self.buf.write(f' Node: {molecule.node_id} Opt step: {ostep+1} E: {fx-refE:5.4f} predE: {dEpre:5.4f} ratio: {ratio:1.3f} gradrms: {molecule.gradrms:1.5f} ss: {step:1.3f} DMAX: {self.DMAX:1.3f}\n')
 
             gmax = float(np.max(np.absolute(gc)))
             disp = float(np.linalg.norm((xyz-self.xyzp).flatten()))
-            print(f" gmax {gmax:5.4f} disp {disp:5.4f} dEstep {dEstep:5.4f} gradrms {np.asarray(molecule.gradrms).item():5.4f}\n")
+            print(f" gmax {gmax:5.4f} disp {disp:5.4f} dEstep {dEstep:5.4f} gradrms {molecule.gradrms:5.4f}\n")
             self.converged = False
             if self.opt_cross and abs(dE) < self.conv_dE and molecule.gradrms < self.conv_grms and abs(gmax) < self.conv_gmax and abs(dEstep) < self.conv_Ediff and abs(disp) < self.conv_disp and ls['status'] == 0:
 
@@ -308,20 +305,18 @@ class lbfgs(base_optimizer):
                     energies.append(molecule.energy-refE)
                     manage_xyz.write_xyzs_w_comments(f'{path}/opt_{molecule.node_id}.xyz', geoms, energies, scale=1.)
                 break
-            # print " ########## DONE WITH TOTAL STEP #########"
 
             # update DLC  --> this changes q, g, Hint
-            if not molecule.coord_obj.__class__.__name__ == 'CartesianCoordinates':
-                if opt_type == 'SEAM' or opt_type == "MECI":
-                    constraints = self.get_constraint_vectors(molecule, opt_type, ictan)
-                    molecule.update_coordinate_basis(constraints=constraints)
-                    x = np.copy(molecule.coordinates)
-                    g = molecule.gradient.copy()
-                    # project out the constraint
-                    gc = g.copy()
-                    for c in molecule.constraints.T:
-                        gc -= np.dot(gc.T, c[:, np.newaxis])*c[:, np.newaxis]
-                    g_prim = block_matrix.dot(molecule.coord_basis, gc)
+            if molecule.coord_obj.__class__.__name__ != 'CartesianCoordinates' and opt_type in ('SEAM', 'MECI'):
+                constraints = self.get_constraint_vectors(molecule, opt_type, ictan)
+                molecule.update_coordinate_basis(constraints=constraints)
+                x = np.copy(molecule.coordinates)
+                g = molecule.gradient.copy()
+                # project out the constraint
+                gc = g.copy()
+                for c in molecule.constraints.T:
+                    gc -= np.dot(gc.T, c[:, np.newaxis])*c[:, np.newaxis]
+                g_prim = block_matrix.dot(molecule.coord_basis, gc)
             sys.stdout.flush()
 
         print(" opt-summary")

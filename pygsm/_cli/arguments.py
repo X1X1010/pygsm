@@ -157,25 +157,25 @@ def _default_num_nodes(gsm_type: str, num_nodes: int | None) -> int:
 
 def _print_banner() -> None:
     msg = r"""
-    __        __   _                            _        
-    \ \      / /__| | ___ ___  _ __ ___   ___  | |_ ___  
-     \ \ /\ / / _ \ |/ __/ _ \| '_ ` _ \ / _ \ | __/ _ \ 
+    __        __   _                            _
+    \ \      / /__| | ___ ___  _ __ ___   ___  | |_ ___
+     \ \ /\ / / _ \ |/ __/ _ \| '_ ` _ \ / _ \ | __/ _ \
       \ V  V /  __/ | (_| (_) | | | | | |  __/ | || (_) |
-       \_/\_/ \___|_|\___\___/|_| |_| |_|\___|  \__\___/ 
-                                    ____ ____  __  __ 
+       \_/\_/ \___|_|\___\___/|_| |_| |_|\___|  \__\___/
+                                    ____ ____  __  __
                        _ __  _   _ / ___/ ___||  \/  |
                       | '_ \| | | | |  _\___ \| |\/| |
                       | |_) | |_| | |_| |___) | |  | |
                       | .__/ \__, |\____|____/|_|  |_|
-                      |_|    |___/                    
+                      |_|    |___/
 #==========================================================================#
 #| If this code has benefited your research, please support us by citing: |#
-#|                                                                        |# 
+#|                                                                        |#
 #| Aldaz, C.; Kammeraad J. A.; Zimmerman P. M. "Discovery of conical      |#
 #| intersection mediated photochemistry with growing string methods",     |#
 #| Phys. Chem. Chem. Phys., 2018, 20, 27394                               |#
 #| http://dx.doi.org/10.1039/c8cp04703k                                   |#
-#|                                                                        |# 
+#|                                                                        |#
 #| Wang, L.-P.; Song, C.C. (2016) "Geometry optimization made simple with |#
 #| translation and rotation coordinates", J. Chem, Phys. 144, 214108.     |#
 #| http://dx.doi.org/10.1063/1.4952956                                    |#

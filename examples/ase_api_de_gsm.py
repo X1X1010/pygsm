@@ -6,23 +6,23 @@ Wrapper to the code using ASE
 import os
 
 try:
-    from ase import Atoms
     import ase.io
+    from ase import Atoms
 except ModuleNotFoundError:
     pass
 
+from pygsm.cli import cleanup_scratch, post_processing
 from pygsm.coordinate_systems.delocalized_coordinates import DelocalizedInternalCoordinates
 from pygsm.coordinate_systems.primitive_internals import PrimitiveInternalCoordinates
 from pygsm.coordinate_systems.topology import Topology
 from pygsm.growing_string_methods import DE_GSM
 from pygsm.level_of_theories.ase import ASELoT
+from pygsm.molecule import Molecule
 from pygsm.optimizers.eigenvector_follow import eigenvector_follow
 from pygsm.optimizers.lbfgs import lbfgs
 from pygsm.potential_energy_surfaces import PES
-from pygsm.cli import cleanup_scratch, post_processing
 from pygsm.utilities import output
 from pygsm.utilities.elements import ElementData
-from pygsm.molecule import Molecule
 
 
 def minimal_wrapper_de_gsm(
@@ -85,7 +85,7 @@ def minimal_wrapper_de_gsm(
     for bond in topology_product.edges():
         if bond in topology_reactant.edges() or (bond[1], bond[0]) in topology_reactant.edges():
             continue
-        print(" Adding bond {} to reactant topology".format(bond))
+        print(f" Adding bond {bond} to reactant topology")
         if bond[0] > bond[1]:
             topology_reactant.add_edge(bond[0], bond[1])
         else:
@@ -127,7 +127,7 @@ def minimal_wrapper_de_gsm(
     )
 
     # Molecules
-    output.printcool("Building the reactant object with {}".format(coordinate_type))
+    output.printcool(f"Building the reactant object with {coordinate_type}")
     from_hessian = optimizer_method == "eigenvector_follow"
 
     molecule_reactant = Molecule.from_options(
@@ -209,7 +209,7 @@ def minimal_wrapper_de_gsm(
     gsm.go_gsm(max_gsm_iterations, max_opt_steps, rtype=rtype)
 
     # write the results into an extended xyz file
-    string_ase, ts_ase = gsm_to_ase_atoms(gsm)
+    string_ase, _ts_ase = gsm_to_ase_atoms(gsm)
     ase.io.write(f"opt_converged_{gsm.ID:03d}_ase.xyz", string_ase)
     ase.io.write(f'TSnode_{gsm.ID}.xyz', string_ase)
 

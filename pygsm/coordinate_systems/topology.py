@@ -1,9 +1,9 @@
-from collections import OrderedDict
 import itertools
+from collections import OrderedDict
+
 import numpy as np
 
-
-from pygsm.utilities import output, math_utils
+from pygsm.utilities import math_utils, output
 
 try:
     import networkx as nx
@@ -19,13 +19,9 @@ except ImportError:
 
 class MyG(nx.Graph):
     def __init__(self):
-        super(MyG, self).__init__()
+        super().__init__()
         self.Alive = True
 
-    # def __eq__(self, other):
-    #     # This defines whether two MyG objects are "equal" to one another.
-    #     if not self.Alive:
-    #     if not other.Alive:
 
     def __hash__(self):
         """ The hash function is something we can use to discard two things that are obviously not equal.  Here we neglect the hash. """
@@ -117,7 +113,7 @@ def AtomContact(xyz, pairs, box=None, displace=False):
         return dr
 
 
-class Topology():
+class Topology:
     def __init__(self, **kwargs):
 
         return
@@ -182,9 +178,9 @@ class Topology():
         else:
             # bondlistfile:
             try:
-                bonds = Topology.read_bonds_from_file(bondlistfile)  # ,prim_idx_start_stop)
-            except:
-                raise RuntimeError
+                bonds = Topology.read_bonds_from_file(bondlistfile)
+            except Exception as error:
+                raise RuntimeError(f'could not read bonds from {bondlistfile}') from error
 
         if add_bond:
             print(" adding extra bonds")
@@ -386,7 +382,6 @@ class Topology():
         BT1 = R[AtomIterator[:, 1]]
         BondThresh = (BT0+BT1) * Fac
         BondThresh = (BondThresh > mindist) * BondThresh + (BondThresh < mindist) * mindist
-        # if hasattr( 'boxes') and toppbc:
         if toppbc:
             raise NotImplementedError
         else:
@@ -414,7 +409,6 @@ class Topology():
                 if i == j:
                     continue
                 # Do not add a bond between resids if fragment is set to True.
-                # if top_settings['fragment'] and 'resid' in Data.keys() and resid[i] != resid[j]:
                 elif i < j:
                     bondlist.append((i, j))
                 else:
@@ -451,6 +445,5 @@ class Topology():
         AtomIterator = np.ascontiguousarray(np.vstack((np.fromiter(itertools.chain(*[[i]*(natoms-i-1) for i in range(natoms)]), dtype=np.int32),
                                             np.fromiter(itertools.chain(*[list(range(i+1, natoms)) for i in range(natoms)]), dtype=np.int32))).T)
         drij = []
-        # if hasattr(self, 'boxes') and pbc:
         drij.append(AtomContact(xyz, AtomIterator))
         return AtomIterator, drij

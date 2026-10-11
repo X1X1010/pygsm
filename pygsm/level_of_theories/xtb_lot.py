@@ -8,7 +8,7 @@ from __future__ import annotations
 import numpy as np
 
 from ..utilities import elements, manage_xyz, units
-from .base_lot import LoTError, Lot
+from .base_lot import Lot, LoTError
 
 # Boltzmann constant in Hartree/K, used to convert the electronic temperature.
 KB_HARTREE_PER_KELVIN = 3.166811563455546e-06

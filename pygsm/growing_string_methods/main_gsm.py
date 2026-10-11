@@ -1,20 +1,19 @@
-from __future__ import print_function
-import numpy as np
+import multiprocessing as mp
 import os
+from itertools import chain
+
+import numpy as np
 
 from pygsm.molecule.molecule import Molecule
-from pygsm.utilities.output import printcool
-from pygsm.utilities.manage_xyz import xyz_to_np
-from pygsm.utilities import units, block_matrix
 from pygsm.optimizers import eigenvector_follow
-import multiprocessing as mp
-from itertools import chain
+from pygsm.utilities import block_matrix, units
+from pygsm.utilities.manage_xyz import xyz_to_np
+from pygsm.utilities.output import printcool
 
 from ._growth import grow_string as _grow_string
 from ._optimization import optimize_string as _optimize_string
 from ._shared import worker
 from .gsm import GSM
-
 
 #######################################################################################
 ############### This class contains the main GSM functions  ###########################
@@ -133,7 +132,7 @@ class MainGSM(GSM):
 
     def get_tangents_growing(self, print_level=1):
         """
-        Finds the tangents during the growth phase. 
+        Finds the tangents during the growth phase.
         Tangents referenced to left or right during growing phase.
         Also updates coordinates
         Not a static method beause no one should ever call this outside of GSM
@@ -208,7 +207,6 @@ class MainGSM(GSM):
 
         totalgrad = totalgrad.item() if isinstance(totalgrad, np.ndarray) else totalgrad
         ts_cgradq = ts_cgradq.item() if isinstance(ts_cgradq, np.ndarray) else ts_cgradq
-        ts_gradrms = ts_gradrms.item() if isinstance(ts_gradrms, np.ndarray) else ts_gradrms
         # checking sum gradrms is not good because if one node is converged a lot while others a re not this is bad
         print('In set stage')
         all_converged = all([self.nodes[n].gradrms < self.optimizer[n].conv_grms*1.1 for n in range(1, self.nnodes-1)])
@@ -259,7 +257,7 @@ class MainGSM(GSM):
 
         if self.current_nnodes+newnodes > self.nnodes:
             raise ValueError("Adding too many nodes, cannot interpolate")
-        for i in range(newnodes):
+        for _i in range(newnodes):
             iR = self.nR-1
             iP = self.nnodes-self.nP
             iN = self.nR
@@ -283,7 +281,7 @@ class MainGSM(GSM):
                 raise RuntimeError('Ran out of space')
 
             if self.__class__.__name__ != "DE_GSM":
-                ictan, bdist = self.get_tangent(
+                _ictan, bdist = self.get_tangent(
                     self.nodes[self.nR],
                     None,
                     driving_coords=self.driving_coords,
@@ -307,7 +305,7 @@ class MainGSM(GSM):
         if self.current_nnodes+newnodes > self.nnodes:
             raise ValueError("Adding too many nodes, cannot interpolate")
 
-        for i in range(newnodes):
+        for _i in range(newnodes):
             n1 = self.nnodes-self.nP
             n2 = self.nnodes-self.nP-1
             n3 = self.nR-1
@@ -379,22 +377,20 @@ class MainGSM(GSM):
                 else:
                     for n in range(n0+1, self.nnodes):
                         rpart[n] = 1./(self.nnodes-1)
-                if self.print_level > 0:
-                    if i == 0:
-                        print(" rpart: ")
-                        for n in range(1, self.nnodes-1):
-                            print(f" {rpart[n]:1.2}", end=' ')
-                            if (n) % 5 == 0:
-                                print()
-                        print()
+                if self.print_level > 0 and i == 0:
+                    print(" rpart: ")
+                    for n in range(1, self.nnodes-1):
+                        print(f" {rpart[n]:1.2}", end=' ')
+                        if (n) % 5 == 0:
+                            print()
+                    print()
             nR0 = self.nR
             nP0 = self.nP
 
             # TODO CRA 3/2019 why is this here?
-            if not reparam_interior:
-                if self.nnodes-self.current_nnodes > 2:
-                    nR0 -= 1
-                    nP0 -= 1
+            if not reparam_interior and self.nnodes-self.current_nnodes > 2:
+                nR0 -= 1
+                nP0 -= 1
 
             deltadq = 0.0
             for n in range(n0+1, nR0):
@@ -524,9 +520,6 @@ class MainGSM(GSM):
         ttt = np.outer(tan, tan)
 
         # Hint before
-        # with np.printoptions(threshold=np.inf):
-        #    print self.newic.Hessian
-        # print "initial eigenvalues"
         # print eig
 
         # Finalize Hessian
@@ -534,15 +527,12 @@ class MainGSM(GSM):
         self.nodes[TSnode].Hessian = self.newic.Hessian.copy()
 
         # Hint after
-        # with np.printoptions(threshold=np.inf):
-        #    print self.nodes[TSnode].Hessian
-        # print "shape of Hessian is %s" % (np.shape(self.nodes[TSnode].Hessian),)
 
         self.nodes[TSnode].newHess = 5
 
         if False:
             print(f"newHess of node {TSnode} {self.nodes[TSnode].newHess}")
-            eigen, tmph = np.linalg.eigh(self.nodes[TSnode].Hessian)  # nicd,nicd
+            eigen, _tmph = np.linalg.eigh(self.nodes[TSnode].Hessian)  # nicd,nicd
             print("eigenvalues of new Hess")
             print(eigen)
 
@@ -552,10 +542,7 @@ class MainGSM(GSM):
         exsteps = 1
         tsnode = int(self.TSnode)
 
-        if (self.find or self.climb) and self.energies[n] > self.energies[self.TSnode]*0.9 and n != tsnode:  #
-            exsteps = 2
-            print(f" multiplying steps for node {n} by {exsteps}")
-        elif self.find and n == tsnode and self.energies[tsnode] > self.energies[tsnode-1]*1.1 and self.energies[tsnode] > self.energies[tsnode+1]*1.1:  # Can also try self.climb but i hate climbing image
+        if ((self.find or self.climb) and self.energies[n] > self.energies[self.TSnode]*0.9 and n != tsnode) or (self.find and n == tsnode and self.energies[tsnode] > self.energies[tsnode-1]*1.1 and self.energies[tsnode] > self.energies[tsnode+1]*1.1):  #
             exsteps = 2
             print(f" multiplying steps for node {n} by {exsteps}")
 
@@ -573,9 +560,8 @@ class MainGSM(GSM):
             if self.climb and n == self.TSnode:
                 opt_type = 'TS-SEAM'
         if not quiet:
-            print((f" setting node {n} opt_type to {opt_type}"))
+            print(f" setting node {n} opt_type to {opt_type}")
 
-        # if isinstance(self.optimizer[n],beales_cg) and opt_type!="BEALES_CG":
 
         return opt_type
 
@@ -605,15 +591,12 @@ class MainGSM(GSM):
         if rtype not in ['growing', 'opting', 'intermediate']:
             raise RuntimeError
 
-        # if rtype==1:
         if rtype == "growing":
             nnodes = self.nR
         elif rtype == "opting" or rtype == "intermediate":
             nnodes = self.nnodes
         else:
             raise ValueError("find peaks bad input")
-        # if rtype==1 or rtype==2:
-        #    print "Energy"
         alluptol = 0.1
         alluptol2 = 0.5
         allup = True
@@ -624,13 +607,15 @@ class MainGSM(GSM):
                 allup = False
                 break
 
-        if energies[nnodes-1] > 15.0:
-            if nnodes-3 > 0:
-                if ((energies[nnodes-1]-energies[nnodes-2]) < alluptol2 and
-                    (energies[nnodes-2]-energies[nnodes-3]) < alluptol2 and
-                        (energies[nnodes-3]-energies[nnodes-4]) < alluptol2):
-                    print(" possible dissociative profile")
-                    diss = True
+        if (
+            energies[nnodes-1] > 15.0
+            and nnodes-3 > 0
+            and (energies[nnodes-1]-energies[nnodes-2]) < alluptol2
+            and (energies[nnodes-2]-energies[nnodes-3]) < alluptol2
+            and (energies[nnodes-3]-energies[nnodes-4]) < alluptol2
+        ):
+            print(" possible dissociative profile")
+            diss = True
 
         print(" nnodes ", nnodes)
         print(" all uphill? ", allup)
@@ -643,17 +628,14 @@ class MainGSM(GSM):
         if energies[nnodes-1] < energies[nnodes-2]:
             minnodes.append(nnodes-1)
         for n in range(self.n0, nnodes-1):
-            if energies[n+1] > energies[n]:
-                if energies[n] < energies[n-1]:
-                    minnodes.append(n)
-            if energies[n+1] < energies[n]:
-                if energies[n] > energies[n-1]:
-                    maxnodes.append(n)
+            if energies[n+1] > energies[n] and energies[n] < energies[n-1]:
+                minnodes.append(n)
+            if energies[n+1] < energies[n] and energies[n] > energies[n-1]:
+                maxnodes.append(n)
 
         print(" min nodes ", minnodes)
         print(" max nodes ", maxnodes)
         len(maxnodes)
-        # print "number of peaks is ",npeaks1
         ediff = 0.5
         PEAK4_EDIFF = 2.0
         if rtype == "growing":
@@ -689,7 +671,6 @@ class MainGSM(GSM):
             if nextmin > 0:
                 npeaks = 2
 
-        # if rtype==3:
         if allup is True and npeaks == 0:
             return -1
         if diss is True and npeaks == 0:
@@ -929,7 +910,7 @@ class MainGSM(GSM):
                 if self.optimizer[n].converged and n != TSnode:
                     self.optimizer[n].check_only_grad_converged=True
                 if (self.climb or self.find) and self.energies[n]>self.energies[TSnode]*0.75 and n!=TSnode:
-                    self.optimizer[n].conv_grms = self.CONV_TOL     
+                    self.optimizer[n].conv_grms = self.CONV_TOL
                     self.optimizer[n].conv_gmax = self.options['CONV_gmax']
                     self.optimizer[n].conv_Ediff = self.options['CONV_Ediff']
                     self.optimizer[n].check_only_grad_converged = False

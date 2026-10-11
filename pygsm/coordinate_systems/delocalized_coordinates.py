@@ -1,13 +1,10 @@
-from __future__ import print_function
-from pygsm.utilities import output, block_matrix, math_utils
-
 # standard library imports
-from sys import exit
 from time import time
 
-from numpy.linalg import multi_dot
 import numpy as np
-np.set_printoptions(precision=4, suppress=True)
+from numpy.linalg import multi_dot
+
+from pygsm.utilities import block_matrix, math_utils, output
 
 # local application imports
 from .internal_coordinates import InternalCoordinates
@@ -21,7 +18,7 @@ class DelocalizedInternalCoordinates(InternalCoordinates):
                  options
                  ):
 
-        super(DelocalizedInternalCoordinates, self).__init__(options)
+        super().__init__(options)
 
         # Cache  some useful attributes
         self.options = options
@@ -47,7 +44,6 @@ class DelocalizedInternalCoordinates(InternalCoordinates):
             dt = time() - t0
             print(f" Time to copy prims {dt:.3f}")
             self.Prims.clearCache()
-        # print "in constructor",len(self.Prims.Internals)
 
         xyz = options['xyz']
         xyz = xyz.flatten()
@@ -68,7 +64,7 @@ class DelocalizedInternalCoordinates(InternalCoordinates):
         self.build_dlc(xyz)
 
     def clearCache(self):
-        super(DelocalizedInternalCoordinates, self).clearCache()
+        super().clearCache()
         self.Prims.clearCache()
 
     def __repr__(self):
@@ -173,6 +169,7 @@ class DelocalizedInternalCoordinates(InternalCoordinates):
         """
         xyz1 = xyz.copy()
         niter = 0
+        dQ0 = None
         while True:
             dQ = np.zeros(len(self.Internals), dtype=float)
             for ic, c in enumerate(self.Prims.cPrims):
@@ -189,7 +186,6 @@ class DelocalizedInternalCoordinates(InternalCoordinates):
                         dQ[iDLC] = Plus2Pi
                     if np.abs(dQ[iDLC]) > np.abs(Minus2Pi):
                         dQ[iDLC] = Minus2Pi
-            # print "applyConstraints calling newCartesian (%i), |dQ| = %.3e" % (niter, np.linalg.norm(dQ))
             xyz2 = self.newCartesian(xyz1, dQ, verbose=False)
             if np.linalg.norm(dQ) < 1e-6:
                 return xyz2
@@ -221,12 +217,6 @@ class DelocalizedInternalCoordinates(InternalCoordinates):
         Bp = self.Prims.wilsonB(xyz)
         return block_matrix.dot(block_matrix.transpose(self.Vecs), Bp)
 
-    #def calcGrad(self, xyz, gradx):
-
-    #    if self.frozen_atoms is not None:
-    #        for a in [3*i for i in self.frozen_atoms]:
-
-    #    # Internal coordinate gradient
 
     def calcGradProj(self, xyz, gradx):
         """
@@ -300,13 +290,12 @@ class DelocalizedInternalCoordinates(InternalCoordinates):
         time_eig = output.click()
         print(f" Timings: Build G: {time_G:.3f} Eig: {time_eig:.3f}")
 
-        self.Internals = ["DLC %s" % (i+1) for i in range(self.Vecs.shape[1])]
+        self.Internals = [f"DLC {i+1}" for i in range(self.Vecs.shape[1])]
 
         # Vecs has number of rows equal to the number of primitives, and
         # number of columns equal to the number of delocalized internal coordinates.
         if self.haveConstraints():
-            assert cVec is None, "can't have vector constraint and cprim."
-            cVec = self.form_cVec_from_cPrims()
+            self.form_cVec_from_cPrims()
 
         if C is not None:
             # orthogonalize
@@ -323,10 +312,8 @@ class DelocalizedInternalCoordinates(InternalCoordinates):
             # normalize C_U
             try:
                 cVecs = math_utils.orthogonalize(cVecs)
-            except:
-                print(cVecs)
-                print("error forming cVec")
-                exit(-1)
+            except Exception as error:
+                raise RuntimeError(f'error forming cVec:\n{cVecs}') from error
 
             # project constraints into vectors
             self.Vecs = block_matrix.project_constraint(self.Vecs, cVecs)
@@ -375,12 +362,10 @@ class DelocalizedInternalCoordinates(InternalCoordinates):
         self.Vecs = block_matrix(tmpvecs)
         output.click()
 
-        self.Internals = ["DLC %s" % (i+1) for i in range(len(LargeIdx))]
+        self.Internals = [f"DLC {i+1}" for i in range(len(LargeIdx))]
 
         # Vecs has number of rows equal to the number of primitives, and
         # number of columns equal to the number of delocalized internal coordinates.
-        # if self.haveConstraints():
-        #     assert cVec is None, "can't have vector constraint and cprim."
 
         # TODO use block diagonal
         if C is not None:
@@ -398,10 +383,8 @@ class DelocalizedInternalCoordinates(InternalCoordinates):
             # normalize C_U
             try:
                 cVecs = math_utils.conjugate_orthogonalize(cVecs, G)
-            except:
-                print(cVecs)
-                print("error forming cVec")
-                exit(-1)
+            except Exception as error:
+                raise RuntimeError(f'error forming cVec:\n{cVecs}') from error
 
             # project constraints into vectors
             self.Vecs = block_matrix.project_conjugate_constraint(self.Vecs, cVecs, G)
@@ -418,8 +401,7 @@ class DelocalizedInternalCoordinates(InternalCoordinates):
         # I'm not sure how this works!!!
         # multiple constraints appears to be problematic!!!
         self.cDLC = [i for i in range(len(self.Prims.cPrims))]
-        # print "Projecting out constraints...",
-        for ic, c in enumerate(self.Prims.cPrims):
+        for _ic, c in enumerate(self.Prims.cPrims):
             # Look up the index of the primitive that is being constrained
             iPrim = self.Prims.Internals.index(c)
             # Pick a row out of the eigenvector space. This is a linear combination of the DLCs.

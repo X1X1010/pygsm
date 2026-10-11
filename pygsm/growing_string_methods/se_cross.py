@@ -1,10 +1,12 @@
-from __future__ import print_function
 import os
-# local application imports
-from ..potential_energy_surfaces import Avg_PES, PES
-from .se_gsm import SE_GSM
+
 from ..molecule import Molecule
+
+# local application imports
+from ..potential_energy_surfaces import PES, Avg_PES
 from ..utilities import output
+from .se_gsm import SE_GSM
+
 # standard library imports
 
 
@@ -23,7 +25,6 @@ class SE_Cross(SE_GSM):
         self.nodes[0].gradrms = 0.
         self.nodes[0].V0 = self.nodes[0].energy
         print(f' Initial energy is {self.nodes[0].energy:1.4f}')
-        sys.stdout.flush()
 
         # stash bdist for node 0
         _, self.nodes[0].bdist = self.get_tangent(self.nodes[0], None, driving_coords=self.driving_coords)
@@ -40,7 +41,7 @@ class SE_Cross(SE_GSM):
         if True:
             path = os.path.join(os.getcwd(), f'scratch/{self.ID:03d}/{self.nR-1}')
             # doing extra constrained penalty optimization for MECI
-            print(" extra constrained optimization for the nnR-1 = %s" % (self.nR-1))
+            print(f" extra constrained optimization for the nnR-1 = {self.nR-1}")
             self.optimizer[self.nR-1].conv_grms = self.options['CONV_TOL']*5
             ictan = self.get_tangent_xyz(self.nodes[self.nR-1].xyz, self.nodes[self.nR-2].xyz, self.newic.primitive_internal_coordinates)
             self.nodes[self.nR-1].PES.sigma = 1.5
@@ -177,18 +178,10 @@ class SE_Cross(SE_GSM):
         if condition1:
             print(" Condition 1 satisfied")
             print(f" bdist current {abs(self.nodes[self.nR-1].bdist):1.3f}")
-            print(" bdist target %1.3f" % (abs(self.nodes[0].bdist)*(1-self.BDIST_RATIO)))
+            print(f" bdist target {abs(self.nodes[0].bdist)*(1-self.BDIST_RATIO):1.3f}")
             print(" Growth-phase over")
             isDone = True
         return isDone
-
-    def restart_string(self, xyzfile='restart.xyz'):
-        super(SE_Cross, self).restart_string(xyzfile)
-        self.done_growing = False
-        self.nnodes = 20
-        self.nR -= 1
-        # stash bdist for node 0
-        _, self.nodes[0].bdist = self.get_tangent(self.nodes[0], None, driving_coords=self.driving_coords)
 
     def set_frontier_convergence(self, nR):
         self.optimizer[nR].conv_grms = self.options['ADD_NODE_TOL']

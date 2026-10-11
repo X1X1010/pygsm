@@ -1,11 +1,6 @@
-import numpy as np
-
-try:
-    pass
-except:
-    pass
-
 import re
+
+import numpy as np
 
 # => XYZ File Utility <= #
 
@@ -23,8 +18,8 @@ def read_xyz(
 
     """
 
-    lines = open(filename).readlines()
-    lines = lines[2:]
+    with open(filename) as fh:
+        lines = fh.readlines()[2:]
     geom = []
     for line in lines:
         mobj = re.match(r'^\s*(\S+)\s+(\S+)\s+(\S+)\s+(\S+)\s*$', line)
@@ -51,14 +46,15 @@ def read_xyzs(
 
     """
 
-    lines = open(filename).readlines()
+    with open(filename) as fh:
+        lines = fh.readlines()
     natoms = int(lines[0])
     total_lines = len(lines)
     num_geoms = total_lines/(natoms+2)
 
     geoms = []
     sa = 2
-    for i in range(int(num_geoms)):
+    for _i in range(int(num_geoms)):
         ea = sa+natoms
         geom = []
         for line in lines[sa:ea]:
@@ -79,7 +75,8 @@ def read_molden_geoms(
     scale=1.
 ):
 
-    lines = open(filename).readlines()
+    with open(filename) as fh:
+        lines = fh.readlines()
     natoms = int(lines[2])
     nlines = len(lines)
 
@@ -90,7 +87,7 @@ def read_molden_geoms(
     geoms = []
 
     sa = 4
-    for i in range(int(num_geoms)):
+    for _i in range(int(num_geoms)):
         ea = sa+natoms
         geom = []
         for line in lines[sa:ea]:
@@ -154,11 +151,11 @@ def write_xyz(
         geom ((natoms,4) np.ndarray) - system geometry (atom symbol, x,y,z)
 
     """
-    fh = open(filename, 'w')
-    fh.write(f'{len(geom)}\n')
-    fh.write(f'{comment}\n')
-    for atom in geom:
-        fh.write(f'{atom[0]:<2} {scale*atom[1]:14.6f} {scale*atom[2]:14.6f} {scale*atom[3]:14.6f}\n')
+    with open(filename, 'w') as fh:
+        fh.write(f'{len(geom)}\n')
+        fh.write(f'{comment}\n')
+        for atom in geom:
+            fh.write(f'{atom[0]:<2} {scale*atom[1]:14.6f} {scale*atom[2]:14.6f} {scale*atom[3]:14.6f}\n')
 
 
 def write_xyzs(
@@ -176,11 +173,11 @@ def write_xyzs(
 
     """
 
-    fh = open(filename, 'w')
-    for geom in geoms:
-        fh.write(f'{len(geom)}\n\n')
-        for atom in geom:
-            fh.write(f'{atom[0]:<2} {scale*atom[1]:14.6f} {scale*atom[2]:14.6f} {scale*atom[3]:14.6f}\n')
+    with open(filename, 'w') as fh:
+        for geom in geoms:
+            fh.write(f'{len(geom)}\n\n')
+            for atom in geom:
+                fh.write(f'{atom[0]:<2} {scale*atom[1]:14.6f} {scale*atom[2]:14.6f} {scale*atom[3]:14.6f}\n')
 
 
 def write_std_multixyz(
@@ -221,12 +218,12 @@ def write_xyzs_w_comments(
 
     """
 
-    fh = open(filename, 'w')
-    for geom, comment in zip(geoms, comments):
-        fh.write(f'{len(geom)}\n')
-        fh.write(f'{comment}\n')
-        for atom in geom:
-            fh.write(f'{atom[0]:<2} {scale*atom[1]:14.6f} {scale*atom[2]:14.6f} {scale*atom[3]:14.6f}\n')
+    with open(filename, 'w') as fh:
+        for geom, comment in zip(geoms, comments):
+            fh.write(f'{len(geom)}\n')
+            fh.write(f'{comment}\n')
+            for atom in geom:
+                fh.write(f'{atom[0]:<2} {scale*atom[1]:14.6f} {scale*atom[2]:14.6f} {scale*atom[3]:14.6f}\n')
 
 
 def xyz_to_np(

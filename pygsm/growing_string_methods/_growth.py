@@ -58,7 +58,7 @@ def grow_string(gsm, max_iters=30, max_opt_steps=3, nconstraints=1):
             elif gsm.__class__.__name__ == 'SE_Cross':
                 print(' Will do extra optimization of this node in SE-Cross')
             else:
-                raise RuntimeError
+                raise RuntimeError(f'cannot grow the string any further: {error}') from error
             break
 
         gsm.set_active(gsm.nR - 1, gsm.nnodes - gsm.nP)

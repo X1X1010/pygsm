@@ -1,4 +1,5 @@
 import numpy as np
+
 from .internal_coordinates import InternalCoordinates
 from .primitive_internals import PrimitiveInternalCoordinates
 from .slots import CartesianX, CartesianY, CartesianZ
@@ -6,12 +7,12 @@ from .slots import CartesianX, CartesianY, CartesianZ
 
 class CartesianCoordinates(InternalCoordinates):
     """
-    Cartesian coordinate system, written as a kind of internal coordinate class.  
-    This one does not support constraints, because that requires adding some 
+    Cartesian coordinate system, written as a kind of internal coordinate class.
+    This one does not support constraints, because that requires adding some
     primitive internal coordinates.
     """
     def __init__(self, options):
-        super(CartesianCoordinates, self).__init__(options)
+        super().__init__(options)
         self.Internals = []
         self.cPrims = []
         self.cVals = []
@@ -24,7 +25,6 @@ class CartesianCoordinates(InternalCoordinates):
             self.Prims.add(CartesianX(i, w=1.0))
             self.Prims.add(CartesianY(i, w=1.0))
             self.Prims.add(CartesianZ(i, w=1.0))
-        #if 'constraints' in kwargs and kwargs['constraints'] is not None:
 
         self.Vecs = np.eye(3 * self.natoms)
 
@@ -36,6 +36,6 @@ class CartesianCoordinates(InternalCoordinates):
 
     def newCartesian(self, xyz: np.ndarray, dq: np.ndarray, verbose: bool = True):
         return xyz + dq.reshape(-1, 3)
-    
+
     def calculate(self, coords: np.ndarray):
         return coords

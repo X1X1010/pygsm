@@ -1,3 +1,3 @@
-from .base_lot import LoTError, Lot
+from .base_lot import Lot, LoTError
 
 __all__ = ['LoTError', 'Lot']

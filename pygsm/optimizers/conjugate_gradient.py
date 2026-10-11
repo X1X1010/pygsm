@@ -1,4 +1,3 @@
-from __future__ import print_function
 
 # standard library imports
 from io import StringIO
@@ -6,15 +5,16 @@ from io import StringIO
 # third party
 import numpy as np
 
+from ..utilities import units
+
 # local application imports
 from .base_optimizer import base_optimizer
-from ..utilities import units
 
 
 class conjugate_gradient(base_optimizer):
 
     def optimize(self, molecule, refE=0., opt_type='UNCONSTRAINED', opt_steps=3, ictan=None):
-        print(" initial E %5.4f" % (molecule.energy - refE))
+        print(f" initial E {molecule.energy - refE:5.4f}")
         if opt_type == 'TS':
             raise RuntimeError
 
@@ -51,7 +51,7 @@ class conjugate_gradient(base_optimizer):
         gp = g.copy()
         gp_prim = np.dot(molecule.coord_basis, gp)
 
-        molecule.gradrms = np.sqrt(np.dot(g[nconstraints:].T, g[nconstraints:])/n)
+        molecule.gradrms = np.sqrt(np.dot(g[nconstraints:].T, g[nconstraints:])/n).item()
         if molecule.gradrms < self.conv_grms:
             print(" already at min")
             return geoms, energies
@@ -136,9 +136,8 @@ class conjugate_gradient(base_optimizer):
 
             if self.options['print_level'] > 0:
                 print(" Opt step: {} E: {:5.4f} gradrms: {:1.5f} ss: {:1.3f} DMAX: {:1.3f}".format(ostep+1, fx-refE, molecule.gradrms, step, self.options['DMAX']))
-            self.buf.write(u' Opt step: {} E: {:5.4f} gradrms: {:1.5f} ss: {:1.3f} DMAX: {:1.3f}\n'.format(ostep+1, fx-refE, molecule.gradrms, step, self.options['DMAX']))
+            self.buf.write(' Opt step: {} E: {:5.4f} gradrms: {:1.5f} ss: {:1.3f} DMAX: {:1.3f}\n'.format(ostep+1, fx-refE, molecule.gradrms, step, self.options['DMAX']))
 
-            # print "current gradrms= %r au" % gradrms
             gmax = np.max(g)/units.ANGSTROM_TO_AU
             self.disp = np.max(x - xp)/units.ANGSTROM_TO_AU
             self.Ediff = fx - fxp / units.KCAL_MOL_PER_AU
@@ -146,7 +145,7 @@ class conjugate_gradient(base_optimizer):
             print(f" maximum gradient component {gmax:1.2f} (au)")
 
             # check for convergence TODO
-            molecule.gradrms = np.sqrt(np.dot(g[nconstraints:].T, g[nconstraints:])/n)
+            molecule.gradrms = np.sqrt(np.dot(g[nconstraints:].T, g[nconstraints:])/n).item()
             if molecule.gradrms < self.conv_grms:
                 break
 
@@ -156,7 +155,7 @@ class conjugate_gradient(base_optimizer):
             #    #print self.disp
 
             # update DLC  --> this changes q, g, Hint
-            if not molecule.coord_obj.__class__.__name__ == 'CartesianCoordinates':
+            if molecule.coord_obj.__class__.__name__ != 'CartesianCoordinates':
                 constraints = self.get_constraint_vectors(molecule, opt_type, ictan)
                 molecule.update_coordinate_basis(constraints=constraints)
                 x = np.copy(molecule.coordinates)

@@ -3,17 +3,17 @@
 from __future__ import annotations
 
 import os
-from pathlib import Path
 from collections.abc import Sequence
+from pathlib import Path
 
 import numpy as np
 
 from pygsm.coordinate_systems import DelocalizedInternalCoordinates, Distance, PrimitiveInternalCoordinates, Topology
-from pygsm.growing_string_methods import DE_GSM, SE_Cross, SE_GSM
+from pygsm.coordinate_systems.primitive_internals import get_driving_coord_prim
+from pygsm.growing_string_methods import DE_GSM, SE_GSM, SE_Cross
 from pygsm.molecule import Molecule
 from pygsm.potential_energy_surfaces import Penalty_PES
 from pygsm.utilities import elements, manage_xyz, output
-from pygsm.coordinate_systems.primitive_internals import get_driving_coord_prim
 from pygsm.utilities.cli_utils import plot
 from pygsm.utilities.manage_xyz import XYZ_WRITERS
 
@@ -314,9 +314,7 @@ def main(argv: Sequence[str] | None = None):
         _run_only_drive_mode(gsm)
         return
 
-    if inpfileq['gsm_type'] != 'SE_Cross' and isinstance(pes, (Penalty_PES,)):
-        optimizer.opt_cross = True
-    elif inpfileq['gsm_type'] != 'SE_Cross' and inpfileq['PES_type'] == 'Avg_PES':
+    if (inpfileq['gsm_type'] != 'SE_Cross' and isinstance(pes, (Penalty_PES,))) or (inpfileq['gsm_type'] != 'SE_Cross' and inpfileq['PES_type'] == 'Avg_PES'):
         optimizer.opt_cross = True
 
     if not inpfileq['reactant_geom_fixed'] and inpfileq['gsm_type'] != 'SE_Cross':
@@ -373,13 +371,7 @@ def read_isomers_file(isomers_file):
                 elif entry in {'TORSION', 'OOP'}:
                     four_ints = True
             else:
-                if two_ints and index > 2:
-                    driving_coordinate.append(float(entry))
-                elif two_ints and index > 3:
-                    driving_coordinate.append(float(entry))
-                elif three_ints and index > 3:
-                    driving_coordinate.append(float(entry))
-                elif four_ints and index > 4:
+                if (two_ints and index > 2) or (two_ints and index > 3) or (three_ints and index > 3) or (four_ints and index > 4):
                     driving_coordinate.append(float(entry))
                 else:
                     driving_coordinate.append(int(entry))
@@ -414,7 +406,7 @@ def post_processing(gsm, analyze_ICs=False, have_TS=True):
         with open(f'IC_data_{gsm.ID:04d}.txt', 'w') as handle:
             handle.write(f'Internals \t minnodeR: {minnodeR} \t TSnode: {gsm.TSnode} \t minnodeP: {minnodeP}\n')
             for record in zip(*internals):
-                handle.write('{0}\t{1}\t{2}\t{3}\n'.format(*record))
+                handle.write('\t'.join(str(v) for v in record) + '\n')
     else:
         minnodeR = 0
         minnodeP = gsm.nR
@@ -425,7 +417,7 @@ def post_processing(gsm, analyze_ICs=False, have_TS=True):
         with open(f'IC_data_{gsm.ID}.txt', 'w') as handle:
             handle.write(f'Internals \t Beginning: {minnodeR} \t End: {minnodeP}')
             for record in zip(*internals):
-                handle.write('{0}\t{1}\t{2}\n'.format(*record))
+                handle.write('\t'.join(str(v) for v in record) + '\n')
 
     delta_e = gsm.energies[minnodeP] - gsm.energies[minnodeR]
     print(f' Delta E is {delta_e:5.4f}')

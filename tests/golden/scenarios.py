@@ -202,7 +202,7 @@ def _opt(method, linesearch):
     with _quiet():
         mol = _molecule(geom, form_hessian=method == 'ef', counter=counter)
         opt = _optimizer(method, Linesearch=linesearch, DMAX=0.1, print_level=1)
-        geoms, energies = opt.optimize(molecule=mol, refE=mol.energy, opt_steps=15, path='scratch/opt')
+        _geoms, energies = opt.optimize(molecule=mol, refE=mol.energy, opt_steps=15, path='scratch/opt')
     return {
         'energies': np.asarray(energies, dtype=float),
         'final_xyz': np.asarray(mol.xyz),
@@ -317,7 +317,12 @@ def degsm_ef_dlc():
 
 
 def segsm_ef():
-    from pygsm.coordinate_systems import DelocalizedInternalCoordinates, Distance, PrimitiveInternalCoordinates, Topology
+    from pygsm.coordinate_systems import (
+        DelocalizedInternalCoordinates,
+        Distance,
+        PrimitiveInternalCoordinates,
+        Topology,
+    )
     from pygsm.growing_string_methods import SE_GSM
     from pygsm.level_of_theories.ase import ASELoT
     from pygsm.molecule import Molecule
@@ -420,7 +425,7 @@ def mecp_penalty_ethylene():
         dlc = DelocalizedInternalCoordinates.from_options(xyz=xyz, atoms=atoms, primitives=p1, **flags)
         mol = Molecule.from_options(geom=geom, PES=pes, coord_obj=dlc, Form_Hessian=True)
         opt = _optimizer('ef', Linesearch='backtrack', DMAX=0.05, conv_Ediff=0.1, conv_dE=0.1, conv_gmax=0.005, opt_cross=True)
-        geoms, energies = opt.optimize(molecule=mol, refE=mol.energy, opt_steps=30, opt_type='UNCONSTRAINED', path='scratch/mecp')
+        _geoms, energies = opt.optimize(molecule=mol, refE=mol.energy, opt_steps=30, opt_type='UNCONSTRAINED', path='scratch/mecp')
     return {
         'energies': np.asarray(energies, dtype=float),
         'final_xyz': np.asarray(mol.xyz),

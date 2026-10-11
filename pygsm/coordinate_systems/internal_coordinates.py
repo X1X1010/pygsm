@@ -5,16 +5,17 @@ import time
 
 # third party
 from collections import OrderedDict
+
 import numpy as np
 
-from pygsm.utilities import elements, options, output, block_matrix
+from pygsm.utilities import block_matrix, elements, options, output
 
 ELEMENT_TABLE = elements.ElementData()
 
 CacheWarning = False
 
 
-class InternalCoordinates(object):
+class InternalCoordinates:
 
     @staticmethod
     def default_options():
@@ -171,7 +172,6 @@ class InternalCoordinates(object):
         xyz = xyz.reshape(-1, 3)
         G = self.GMatrix(xyz)
         Gi = np.linalg.inv(G)
-        # print "G-time: %.3f Inv-time: %.3f" % (time_G, time_inv)
         return Gi
 
     def checkFiniteDifference(self, xyz):
@@ -192,7 +192,7 @@ class InternalCoordinates(object):
             lines = [""]
             maxerr = 0.0
             for j in range(Analytical.shape[1]):
-                lines.append("Atom %s" % (j+1))
+                lines.append(f"Atom {j+1}")
                 for k in range(Analytical.shape[2]):
                     error = Analytical[i, j, k] - FiniteDifference[i, j, k]
                     if np.abs(error) > 1e-5:
@@ -235,7 +235,7 @@ class InternalCoordinates(object):
                         PMDiff2 = self.calcDiff(x4, x3)
                         FiniteDifference[:, j, m, k, n] += (PMDiff1+PMDiff2)/(4*h**2)
         for i in range(Analytical.shape[0]):
-            title = f"{f'IC {i+1}/{Analytical.shape[0]}':>20} : {str(self.Internals[i]):>20}"
+            title = f"{f'IC {i+1}/{Analytical.shape[0]}':>20} : {self.Internals[i]!s:>20}"
             lines = [title]
             if verbose:
                 print(title+'\n')
@@ -272,7 +272,7 @@ class InternalCoordinates(object):
 
     def calcHess(self, xyz, gradx, hessx):
         """
-        Compute the internal coordinate Hessian. 
+        Compute the internal coordinate Hessian.
         Expects Cartesian coordinates to be provided in a.u.
         """
 
@@ -283,7 +283,7 @@ class InternalCoordinates(object):
         Bmat = block_matrix.full_matrix(Bmat)
 
         BptGq = self.calcCg(xyz,gradx)
-        Hx_BptGq = hessx - BptGq 
+        Hx_BptGq = hessx - BptGq
 
         Hq = np.einsum('ps,sm,mn,nr,rq', Ginv, Bmat, Hx_BptGq, Bmat.T, Ginv, optimize=True)
         return Hq
@@ -291,20 +291,18 @@ class InternalCoordinates(object):
     def readCache(self, xyz, dQ):
         if not hasattr(self, 'stored_xyz'):
             return None
-        if np.linalg.norm(self.stored_xyz - xyz) < 1e-10:
-            if np.linalg.norm(self.stored_dQ - dQ) < 1e-10:
-                return self.stored_newxyz
+        if np.linalg.norm(self.stored_xyz - xyz) < 1e-10 and np.linalg.norm(self.stored_dQ - dQ) < 1e-10:
+            return self.stored_newxyz
         return None
 
     def writeCache(self, xyz, dQ, newxyz):
         self.stored_xyz = xyz.copy()
         self.stored_dQ = dQ.copy()
         self.stored_newxyz = newxyz.copy()
-  
+
     def newCartesian(self, xyz, dQ, frozen_atoms=None, verbose=True):
         cached = self.readCache(xyz, dQ)
         if cached is not None:
-            # print "Returning cached result"
             return cached
         xyz1 = xyz.copy()
         dQ1 = dQ.flatten()
@@ -316,7 +314,7 @@ class InternalCoordinates(object):
         self.bork = False
         # Damping factor
         damp = 1.0
-        
+
         # Function to exit from loop
         def finish(microiter, rmsdt, ndqt, xyzsave, xyz_iter1):
             if ndqt > 1e-1:

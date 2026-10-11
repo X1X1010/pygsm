@@ -1,4 +1,5 @@
 from pygsm.utilities import output
+
 from .main_gsm import MainGSM
 
 
@@ -9,7 +10,7 @@ class DE_GSM(MainGSM):
             options,
     ):
 
-        super(DE_GSM, self).__init__(options)
+        super().__init__(options)
 
         print(" Assuming primitives are union!")
         print(" number of primitives is", self.nodes[0].num_primitives)
@@ -51,7 +52,7 @@ class DE_GSM(MainGSM):
         if self.current_nnodes+newnodes > self.nnodes:
             print("Adding too many nodes, cannot add_GSM_node")
         sign = -1
-        for i in range(newnodes):
+        for _i in range(newnodes):
             sign *= -1
             if sign == 1:
                 self.add_GSM_nodeR()
@@ -60,13 +61,13 @@ class DE_GSM(MainGSM):
 
     def set_active(self, nR, nP):
         if nR != nP and self.growth_direction == 0:
-            print((f" setting active nodes to {nR} and {nP}"))
+            print(f" setting active nodes to {nR} and {nP}")
         elif self.growth_direction == 1:
-            print((f" setting active node to {nR} "))
+            print(f" setting active node to {nR} ")
         elif self.growth_direction == 2:
-            print((f" setting active node to {nP} "))
+            print(f" setting active node to {nP} ")
         else:
-            print((f" setting active node to {nR} "))
+            print(f" setting active node to {nR} ")
 
         for i in range(self.nnodes):
             if self.nodes[i] is not None:
@@ -85,7 +86,7 @@ class DE_GSM(MainGSM):
     def check_if_grown(self):
         '''
         Check if the string is grown
-        Returns True if grown 
+        Returns True if grown
         '''
 
         return self.current_nnodes == self.nnodes
@@ -95,14 +96,12 @@ class DE_GSM(MainGSM):
         Grow nodes
         '''
 
-        if self.nodes[self.nR-1].gradrms < self.gaddmax and self.growth_direction != 2:
-            if self.nodes[self.nR] is None:
-                self.add_GSM_nodeR()
-                print(f" getting energy for node {self.nR-1}: {self.nodes[self.nR-1].energy - self.nodes[0].V0:5.4f}")
-        if self.nodes[self.nnodes-self.nP].gradrms < self.gaddmax and self.growth_direction != 1:
-            if self.nodes[-self.nP-1] is None:
-                self.add_GSM_nodeP()
-                print(f" getting energy for node {self.nnodes-self.nP}: {self.nodes[-self.nP].energy - self.nodes[0].V0:5.4f}")
+        if self.nodes[self.nR-1].gradrms < self.gaddmax and self.growth_direction != 2 and self.nodes[self.nR] is None:
+            self.add_GSM_nodeR()
+            print(f" getting energy for node {self.nR-1}: {self.nodes[self.nR-1].energy - self.nodes[0].V0:5.4f}")
+        if self.nodes[self.nnodes-self.nP].gradrms < self.gaddmax and self.growth_direction != 1 and self.nodes[-self.nP-1] is None:
+            self.add_GSM_nodeP()
+            print(f" getting energy for node {self.nnodes-self.nP}: {self.nodes[-self.nP].energy - self.nodes[0].V0:5.4f}")
         return
 
     def make_tan_list(self):

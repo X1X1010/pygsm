@@ -2,7 +2,7 @@ import numpy as np
 from scipy.linalg import block_diag
 
 
-class block_tensor(object):
+class block_tensor:
 
     def __init__(self,matlist,cnorms=None):
         self.matlist = matlist
@@ -12,11 +12,9 @@ class block_tensor(object):
 
     def __repr__(self):
         lines= [f" block matrix: # blocks = {self.num_blocks}"]
-        count=0
-        for m in self.matlist:
+        for count, m in enumerate(self.matlist, 1):
             lines.append(str(m))
-            count+=1
-            if count>10:
+            if count > 10:
                 print('truncating printout')
                 break
         return '\n'.join(lines)
@@ -29,20 +27,20 @@ class block_tensor(object):
     def num_blocks(self):
         return len(self.matlist)
 
-    
+
     @staticmethod
     def zeros_like(BM):
-        return block_tensor( [ np.zeros_like(A) for A in BM.matlist ] ) 
-    
+        return block_tensor( [ np.zeros_like(A) for A in BM.matlist ] )
+
     def __add__(self,rhs):
         print("adding")
         if isinstance(rhs, self.__class__):
             print("adding block matrices!")
             assert(self.shape == rhs.shape)
             return block_tensor( [A+B for A,B in zip(self.matlist,rhs.matlist) ] )
-        elif isinstance(rhs,float) or isinstance(rhs,int):
+        elif isinstance(rhs, (float, int)):
             return block_tensor( [A+rhs for A in self.matlist ])
-        else: 
+        else:
             raise NotImplementedError
 
     def __radd__(self,lhs):
@@ -52,9 +50,9 @@ class block_tensor(object):
         if isinstance(rhs, self.__class__):
             assert(self.shape == rhs.shape)
             return block_tensor( [A*B for A,B in zip(self.matlist,rhs.matlist)] )
-        elif isinstance(rhs,float) or isinstance(rhs,int):
+        elif isinstance(rhs, (float, int)):
             return block_tensor( [A*rhs for A in self.matlist ])
-        else: 
+        else:
             raise NotImplementedError
 
     def __rmul__(self,lhs):
@@ -67,7 +65,7 @@ class block_tensor(object):
         if isinstance(rhs, self.__class__):
             assert(self.shape == rhs.shape)
             return block_tensor( [A/B for A,B in zip(self.matlist,rhs.matlist)] )
-        elif isinstance(rhs,float) or isinstance(rhs,int):
+        elif isinstance(rhs, (float, int)):
             return block_tensor( [A/rhs for A in self.matlist ])
         elif isinstance(rhs,np.ndarray):
             answer = []
@@ -77,7 +75,7 @@ class block_tensor(object):
                 answer.append(block/rhs[s:e])
                 s=e
             return block_tensor(answer)
-        else: 
+        else:
             raise NotImplementedError
 
 
@@ -97,7 +95,6 @@ class block_tensor(object):
         def block_vec_dot(block,vec):
             if vec.ndim==2 and vec.shape[1]==1:
                 vec = vec.flatten()
-            #if block.cnorms is None:
             s=0
             result=[]
             for A in block.matlist:
@@ -108,7 +105,6 @@ class block_tensor(object):
         def vec_block_dot(vec,block,**kwargs):
             if vec.ndim==2 and vec.shape[1]==1:
                 vec = vec.flatten()
-            #if block.cnorms is None:
             s=0
             result=[]
             for A in block.matlist:
@@ -127,8 +123,8 @@ class block_tensor(object):
         elif isinstance(right,np.ndarray) and (right.ndim==1 or right.shape[1]==1) and isinstance(left,block_tensor):
             return block_vec_dot(left,right)
         # (4) l/r is a matrix
-        elif isinstance(left,np.ndarray) and left.ndim==2: 
-            #           
+        elif isinstance(left,np.ndarray) and left.ndim==2:
+            #
             # [ A | B ] [ C 0 ] = [ AC BD ]
             #           [ 0 D ]
             sc=0
@@ -141,7 +137,7 @@ class block_tensor(object):
             return dot_product
 
         elif isinstance(right,np.ndarray) and right.ndim==2:
-            #           
+            #
             sc=0
             tmp_ans=[]
             for A in left.matlist:
@@ -150,5 +146,5 @@ class block_tensor(object):
                 sc=ec
             dot_product=np.vstack(tmp_ans)
             return dot_product
-        else: 
+        else:
             raise NotImplementedError

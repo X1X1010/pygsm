@@ -5,7 +5,6 @@ Unit and regression test for the pyGSM package.
 # Import package, test suite, and other packages as needed
 import sys
 
-
 import pygsm
 
 

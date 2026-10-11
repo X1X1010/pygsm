@@ -18,8 +18,7 @@ if TYPE_CHECKING:
 
 def _require_ase():
     try:
-        from ase import Atoms
-        from ase import units
+        from ase import Atoms, units
         from ase.calculators.calculator import Calculator
         from ase.data import atomic_numbers
     except ModuleNotFoundError as error:
@@ -33,13 +32,13 @@ class ASELoT(Lot):
         multiplicity is not implemented, the calculator ignores it
     """
 
-    def __init__(self, calculator: 'Calculator', options):
-        super(ASELoT, self).__init__(options)
+    def __init__(self, calculator: Calculator, options):
+        super().__init__(options)
 
         self.ase_calculator = calculator
 
     @classmethod
-    def from_options(cls, calculator: 'Calculator', **kwargs):
+    def from_options(cls, calculator: Calculator, **kwargs):
         """ Returns an instance of this class with default options updated from values in kwargs"""
         return cls(calculator, cls.default_options().set_values(kwargs))
 
@@ -60,9 +59,8 @@ class ASELoT(Lot):
         # import the module of the calculator
         try:
             module = importlib.import_module(module_name)
-        except ModuleNotFoundError:
-            raise LoTError(
-                f"ASE-calculator's module is not found: {class_name}")
+        except ModuleNotFoundError as error:
+            raise LoTError(f"ASE-calculator's module is not found: {module_name}") from error
 
         # class of the calculator
         if hasattr(module, class_name):
@@ -82,7 +80,7 @@ class ASELoT(Lot):
         # run ASE
         self.run_ase_atoms(xyz_to_ase(geom), mult, ad_idx, runtype)
 
-    def run_ase_atoms(self, atoms: 'Atoms', mult, ad_idx, runtype='gradient'):
+    def run_ase_atoms(self, atoms: Atoms, mult, ad_idx, runtype='gradient'):
         _, _, _, units = _require_ase()
         # set the calculator
         atoms.calc = self.ase_calculator

@@ -1,4 +1,3 @@
-from __future__ import print_function
 
 # standard library imports
 import sys
@@ -7,9 +6,10 @@ from io import StringIO
 # third party
 import numpy as np
 
+from ..utilities import block_matrix, manage_xyz
+
 # local application imports
 from .base_optimizer import base_optimizer
-from ..utilities import block_matrix, manage_xyz
 
 
 class beales_cg(base_optimizer):
@@ -27,7 +27,7 @@ class beales_cg(base_optimizer):
             verbose=False,
     ):
 
-        print(" initial E %5.4f" % (molecule.energy - refE))
+        print(f" initial E {molecule.energy - refE:5.4f}")
         sys.stdout.flush()
 
         # stash/initialize some useful attributes
@@ -53,10 +53,9 @@ class beales_cg(base_optimizer):
         fx = molecule.energy
         g = molecule.gradient
 
-        # if np.all(s0==0.):
         # #if np.all(s0_prim==0.) or s0_prim==None:
 
-        molecule.gradrms = np.sqrt(np.dot(g.T, g)/n)
+        molecule.gradrms = np.sqrt(np.dot(g.T, g)/n).item()
         g_prim = block_matrix.dot(molecule.coord_basis, g)
 
         update_hess = False
@@ -175,7 +174,7 @@ class beales_cg(base_optimizer):
                 manage_xyz.write_xyzs_w_comments(f'opt_{molecule.node_id}.xyz', geoms, energies, scale=1.)
 
             # save variables for update Hessian!
-            if not molecule.coord_obj.__class__.__name__ == 'CartesianCoordinates' or self.options['update_hess_in_bg']:
+            if molecule.coord_obj.__class__.__name__ != 'CartesianCoordinates' or self.options['update_hess_in_bg']:
                 self.dx_prim = molecule.coord_obj.Prims.calcDiff(xyz, xyzp)
                 self.dx_prim = np.reshape(self.dx_prim, (-1, 1))
                 self.dg_prim = g_prim - gp_prim
@@ -184,20 +183,18 @@ class beales_cg(base_optimizer):
 
             if self.options['print_level'] > 0:
                 print(" Opt step: {} E: {:5.4f} gradrms: {:1.5f} ss: {:1.3f} DMAX: {:1.3f}".format(ostep+1, fx-refE, molecule.gradrms, step, self.options['DMAX']))
-            self.buf.write(u' Opt step: {} E: {:5.4f} gradrms: {:1.5f} ss: {:1.3f} DMAX: {:1.3f}\n'.format(ostep+1, fx-refE, molecule.gradrms, step, self.options['DMAX']))
+            self.buf.write(' Opt step: {} E: {:5.4f} gradrms: {:1.5f} ss: {:1.3f} DMAX: {:1.3f}\n'.format(ostep+1, fx-refE, molecule.gradrms, step, self.options['DMAX']))
 
-            # print "current gradrms= %r au" % gradrms
 
             # check for convergence TODO
-            molecule.gradrms = np.sqrt(np.dot(g.T, g)/n)
+            molecule.gradrms = np.sqrt(np.dot(g.T, g)/n).item()
             gmax = float(np.max(g))
             disp = float(np.linalg.norm((xyz-xyzp).flatten()))
             print(f" gmax {gmax:5.4f} disp {disp:5.4f} Ediff {dEstep:5.4f} gradrms {molecule.gradrms:5.4f}\n")
 
             self.converged = False
-            if self.opt_cross and abs(dE) < self.conv_dE and molecule.gradrms < self.conv_grms and abs(gmax) < self.conv_gmax and abs(dEstep) < self.conv_Ediff and abs(disp) < self.conv_disp and ls['status'] == 0:
-                self.converged = True
-            elif not self.opt_cross and molecule.gradrms < self.conv_grms and abs(gmax) < self.conv_gmax and abs(dEstep) < self.conv_Ediff and abs(disp) < self.conv_disp:
+            dE = molecule.difference_energy if self.opt_cross else None
+            if (self.opt_cross and abs(dE) < self.conv_dE and molecule.gradrms < self.conv_grms and abs(gmax) < self.conv_gmax and abs(dEstep) < self.conv_Ediff and abs(disp) < self.conv_disp and ls['status'] == 0) or (not self.opt_cross and molecule.gradrms < self.conv_grms and abs(gmax) < self.conv_gmax and abs(dEstep) < self.conv_Ediff and abs(disp) < self.conv_disp):
                 self.converged = True
 
             if self.converged:
@@ -209,23 +206,21 @@ class beales_cg(base_optimizer):
                 break
 
             #update DLC  --> this changes q, g, Hint
-            if not molecule.coord_obj.__class__.__name__ == 'CartesianCoordinates':
-                if opt_type == 'SEAM' or opt_type == "MECI":
-                    print(" updating DLC")
-                    sys.stdout.flush()
-                    #if opt_type=="ICTAN":
-                    constraints = self.get_constraint_vectors(molecule, opt_type, ictan)
-                    molecule.update_coordinate_basis(constraints=constraints)
-                    x = np.copy(molecule.coordinates)
-                    fx = molecule.energy
-                    dE = molecule.difference_energy
-                    if dE != 1000.:
-                        print(f" difference energy is {dE:5.4f}")
-                    g = molecule.gradient.copy()
-                    if nconstraints > 0:
-                        g = g - np.dot(g.T, molecule.constraints)*molecule.constraints
-                    g_prim = block_matrix.dot(molecule.coord_basis, g)
-                    print(" Done update")
+            if molecule.coord_obj.__class__.__name__ != 'CartesianCoordinates' and opt_type in ('SEAM', 'MECI'):
+                print(" updating DLC")
+                sys.stdout.flush()
+                constraints = self.get_constraint_vectors(molecule, opt_type, ictan)
+                molecule.update_coordinate_basis(constraints=constraints)
+                x = np.copy(molecule.coordinates)
+                fx = molecule.energy
+                dE = molecule.difference_energy
+                if dE != 1000.:
+                    print(f" difference energy is {dE:5.4f}")
+                g = molecule.gradient.copy()
+                if nconstraints > 0:
+                    g = g - np.dot(g.T, molecule.constraints)*molecule.constraints
+                g_prim = block_matrix.dot(molecule.coord_basis, g)
+                print(" Done update")
             sys.stdout.flush()
 
         print(" opt-summary")

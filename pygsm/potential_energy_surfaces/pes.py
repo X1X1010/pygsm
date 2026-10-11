@@ -3,10 +3,11 @@ import numpy as np
 
 # local application imports
 from ..utilities import elements, options, units
+
 ELEMENT_TABLE = elements.ElementData()
 
 
-class PES(object):
+class PES:
     """ PES object """
 
     @staticmethod
@@ -65,8 +66,8 @@ class PES(object):
 
     # TODO make kwargs
     @classmethod
-    def create_pes_from(cls, PES, options={}, copy_wavefunction=True):
-        lot = type(PES.lot).copy(PES.lot, options, copy_wavefunction)
+    def create_pes_from(cls, PES, options=None, copy_wavefunction=True):
+        lot = type(PES.lot).copy(PES.lot, options or {}, copy_wavefunction)
 
         return cls(PES.options.copy().set_values({
             "lot": lot,
@@ -84,8 +85,6 @@ class PES(object):
         self.FORCE = self.options['FORCE']
         self.RESTRAINTS = self.options['RESTRAINTS']
         self._dE = 1000.
-        # print ' PES object parameters:'
-        # print ' Multiplicity:',self.multiplicity,'ad_idx:',self.ad_idx
 
     @property
     def dE(self):
@@ -99,9 +98,6 @@ class PES(object):
     def energy(self):
         return self.get_energy(self.lot.currentCoords)
 
-    #def energy(self):
-    #    if self.lot.Energies:
-    #        # if E is property and a dictionary
 
     def get_energy(self, xyz):
         fdE = 0.

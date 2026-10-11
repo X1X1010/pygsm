@@ -6,9 +6,9 @@ from time import time
 import numpy as np
 
 from pygsm.coordinate_systems import CartesianCoordinates
-from pygsm.utilities import manage_xyz, elements, options, block_matrix, units
-from ._helpers import copy_geometry_inputs, copy_pes, load_geometry_inputs, validate_geometry_inputs
+from pygsm.utilities import block_matrix, elements, manage_xyz, options, units
 
+from ._helpers import copy_geometry_inputs, copy_pes, load_geometry_inputs, validate_geometry_inputs
 
 ELEMENT_TABLE = elements.ElementData()
 
@@ -22,7 +22,7 @@ and spin multiplicities.
 """
 
 
-class Molecule(object):
+class Molecule:
 
     @staticmethod
     def _copy_coord_object(coord_obj, xyz=None):
@@ -205,11 +205,10 @@ class Molecule(object):
         # important first try to read in geom
 
         t0 = time()
-        geom, atoms, xyz = load_geometry_inputs(self.Data)
+        _geom, atoms, xyz = load_geometry_inputs(self.Data)
 
         t1 = time()
-        print(" Time to get coords= %.3f" % (t1 - t0))
-        #for a in ob.OBMolAtomIter(mol.OBMol):
+        print(f" Time to get coords= {t1 - t0:.3f}")
 
         # Perform all the sanity checks and cache some useful attributes
 
@@ -223,7 +222,7 @@ class Molecule(object):
         self.atoms = [ELEMENT_TABLE.from_symbol(atom) for atom in atoms]
 
         tx = time()
-        print(" Time to create PES,elements %.3f" % (tx-t1))
+        print(f" Time to create PES,elements {tx-t1:.3f}")
         t1 = tx
 
         if not isinstance(self.Data['comment'], str):
@@ -239,14 +238,14 @@ class Molecule(object):
         self.Data['coord_obj'] = self.coord_obj
 
         t2 = time()
-        print(" Time  to build coordinate system= %.3f" % (t2-t1))
+        print(f" Time  to build coordinate system= {t2-t1:.3f}")
         self._initialize_runtime_state()
 
         if self.Data['Hessian'] is None and self.Data['Form_Hessian']:
             if self.Data['Primitive_Hessian'] is None and type(self.coord_obj) is not CartesianCoordinates:
                 self.form_Primitive_Hessian()
             t3 = time()
-            print(" Time to build Prim Hessian %.3f" % (t3-t2))
+            print(f" Time to build Prim Hessian {t3-t2:.3f}")
             if self.Data['Primitive_Hessian'] is not None:
                 print(" forming Hessian in basis")
                 self.form_Hessian_in_basis()
@@ -348,7 +347,7 @@ class Molecule(object):
 
     @property
     def difference_energy(self):
-        self.energy
+        _ = self.energy  # evaluating the energy refreshes PES.dE
         return self.PES.dE
 
     @property
@@ -383,13 +382,11 @@ class Molecule(object):
         self.newHess = 5
 
     def update_Hessian(self, change=None):
-        #print " in update Hessian"
         if change is not None:
             self.Hessian += change
         return self.Hessian
 
     def form_Hessian_in_basis(self):
-        # print " forming Hessian in current basis"
         self.Hessian = block_matrix.dot(block_matrix.dot(block_matrix.transpose(self.coord_basis), self.Primitive_Hessian), self.coord_basis)
         return self.Hessian
 
@@ -415,7 +412,6 @@ class Molecule(object):
             return 0
 
     def update_xyz(self, dq=None, verbose=True):
-        #print " updating xyz"
         if dq is not None:
             self.xyz = self.coord_obj.newCartesian(self.xyz, dq, frozen_atoms=self.frozen_atoms, verbose=verbose)
         return self.xyz
@@ -444,7 +440,6 @@ class Molecule(object):
     def update_coordinate_basis(self, constraints=None):
         if self.coord_obj.__class__.__name__ == 'CartesianCoordinates':
             return
-        # if constraints is not None:
 
         print(" updating coord basis")
         self.coord_obj.clearCache()
@@ -460,7 +455,6 @@ class Molecule(object):
         return np.reshape(self.coord_obj.calculate(self.xyz), (-1, 1))
 
 
-        # for i in range(Der.shape[0]):
 
     @property
     def BMatrix(self):

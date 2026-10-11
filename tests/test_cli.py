@@ -7,7 +7,6 @@ import pytest
 
 from pygsm.cli import parse_arguments
 
-
 DATA_DIR = Path(__file__).resolve().parent / 'data'
 REPO_ROOT = Path(__file__).resolve().parents[1]
 

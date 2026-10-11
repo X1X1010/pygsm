@@ -16,7 +16,7 @@ Element = namedtuple("Element", ["symbol", "name", "atomic_num", "mass_amu",
                                  "electronegativity", "max_bonds"])
 
 
-class ElementData(object):
+class ElementData:
     """Contains full periodic table element data and methods to access them
     """
     data = [Element(symbol='Xx', name='Dummy', atomic_num=0, mass_amu=0.0,

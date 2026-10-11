@@ -1,6 +1,5 @@
 import numpy as np
 
-
 # TODO remove unecessary arguments: nconstraints, xp, ,...
 
 
@@ -41,7 +40,7 @@ def backtrack(nconstraints, x, fx, g, d, step, xp, constraint_step, parameters, 
     dginit = np.dot(gc.T, d)
 
     # Make sure that s points to a descent direction.
-    if 0 < dginit:
+    if dginit > 0:
         print('[ERROR] not descent direction')
         result['status'] = -2
         return result
@@ -74,7 +73,7 @@ def backtrack(nconstraints, x, fx, g, d, step, xp, constraint_step, parameters, 
         if fx > finit + (step * dgtest) and np.all(constraint_step == 0):  # + np.dot(g.T,constraint_step): # doesn't work with constraint :(
             print(" [INFO] decreasing step: does not satisfy sufficient decrease condition.")
             width = dec
-            print(" step %1.5f" % (step*width))
+            print(f" step {step*width:1.5f}")
         else:
             # check the wolfe condition
             # now g is the gradient of f(xk + step * d)
@@ -83,13 +82,13 @@ def backtrack(nconstraints, x, fx, g, d, step, xp, constraint_step, parameters, 
                 print(" [INFO] dg = {!r} < parameters.wolfe * dginit = {!r}".format(dg, parameters['wolfe'] * dginit))
                 print(" [INFO] not satisfy wolf condition.")
                 width = inc
-                print(" increasing step to step %1.5f" % (step*width))
+                print(f" increasing step to step {step*width:1.5f}")
             else:
                 # check the strong wolfe condition
                 if dg > -parameters['wolfe'] * dginit:
                     print(" [INFO] not satisfy strong wolf condition.")
                     width = dec
-                    print(" decreasing step to %1.5f" % (step*width))
+                    print(f" decreasing step to {step*width:1.5f}")
                 else:
                     result = {'status': 0, 'fx': fx, 'g': g, 'step': step, 'x': x, 'molecule': molecule}
                     return result
@@ -117,23 +116,4 @@ def backtrack(nconstraints, x, fx, g, d, step, xp, constraint_step, parameters, 
             step = parameters['max_step']
 
 
-#def golden_section(x, g, d, step, molecule,maximize=False):
-#
-#
-#
-#    if maximize:
-#
-#
-#    #check that a min exists
-#    if f2>f1 and f2>f4 and f3>f1 and f3>f4:
-#
-#    if not min_exists:
-#        if f1<f4:
-#
-#    while x4-x1>accuracy:
-#        if f2<f3:
-#
-#        if count>10:
-#
-#
 

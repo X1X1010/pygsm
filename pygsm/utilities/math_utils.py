@@ -27,7 +27,7 @@ def d_cross(a, b):
 
 def d_cross_ab(a, b, da, db):
     """
-    Given two vectors a, b and their derivatives w/r.t. 
+    Given two vectors a, b and their derivatives w/r.t.
     a parameter, return the derivative
     of the cross product
     """
@@ -39,7 +39,7 @@ def d_cross_ab(a, b, da, db):
 
 def ncross(a, b):
     """
-    Scalar function: Given vectors a and b, return the 
+    Scalar function: Given vectors a and b, return the
     norm of the cross product
     """
     cross = np.cross(a, b)
@@ -71,7 +71,7 @@ def d_ncross(a, b):
 
 def conjugate_orthogonalize(vecs, G, numCvecs=0):
     """
-    vecs contains some set of vectors 
+    vecs contains some set of vectors
     we want to orthogonalize them on the surface G
     numCvecs is the number of vectors that should be
     linearly dependent
@@ -101,17 +101,14 @@ def conjugate_orthogonalize(vecs, G, numCvecs=0):
 
     count = numCvecs
     for v in vecs[:, numCvecs:].T:
-        w = v - np.sum(ov(v, b)*b/ov(b, b) for b in basis[:, :count].T)
+        w = v - sum(ov(v, b)*b/ov(b, b) for b in basis[:, :count].T)
         wnorm = np.sqrt(ov(w, w))
         if wnorm > 1e-5 and (abs(w) > 1e-6).any():
             try:
                 basis[:, count] = w/wnorm
                 count += 1
-            except:
-                print("this vector should be vanishing, exiting")
-                print("norm=", wnorm)
-                print(w)
-                exit(1)
+            except IndexError as error:
+                raise RuntimeError(f'this vector should be vanishing (norm={wnorm}):\n{w}') from error
     dots = np.linalg.multi_dot([basis.T, G, basis])
     if not (np.allclose(dots, np.eye(dots.shape[0], dtype=float))):
         print("np.dot(b.T,b)")
@@ -140,10 +137,8 @@ def orthogonalize(vecs, numCvecs=0):
             try:
                 basis[:, count] = w/wnorm
                 count += 1
-            except:
-                print("this vector should be vanishing, exiting")
-                print("norm=", wnorm)
-                exit(1)
+            except IndexError as error:
+                raise RuntimeError(f'this vector should be vanishing (norm={wnorm})') from error
     dots = np.matmul(basis.T, basis)
     if not (np.allclose(dots, np.eye(dots.shape[0], dtype=float), atol=1e-4)):
         print("np.dot(b.T,b)")
