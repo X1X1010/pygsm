@@ -13,12 +13,11 @@ jobs:
   lint:
     name: Lint
     runs-on: ubuntu-latest
-    # Non-blocking until the legacy-code cleanup lands; remove afterwards.
-    continue-on-error: true
     steps:
       - uses: actions/checkout@v4
       - uses: astral-sh/setup-uv@v6
       - run: uvx ruff@0.14.0 check .
+      - run: uvx ruff@0.14.0 format --check .
 
   test:
     name: Test on Python ${{ matrix.python-version }}
