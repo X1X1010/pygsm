@@ -4,9 +4,9 @@ import numpy as np
 
 
 def d_unit_vector(a, ndim=3):
-    term1 = np.eye(ndim)/np.linalg.norm(a)
-    term2 = np.outer(a, a)/(np.linalg.norm(a)**3)
-    answer = term1-term2
+    term1 = np.eye(ndim) / np.linalg.norm(a)
+    term2 = np.outer(a, a) / (np.linalg.norm(a) ** 3)
+    answer = term1 - term2
     return answer
 
 
@@ -53,7 +53,7 @@ def d_ncross(a, b):
     ncross = np.linalg.norm(np.cross(a, b))
     term1 = a * np.dot(b, b)
     term2 = -b * np.dot(a, b)
-    answer = (term1+term2)/ncross
+    answer = (term1 + term2) / ncross
     return answer
 
 
@@ -68,6 +68,7 @@ def d_ncross(a, b):
 # orthogonalized projection on the G surface.
 # Here I think the DLC vectors are orthonormalized
 # on the G surface.
+
 
 def conjugate_orthogonalize(vecs, G, numCvecs=0):
     """
@@ -95,37 +96,36 @@ def conjugate_orthogonalize(vecs, G, numCvecs=0):
         norms[ic] = np.sqrt(ov(ui, ui))
 
         # Project out newest basis column from all remaining vecs columns.
-        for jc in range(ic+1, cols):
+        for jc in range(ic + 1, cols):
             vj = vecs[:, jc]
-            vj -= ui * ov(ui, vj)/norms[ic]**2
+            vj -= ui * ov(ui, vj) / norms[ic] ** 2
 
     count = numCvecs
     for v in vecs[:, numCvecs:].T:
-        w = v - sum(ov(v, b)*b/ov(b, b) for b in basis[:, :count].T)
+        w = v - sum(ov(v, b) * b / ov(b, b) for b in basis[:, :count].T)
         wnorm = np.sqrt(ov(w, w))
         if wnorm > 1e-5 and (abs(w) > 1e-6).any():
             try:
-                basis[:, count] = w/wnorm
+                basis[:, count] = w / wnorm
                 count += 1
             except IndexError as error:
                 raise RuntimeError(f'this vector should be vanishing (norm={wnorm}):\n{w}') from error
     dots = np.linalg.multi_dot([basis.T, G, basis])
     if not (np.allclose(dots, np.eye(dots.shape[0], dtype=float))):
-        print("np.dot(b.T,b)")
+        print('np.dot(b.T,b)')
         print(dots)
-        raise RuntimeError("error in orthonormality")
+        raise RuntimeError('error in orthonormality')
     return basis
 
 
 # TODO cVecs can be orthonormalized first to make it less confusing
 # since they are being added to basis before being technically orthonormal
 def orthogonalize(vecs, numCvecs=0):
-    """
-    """
+    """ """
 
     rows = vecs.shape[0]
     cols = vecs.shape[1]
-    basis = np.zeros((rows, cols-numCvecs))
+    basis = np.zeros((rows, cols - numCvecs))
 
     # for i in range(numCvecs):  # orthogonalize with respect to these
 
@@ -135,15 +135,15 @@ def orthogonalize(vecs, numCvecs=0):
         wnorm = np.linalg.norm(w)
         if wnorm > 1e-3 and (abs(w) > 1e-6).any():
             try:
-                basis[:, count] = w/wnorm
+                basis[:, count] = w / wnorm
                 count += 1
             except IndexError as error:
                 raise RuntimeError(f'this vector should be vanishing (norm={wnorm})') from error
     dots = np.matmul(basis.T, basis)
     if not (np.allclose(dots, np.eye(dots.shape[0], dtype=float), atol=1e-4)):
-        print("np.dot(b.T,b)")
+        print('np.dot(b.T,b)')
         print(dots - np.eye(dots.shape[0], dtype=float))
-        raise RuntimeError("error in orthonormality")
+        raise RuntimeError('error in orthonormality')
     return basis
 
 

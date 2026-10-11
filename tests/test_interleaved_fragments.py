@@ -26,12 +26,14 @@ def _build_two_diatomics(perm):
     where the base (unpermuted) ordering is contiguous by fragment
     (molecule A = atoms 0,1; molecule B = atoms 2,3).
     """
-    base_xyz = np.array([
-        [0.0, 0.0, 0.0],
-        [1.3, 0.0, 0.0],
-        [10.0, 0.0, 0.0],
-        [11.3, 0.0, 0.0],
-    ])
+    base_xyz = np.array(
+        [
+            [0.0, 0.0, 0.0],
+            [1.3, 0.0, 0.0],
+            [10.0, 0.0, 0.0],
+            [11.3, 0.0, 0.0],
+        ]
+    )
     xyz = base_xyz[perm]
     atoms = [ELEMENT_TABLE.from_symbol('C') for _ in perm]
     return xyz, atoms
@@ -128,7 +130,7 @@ def test_wilsonB_permutation_equivalent():
     remapped_i = np.zeros_like(dense_i)
     for new_idx in range(natoms):
         old_idx = INTERLEAVED_PERM[new_idx]
-        remapped_i[:, 3*old_idx:3*old_idx+3] = dense_i[:, 3*new_idx:3*new_idx+3]
+        remapped_i[:, 3 * old_idx : 3 * old_idx + 3] = dense_i[:, 3 * new_idx : 3 * new_idx + 3]
 
     def key(prim, perm):
         return (type(prim).__name__, tuple(sorted(perm[a] for a in prim.atoms)))
@@ -151,11 +153,16 @@ def test_three_fragments_deeply_interleaved():
     """Three fragments interleaved atom-by-atom (A={0,3}, B={1,4}, C={2,5})
     -- exercises chained window-merging, not just a single overlapping
     pair."""
-    base_xyz = np.array([
-        [0.0, 0.0, 0.0], [1.3, 0.0, 0.0],
-        [20.0, 0.0, 0.0], [21.3, 0.0, 0.0],
-        [40.0, 0.0, 0.0], [41.3, 0.0, 0.0],
-    ])
+    base_xyz = np.array(
+        [
+            [0.0, 0.0, 0.0],
+            [1.3, 0.0, 0.0],
+            [20.0, 0.0, 0.0],
+            [21.3, 0.0, 0.0],
+            [40.0, 0.0, 0.0],
+            [41.3, 0.0, 0.0],
+        ]
+    )
     perm = [0, 2, 4, 1, 3, 5]
     xyz = base_xyz[perm]
     atoms = [ELEMENT_TABLE.from_symbol('C') for _ in perm]

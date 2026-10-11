@@ -424,8 +424,12 @@ def mecp_penalty_ethylene():
         p1 = PrimitiveInternalCoordinates.from_options(xyz=xyz, atoms=atoms, topology=top, **flags)
         dlc = DelocalizedInternalCoordinates.from_options(xyz=xyz, atoms=atoms, primitives=p1, **flags)
         mol = Molecule.from_options(geom=geom, PES=pes, coord_obj=dlc, Form_Hessian=True)
-        opt = _optimizer('ef', Linesearch='backtrack', DMAX=0.05, conv_Ediff=0.1, conv_dE=0.1, conv_gmax=0.005, opt_cross=True)
-        _geoms, energies = opt.optimize(molecule=mol, refE=mol.energy, opt_steps=30, opt_type='UNCONSTRAINED', path='scratch/mecp')
+        opt = _optimizer(
+            'ef', Linesearch='backtrack', DMAX=0.05, conv_Ediff=0.1, conv_dE=0.1, conv_gmax=0.005, opt_cross=True
+        )
+        _geoms, energies = opt.optimize(
+            molecule=mol, refE=mol.energy, opt_steps=30, opt_type='UNCONSTRAINED', path='scratch/mecp'
+        )
     return {
         'energies': np.asarray(energies, dtype=float),
         'final_xyz': np.asarray(mol.xyz),

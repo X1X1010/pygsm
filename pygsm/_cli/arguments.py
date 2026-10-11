@@ -15,11 +15,11 @@ def _build_parser() -> argparse.ArgumentParser:
         description='Reaction path transition state and photochemistry tool',
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog=textwrap.dedent(
-            '''\
+            """\
             Example of use:
             --------------------------------
             gsm -mode DE_GSM -xyzfile reaction.xyz -package xTB -ID 1
-            '''
+            """
         ),
     )
     parser.add_argument('-xyzfile', help='XYZ file containing reactant and, if DE-GSM, product.', required=True)
@@ -40,7 +40,9 @@ def _build_parser() -> argparse.ArgumentParser:
         help='Level of theory: GFN-xTB via tblite, or any ASE calculator (see --ase-class) (default: %(default)s)',
         choices=['xTB', 'ase'],
     )
-    parser.add_argument('-ID', default=0, type=int, help='string identification number (default: %(default)s)', required=False)
+    parser.add_argument(
+        '-ID', default=0, type=int, help='string identification number (default: %(default)s)', required=False
+    )
     parser.add_argument(
         '-num_nodes',
         type=int,
@@ -55,7 +57,14 @@ def _build_parser() -> argparse.ArgumentParser:
         help='Potential energy surface (default: %(default)s)',
         choices=['PES', 'Avg_PES', 'Penalty_PES'],
     )
-    parser.add_argument('-adiabatic_index', nargs='*', type=int, default=[0], help='Adiabatic index (default: %(default)s)', required=False)
+    parser.add_argument(
+        '-adiabatic_index',
+        nargs='*',
+        type=int,
+        default=[0],
+        help='Adiabatic index (default: %(default)s)',
+        required=False,
+    )
     parser.add_argument('-multiplicity', nargs='*', type=int, default=[1], help='Multiplicity (default: %(default)s)')
     parser.add_argument(
         '-FORCE_FILE',
@@ -71,22 +80,84 @@ def _build_parser() -> argparse.ArgumentParser:
         help='The optimizer object. (default: %(default)s Recommend LBFGS for large molecules >1000 atoms)',
         required=False,
     )
-    parser.add_argument('-opt_print_level', type=int, default=1, help='Printout for optimization. 2 prints everything in opt.', required=False)
+    parser.add_argument(
+        '-opt_print_level',
+        type=int,
+        default=1,
+        help='Printout for optimization. 2 prints everything in opt.',
+        required=False,
+    )
     parser.add_argument('-gsm_print_level', type=int, default=1, help='Printout for gsm. 1 prints ?', required=False)
-    parser.add_argument('-xTB_Hamiltonian', type=str, default='GFN2-xTB', help='xTB hamiltonian', choices=['GFN2-xTB', 'GFN1-xTB', 'IPEA1-xTB'], required=False)
+    parser.add_argument(
+        '-xTB_Hamiltonian',
+        type=str,
+        default='GFN2-xTB',
+        help='xTB hamiltonian',
+        choices=['GFN2-xTB', 'GFN1-xTB', 'IPEA1-xTB'],
+        required=False,
+    )
     parser.add_argument('-xTB_accuracy', type=float, default=1.0, help='xTB accuracy', required=False)
-    parser.add_argument('-xTB_electronic_temperature', type=float, default=300.0, help='xTB electronic temperature', required=False)
-    parser.add_argument('-xyz_output_format', type=str, default='molden', help='Format of the produced XYZ files', required=False)
+    parser.add_argument(
+        '-xTB_electronic_temperature', type=float, default=300.0, help='xTB electronic temperature', required=False
+    )
+    parser.add_argument(
+        '-xyz_output_format', type=str, default='molden', help='Format of the produced XYZ files', required=False
+    )
     parser.add_argument('-solvent', type=str, help='Solvent to use (xTB calculations only)', required=False)
-    parser.add_argument('-linesearch', type=str, default='NoLineSearch', help='default: %(default)s', choices=['NoLineSearch', 'backtrack'])
-    parser.add_argument('-coordinate_type', type=str, default='TRIC', help='Coordinate system (default %(default)s)', choices=['TRIC', 'DLC', 'HDLC'])
-    parser.add_argument('-ADD_NODE_TOL', type=float, default=0.01, help='Convergence tolerance for adding new node (default: %(default)s)', required=False)
-    parser.add_argument('-DQMAG_MAX', type=float, default=0.8, help='Maximum step size in single-ended mode (default: %(default)s)', required=False)
-    parser.add_argument('-BDIST_RATIO', type=float, default=0.5, help='Reaction completion convergence in SE modes (default: %(default)s)')
-    parser.add_argument('-CONV_TOL', type=float, default=0.0005, help='Convergence tolerance for optimizing nodes (default: %(default)s)', required=False)
-    parser.add_argument('-growth_direction', type=int, default=0, help='Direction adding new nodes (default: %(default)s)', choices=[0, 1, 2])
-    parser.add_argument('-reactant_geom_fixed', action='store_true', help='Fix reactant geometry i.e. do not pre-optimize')
-    parser.add_argument('-product_geom_fixed', action='store_true', help='Fix product geometry i.e. do not pre-optimize')
+    parser.add_argument(
+        '-linesearch',
+        type=str,
+        default='NoLineSearch',
+        help='default: %(default)s',
+        choices=['NoLineSearch', 'backtrack'],
+    )
+    parser.add_argument(
+        '-coordinate_type',
+        type=str,
+        default='TRIC',
+        help='Coordinate system (default %(default)s)',
+        choices=['TRIC', 'DLC', 'HDLC'],
+    )
+    parser.add_argument(
+        '-ADD_NODE_TOL',
+        type=float,
+        default=0.01,
+        help='Convergence tolerance for adding new node (default: %(default)s)',
+        required=False,
+    )
+    parser.add_argument(
+        '-DQMAG_MAX',
+        type=float,
+        default=0.8,
+        help='Maximum step size in single-ended mode (default: %(default)s)',
+        required=False,
+    )
+    parser.add_argument(
+        '-BDIST_RATIO',
+        type=float,
+        default=0.5,
+        help='Reaction completion convergence in SE modes (default: %(default)s)',
+    )
+    parser.add_argument(
+        '-CONV_TOL',
+        type=float,
+        default=0.0005,
+        help='Convergence tolerance for optimizing nodes (default: %(default)s)',
+        required=False,
+    )
+    parser.add_argument(
+        '-growth_direction',
+        type=int,
+        default=0,
+        help='Direction adding new nodes (default: %(default)s)',
+        choices=[0, 1, 2],
+    )
+    parser.add_argument(
+        '-reactant_geom_fixed', action='store_true', help='Fix reactant geometry i.e. do not pre-optimize'
+    )
+    parser.add_argument(
+        '-product_geom_fixed', action='store_true', help='Fix product geometry i.e. do not pre-optimize'
+    )
     parser.add_argument(
         '-nproc',
         type=int,
@@ -94,8 +165,14 @@ def _build_parser() -> argparse.ArgumentParser:
         help='Processors for calculation. Python will detect OMP_NUM_THREADS, only use this if you want to force the number of processors',
     )
     parser.add_argument('-charge', type=int, default=0, help='Total system charge (default: %(default)s)')
-    parser.add_argument('-max_gsm_iters', type=int, default=100, help='The maximum number of GSM cycles (default: %(default)s)')
-    parser.add_argument('-max_opt_steps', type=int, help='The maximum number of node optimizations per GSM cycle (defaults: 3 DE-GSM, 20 SE-GSM)')
+    parser.add_argument(
+        '-max_gsm_iters', type=int, default=100, help='The maximum number of GSM cycles (default: %(default)s)'
+    )
+    parser.add_argument(
+        '-max_opt_steps',
+        type=int,
+        help='The maximum number of node optimizations per GSM cycle (defaults: 3 DE-GSM, 20 SE-GSM)',
+    )
     parser.add_argument('-only_climb', action='store_true', help='Only use climbing image to optimize TS')
     parser.add_argument('-no_climb', action='store_true', help="Don't climb to the TS")
     parser.add_argument('-optimize_mesx', action='store_true', help='optimize to the MESX')
@@ -107,22 +184,44 @@ def _build_parser() -> argparse.ArgumentParser:
         default=1,
         help='Use python multiprocessing to parallelize jobs on a single compute node. Set OMP_NUM_THREADS, ncpus accordingly.',
     )
-    parser.add_argument('-dont_analyze_ICs', action='store_false', help="Don't post-print the internal coordinates primitives and values")
-    parser.add_argument('-hybrid_coord_idx_file', type=str, default=None, help='A filename containing a list of  indices to use in hybrid coordinates. 0-Based indexed')
-    parser.add_argument('-frozen_coord_idx_file', type=str, default=None, help='A filename containing a list of  indices to be frozen. 0-Based indexed')
+    parser.add_argument(
+        '-dont_analyze_ICs',
+        action='store_false',
+        help="Don't post-print the internal coordinates primitives and values",
+    )
+    parser.add_argument(
+        '-hybrid_coord_idx_file',
+        type=str,
+        default=None,
+        help='A filename containing a list of  indices to use in hybrid coordinates. 0-Based indexed',
+    )
+    parser.add_argument(
+        '-frozen_coord_idx_file',
+        type=str,
+        default=None,
+        help='A filename containing a list of  indices to be frozen. 0-Based indexed',
+    )
     parser.add_argument('-conv_Ediff', default=100.0, type=float, help='Energy difference convergence of optimization.')
     parser.add_argument('-conv_dE', default=1.0, type=float, help='State difference energy convergence')
     parser.add_argument('-conv_gmax', default=100.0, type=float, help='Max grad rms threshold')
     parser.add_argument('-DMAX', default=0.1, type=float, help='')
-    parser.add_argument('-sigma', default=1.0, type=float, help='The strength of the difference energy penalty in Penalty_PES')
-    parser.add_argument('-prim_idx_file', type=str, help='A filename containing a list of indices to define fragments. 0-Based indexed')
+    parser.add_argument(
+        '-sigma', default=1.0, type=float, help='The strength of the difference energy penalty in Penalty_PES'
+    )
+    parser.add_argument(
+        '-prim_idx_file', type=str, help='A filename containing a list of indices to define fragments. 0-Based indexed'
+    )
     parser.add_argument('-reparametrize', action='store_true', help='Reparametrize restart string equally along path')
     parser.add_argument('-interp_method', default='DLC', type=str, help='')
     parser.add_argument('-bonds_file', type=str, help='A file which contains the bond indices (0-based)')
-    parser.add_argument('-start_climb_immediately', action='store_true', help='Start climbing immediately when restarting.')
+    parser.add_argument(
+        '-start_climb_immediately', action='store_true', help='Start climbing immediately when restarting.'
+    )
 
     group_ase = parser.add_argument_group('ASE', 'ASE calculator options')
-    group_ase.add_argument('--ase-class', type=str, help='ASE calculator import path, eg. "ase.calculators.lj.LennardJones"')
+    group_ase.add_argument(
+        '--ase-class', type=str, help='ASE calculator import path, eg. "ase.calculators.lj.LennardJones"'
+    )
     group_ase.add_argument(
         '--ase-kwargs',
         type=str,
@@ -260,8 +359,7 @@ def parse_arguments(verbose: bool = True, argv: Sequence[str] | None = None):
         assert len(inpfileq['multiplicity']) > 1, 'need more spins'
     if inpfileq['charge'] != 0:
         print(
-            'Warning: charge is not implemented for all level of theories. '
-            'Make sure this is correct for your package.'
+            'Warning: charge is not implemented for all level of theories. Make sure this is correct for your package.'
         )
 
     return inpfileq

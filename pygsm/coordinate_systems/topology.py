@@ -8,41 +8,43 @@ from pygsm.utilities import math_utils, output
 try:
     import networkx as nx
 except ImportError:
-    output.logger.warning("NetworkX cannot be imported (topology tools won't work).  Most functionality should still work though.")
+    output.logger.warning(
+        "NetworkX cannot be imported (topology tools won't work).  Most functionality should still work though."
+    )
 
 
-#===========================#
-#|   Connectivity graph    |#
-#|  Good for doing simple  |#
-#|     topology tricks     |#
-#===========================#
+# ===========================#
+# |   Connectivity graph    |#
+# |  Good for doing simple  |#
+# |     topology tricks     |#
+# ===========================#
+
 
 class MyG(nx.Graph):
     def __init__(self):
         super().__init__()
         self.Alive = True
 
-
     def __hash__(self):
-        """ The hash function is something we can use to discard two things that are obviously not equal.  Here we neglect the hash. """
+        """The hash function is something we can use to discard two things that are obviously not equal.  Here we neglect the hash."""
         return 1
 
     def L(self):
-        """ Return a list of the sorted atom numbers in this graph. """
+        """Return a list of the sorted atom numbers in this graph."""
         return sorted(list(self.nodes()))
 
     def e(self):
-        """ Return an array of the elements.  For instance ['H' 'C' 'C' 'H']. """
+        """Return an array of the elements.  For instance ['H' 'C' 'C' 'H']."""
         elems = nx.get_node_attributes(self, 'e')
         return [elems[i] for i in self.L()]
 
     def ef(self):
-        """ Create an Empirical Formula """
+        """Create an Empirical Formula"""
         Formula = list(self.e())
         return ''.join([(f'{k}{Formula.count(k)}' if Formula.count(k) > 1 else f'{k}') for k in sorted(set(Formula))])
 
     def x(self):
-        """ Get a list of the coordinates. """
+        """Get a list of the coordinates."""
         coors = nx.get_node_attributes(self, 'x')
         return np.array([coors[i] for i in self.L()])
 
@@ -78,33 +80,33 @@ def AtomContact(xyz, pairs, box=None, displace=False):
         xbox = box[0]
         ybox = box[1]
         zbox = box[2]
-        while any(xyzpbc[:, 0] < -0.5*xbox):
-            xyzpbc[:, 0] += (xyzpbc[:, 0] < -0.5*xbox)*xbox
-        while any(xyzpbc[:, 1] < -0.5*ybox):
-            xyzpbc[:, 1] += (xyzpbc[:, 1] < -0.5*ybox)*ybox
-        while any(xyzpbc[:, 2] < -0.5*zbox):
-            xyzpbc[:, 2] += (xyzpbc[:, 2] < -0.5*zbox)*zbox
-        while any(xyzpbc[:, 0] >= 0.5*xbox):
-            xyzpbc[:, 0] -= (xyzpbc[:, 0] >= 0.5*xbox)*xbox
-        while any(xyzpbc[:, 1] >= 0.5*ybox):
-            xyzpbc[:, 1] -= (xyzpbc[:, 1] >= 0.5*ybox)*ybox
-        while any(xyzpbc[:, 2] >= 0.5*zbox):
-            xyzpbc[:, 2] -= (xyzpbc[:, 2] >= 0.5*zbox)*zbox
+        while any(xyzpbc[:, 0] < -0.5 * xbox):
+            xyzpbc[:, 0] += (xyzpbc[:, 0] < -0.5 * xbox) * xbox
+        while any(xyzpbc[:, 1] < -0.5 * ybox):
+            xyzpbc[:, 1] += (xyzpbc[:, 1] < -0.5 * ybox) * ybox
+        while any(xyzpbc[:, 2] < -0.5 * zbox):
+            xyzpbc[:, 2] += (xyzpbc[:, 2] < -0.5 * zbox) * zbox
+        while any(xyzpbc[:, 0] >= 0.5 * xbox):
+            xyzpbc[:, 0] -= (xyzpbc[:, 0] >= 0.5 * xbox) * xbox
+        while any(xyzpbc[:, 1] >= 0.5 * ybox):
+            xyzpbc[:, 1] -= (xyzpbc[:, 1] >= 0.5 * ybox) * ybox
+        while any(xyzpbc[:, 2] >= 0.5 * zbox):
+            xyzpbc[:, 2] -= (xyzpbc[:, 2] >= 0.5 * zbox) * zbox
     # Obtain atom selections for the pairs to be computed
     # These are typically longer than N but shorter than N^2.
     xyzsel1 = xyzpbc[sel1]
     xyzsel2 = xyzpbc[sel2]
 
     # Calculate xyz displacement
-    dxyz = xyzsel2-xyzsel1
+    dxyz = xyzsel2 - xyzsel1
     # Apply minimum image convention to displacements
     if box is not None:
-        dxyz[:, 0] += (dxyz[:, 0] < -0.5*xbox)*xbox
-        dxyz[:, 1] += (dxyz[:, 1] < -0.5*ybox)*ybox
-        dxyz[:, 2] += (dxyz[:, 2] < -0.5*zbox)*zbox
-        dxyz[:, 0] -= (dxyz[:, 0] >= 0.5*xbox)*xbox
-        dxyz[:, 1] -= (dxyz[:, 1] >= 0.5*ybox)*ybox
-        dxyz[:, 2] -= (dxyz[:, 2] >= 0.5*zbox)*zbox
+        dxyz[:, 0] += (dxyz[:, 0] < -0.5 * xbox) * xbox
+        dxyz[:, 1] += (dxyz[:, 1] < -0.5 * ybox) * ybox
+        dxyz[:, 2] += (dxyz[:, 2] < -0.5 * zbox) * zbox
+        dxyz[:, 0] -= (dxyz[:, 0] >= 0.5 * xbox) * xbox
+        dxyz[:, 1] -= (dxyz[:, 1] >= 0.5 * ybox) * ybox
+        dxyz[:, 2] -= (dxyz[:, 2] >= 0.5 * zbox) * zbox
     dr2 = np.sum(dxyz**2, axis=1)
     dr = np.sqrt(dr2)
     if displace:
@@ -115,11 +117,12 @@ def AtomContact(xyz, pairs, box=None, displace=False):
 
 class Topology:
     def __init__(self, **kwargs):
-
         return
 
     @staticmethod
-    def build_topology(xyz, atoms, add_bond=None, hybrid_indices=None, bondlistfile=None, prim_idx_start_stop=None, **kwargs):
+    def build_topology(
+        xyz, atoms, add_bond=None, hybrid_indices=None, bondlistfile=None, prim_idx_start_stop=None, **kwargs
+    ):
         """
         Create topology and fragments; these are graph
         representations of the individual molecule fragments
@@ -144,7 +147,7 @@ class Topology:
 
         # can do an assert for xyz here CRA TODO
         if natoms > 100000:
-            output.logger.warning(f"Warning: Large number of atoms ({natoms}), topology building may take a long time")
+            output.logger.warning(f'Warning: Large number of atoms ({natoms}), topology building may take a long time')
 
         # Get hybrid indices
         hybrid_indices = hybrid_indices
@@ -160,19 +163,19 @@ class Topology:
 
             # get the hybrid start and stop indices
             new = True
-            for i in range(natoms+1):
+            for i in range(natoms + 1):
                 if i in hybrid_indices:
                     if new:
                         start = i
                         new = False
                 else:
                     if not new:
-                        end = i-1
+                        end = i - 1
                         new = True
                         hybrid_idx_start_stop.append((start, end))
 
         if not bondlistfile:
-            output.printcool(" building bonds")
+            output.printcool(' building bonds')
             bonds = Topology.build_bonds(xyz, atoms, primitive_indices, prim_idx_start_stop)
             assert bondlistfile is None
         else:
@@ -183,7 +186,7 @@ class Topology:
                 raise RuntimeError(f'could not read bonds from {bondlistfile}') from error
 
         if add_bond:
-            print(" adding extra bonds")
+            print(' adding extra bonds')
             for bond in add_bond:
                 bonds.append(bond)
 
@@ -196,7 +199,7 @@ class Topology:
             G.add_node(i)
             nx.set_node_attributes(G, {i: a}, name='e')
             nx.set_node_attributes(G, {i: xyz[i]}, name='x')
-        for (i, j) in bonds:
+        for i, j in bonds:
             G.add_edge(i, j)
 
         # The Topology is simply the NetworkX graph object.
@@ -211,13 +214,13 @@ class Topology:
         primitive_index_set = set(primitive_indices)
         index_ranges = []
         new_range = True
-        for i in range(natoms+1):
+        for i in range(natoms + 1):
             if i in primitive_index_set:
                 if new_range:
                     start = i
                     new_range = False
             elif not new_range:
-                index_ranges.append((start, i-1))
+                index_ranges.append((start, i - 1))
                 new_range = True
         return index_ranges
 
@@ -226,9 +229,9 @@ class Topology:
         primitive_index_array = np.asarray(list(primitive_indices), dtype=np.int32)
         coords = xyz[primitive_index_array]
 
-        xidx = np.clip(np.searchsorted(xgrd, coords[:, 0], side='right') - 1, 0, len(xgrd)-1)
-        yidx = np.clip(np.searchsorted(ygrd, coords[:, 1], side='right') - 1, 0, len(ygrd)-1)
-        zidx = np.clip(np.searchsorted(zgrd, coords[:, 2], side='right') - 1, 0, len(zgrd)-1)
+        xidx = np.clip(np.searchsorted(xgrd, coords[:, 0], side='right') - 1, 0, len(xgrd) - 1)
+        yidx = np.clip(np.searchsorted(ygrd, coords[:, 1], side='right') - 1, 0, len(ygrd) - 1)
+        zidx = np.clip(np.searchsorted(zgrd, coords[:, 2], side='right') - 1, 0, len(zgrd) - 1)
 
         gidx = list(itertools.product(range(len(xgrd)), range(len(ygrd)), range(len(zgrd))))
         assignments = OrderedDict((cell, []) for cell in gidx)
@@ -276,24 +279,25 @@ class Topology:
         for start, stop in index_ranges:
             for atom_index in range(start, stop):
                 first_list.append([atom_index] * (stop - atom_index))
-                second_list.append(list(range(atom_index+1, stop+1)))
+                second_list.append(list(range(atom_index + 1, stop + 1)))
 
         if not first_list:
             return np.empty((0, 2), dtype=np.int32)
 
         return np.ascontiguousarray(
-            np.vstack((
-                np.fromiter(itertools.chain(*first_list), dtype=np.int32),
-                np.fromiter(itertools.chain(*second_list), dtype=np.int32),
-            )).T
+            np.vstack(
+                (
+                    np.fromiter(itertools.chain(*first_list), dtype=np.int32),
+                    np.fromiter(itertools.chain(*second_list), dtype=np.int32),
+                )
+            ).T
         )
-
 
     @staticmethod
     def build_bonds(xyz, atoms, primitive_indices, prim_idx_start_stop=None, **kwargs):
-        """ Build the bond connectivity graph. """
+        """Build the bond connectivity graph."""
 
-        print(" In build bonds")
+        print(' In build bonds')
         top_settings = {
             'toppbc': kwargs.get('toppbc', False),
             'topframe': kwargs.get('topframe', 0),
@@ -326,7 +330,9 @@ class Topology:
             ymax = boxes[sn].b
             zmax = boxes[sn].c
             if any([i != 90.0 for i in [boxes[sn].alpha, boxes[sn].beta, boxes[sn].gamma]]):
-                output.logger.warning("Warning: Topology building will not work with broken molecules in nonorthogonal cells.")
+                output.logger.warning(
+                    'Warning: Topology building will not work with broken molecules in nonorthogonal cells.'
+                )
                 toppbc = False
         else:
             xmin = mins[0]
@@ -337,14 +343,14 @@ class Topology:
             zmax = maxs[2]
             toppbc = False
 
-        xext = xmax-xmin
-        yext = ymax-ymin
-        zext = zmax-zmin
+        xext = xmax - xmin
+        yext = ymax - ymin
+        zext = zmax - zmin
 
         if toppbc:
-            gszx = xext/int(xext/gsz)
-            gszy = yext/int(yext/gsz)
-            gszz = zext/int(zext/gsz)
+            gszx = xext / int(xext / gsz)
+            gszy = yext / int(yext / gsz)
+            gszz = zext / int(zext / gsz)
         else:
             gszx = gsz
             gszy = gsz
@@ -352,12 +358,12 @@ class Topology:
 
         # Run algorithm to determine bonds.
         # Decide if we want to use the grid algorithm.
-        use_grid = toppbc or (np.min([xext, yext, zext]) > 2.0*gsz)
+        use_grid = toppbc or (np.min([xext, yext, zext]) > 2.0 * gsz)
         if use_grid and prim_idx_start_stop is None:
-            print(" Using grid")
-            xgrd = np.arange(xmin, xmax-gszx, gszx)
-            ygrd = np.arange(ymin, ymax-gszy, gszy)
-            zgrd = np.arange(zmin, zmax-gszz, gszz)
+            print(' Using grid')
+            xgrd = np.arange(xmin, xmax - gszx, gszx)
+            ygrd = np.arange(ymin, ymax - gszy, gszy)
+            zgrd = np.arange(zmin, zmax - gszz, gszz)
             gidx, assignments = Topology._assign_atoms_to_grid(xyz, primitive_indices, xgrd, ygrd, zgrd)
             AtomIterator = Topology._build_atom_iterator_from_grid(assignments, gidx)
         else:
@@ -366,13 +372,12 @@ class Topology:
             # TODO 9/2019 build-bonds only for non-cartesian indices
             # the original version
 
-
             # need the primitive start and stop indices
 
             if prim_idx_start_stop is None:
                 prim_idx_start_stop = Topology._primitive_index_ranges(primitive_indices, natoms)
             else:
-                print(" using user defined primitive start stop values")
+                print(' using user defined primitive start stop values')
 
             AtomIterator = Topology._build_atom_iterator_from_ranges(prim_idx_start_stop)
         if AtomIterator.size == 0:
@@ -380,7 +385,7 @@ class Topology:
         # Create a list of thresholds for determining whether a certain interatomic distance is considered to be a bond.
         BT0 = R[AtomIterator[:, 0]]
         BT1 = R[AtomIterator[:, 1]]
-        BondThresh = (BT0+BT1) * Fac
+        BondThresh = (BT0 + BT1) * Fac
         BondThresh = (BondThresh > mindist) * BondThresh + (BondThresh < mindist) * mindist
         if toppbc:
             raise NotImplementedError
@@ -416,12 +421,11 @@ class Topology:
         bondlist = sorted(list(set(bondlist)))
         bonds = sorted(list(set(bondlist)))
 
-
         return bonds
 
     @staticmethod
     def read_bonds_from_file(filename):
-        print("reading bonds")
+        print('reading bonds')
         bondlist = np.loadtxt(filename)
 
         bonds = []
@@ -440,10 +444,16 @@ class Topology:
 
     @staticmethod
     def distance_matrix(xyz, pbc=True):
-        """ Obtain distance matrix between all pairs of atoms. """
+        """Obtain distance matrix between all pairs of atoms."""
         natoms = len(xyz)
-        AtomIterator = np.ascontiguousarray(np.vstack((np.fromiter(itertools.chain(*[[i]*(natoms-i-1) for i in range(natoms)]), dtype=np.int32),
-                                            np.fromiter(itertools.chain(*[list(range(i+1, natoms)) for i in range(natoms)]), dtype=np.int32))).T)
+        AtomIterator = np.ascontiguousarray(
+            np.vstack(
+                (
+                    np.fromiter(itertools.chain(*[[i] * (natoms - i - 1) for i in range(natoms)]), dtype=np.int32),
+                    np.fromiter(itertools.chain(*[list(range(i + 1, natoms)) for i in range(natoms)]), dtype=np.int32),
+                )
+            ).T
+        )
         drij = []
         drij.append(AtomContact(xyz, AtomIterator))
         return AtomIterator, drij

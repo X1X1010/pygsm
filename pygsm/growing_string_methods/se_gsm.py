@@ -1,5 +1,3 @@
-
-
 # local application imports
 import os
 import sys
@@ -17,18 +15,17 @@ from .main_gsm import MainGSM
 
 
 class SE_GSM(MainGSM):
-
     def __init__(
-            self,
-            options,
+        self,
+        options,
     ):
         super().__init__(options)
         self.current_nnodes = 1
 
-        print(" Assuming the isomers are initialized!")
-        print(" Primitive Internal Coordinates")
+        print(' Assuming the isomers are initialized!')
+        print(' Primitive Internal Coordinates')
         print(self.nodes[0].primitive_internal_coordinates[0:50])
-        print(" number of primitives is", self.nodes[0].num_primitives)
+        print(' number of primitives is', self.nodes[0].num_primitives)
 
         print('Driving Coordinates: ')
         print(self.driving_coords)
@@ -44,8 +41,8 @@ class SE_GSM(MainGSM):
 
     def set_V0(self):
         self.nodes[0].V0 = self.nodes[0].energy
-        #TODO should be actual gradient
-        self.nodes[0].gradrms = 0.
+        # TODO should be actual gradient
+        self.nodes[0].gradrms = 0.0
 
     def go_gsm(self, max_iters=50, opt_steps=10, rtype=2):
         """
@@ -56,83 +53,85 @@ class SE_GSM(MainGSM):
         self.set_V0()
 
         if self.isRestarted is False:
-            self.nodes[0].gradrms = 0.
+            self.nodes[0].gradrms = 0.0
             self.nodes[0].V0 = self.nodes[0].energy
-            print(f" Initial energy is {self.nodes[0].energy:1.4f}")
+            print(f' Initial energy is {self.nodes[0].energy:1.4f}')
             self.add_GSM_nodeR()
             self.grow_string(max_iters=max_iters, max_opt_steps=opt_steps)
             if self.tscontinue:
                 self.pastts = self.past_ts()
-                print(f"pastts {self.pastts}")
+                print(f'pastts {self.pastts}')
                 try:
-                    if self.pastts == 1: #normal over the hill
+                    if self.pastts == 1:  # normal over the hill
                         self.add_GSM_nodeR(1)
                         self.add_last_node(2)
-                    elif self.pastts == 2 or self.pastts==3: #when cgrad is positive
+                    elif self.pastts == 2 or self.pastts == 3:  # when cgrad is positive
                         self.add_last_node(1)
-                        if self.nodes[self.nR-1].gradrms > 5.*self.options['CONV_TOL']:
+                        if self.nodes[self.nR - 1].gradrms > 5.0 * self.options['CONV_TOL']:
                             self.add_last_node(1)
-                    elif self.pastts == 3: #product detected by bonding
+                    elif self.pastts == 3:  # product detected by bonding
                         self.add_last_node(1)
                 except (IndexError, RuntimeError, ValueError) as error:
-                    print(f"Failed to add last node, continuing: {error}")
+                    print(f'Failed to add last node, continuing: {error}')
                     # probably need to make sure last node is optimized
 
             self.nnodes = self.nR
-            self.nodes = self.nodes[:self.nR]
+            self.nodes = self.nodes[: self.nR]
             energies = self.energies
 
-            if self.TSnode == self.nR-1:
-                print(" The highest energy node is the last")
-                print(" not continuing with TS optimization.")
+            if self.TSnode == self.nR - 1:
+                print(' The highest energy node is the last')
+                print(' not continuing with TS optimization.')
                 self.tscontinue = False
 
-            print(" Number of nodes is ", self.nnodes)
-            print(" Warning last node still not optimized fully")
+            print(' Number of nodes is ', self.nnodes)
+            print(' Warning last node still not optimized fully')
             self.xyz_writer(f'grown_string_{self.ID:03}.xyz', self.geometries, self.energies, self.gradrmss, self.dEs)
-            print(" SSM growth phase over")
+            print(' SSM growth phase over')
             self.done_growing = True
 
-            print(" beginning opt phase")
-            print("Setting all interior nodes to active")
-            for n in range(1, self.nnodes-1):
+            print(' beginning opt phase')
+            print('Setting all interior nodes to active')
+            for n in range(1, self.nnodes - 1):
                 self.active[n] = True
-            self.active[self.nnodes-1] = False
+            self.active[self.nnodes - 1] = False
             self.active[0] = False
 
         if not self.isRestarted:
-            print(" initial ic_reparam")
+            print(' initial ic_reparam')
             self.reparameterize(ic_reparam_steps=25)
-            print(" V_profile (after reparam): ", end=' ')
+            print(' V_profile (after reparam): ', end=' ')
             energies = self.energies
             for n in range(self.nnodes):
-                print(f" {float(energies[n]):7.3f}", end=' ')
+                print(f' {float(energies[n]):7.3f}', end=' ')
             print()
             self.xyz_writer(f'grown_string1_{self.ID:03}.xyz', self.geometries, self.energies, self.gradrmss, self.dEs)
 
         if self.tscontinue:
-            self.optimize_string(max_iter=max_iters, opt_steps=3, rtype=rtype)  # opt steps fixed at 3 for rtype=1 and 2, else set it to be the large number :) muah hahaahah
+            self.optimize_string(
+                max_iter=max_iters, opt_steps=3, rtype=rtype
+            )  # opt steps fixed at 3 for rtype=1 and 2, else set it to be the large number :) muah hahaahah
         else:
-            print("Exiting early")
+            print('Exiting early')
             self.end_early = True
 
-        filename = f"opt_converged_{self.ID:03d}.xyz"
-        print(" Printing string to " + filename)
+        filename = f'opt_converged_{self.ID:03d}.xyz'
+        print(' Printing string to ' + filename)
         self.xyz_writer(filename, self.geometries, self.energies, self.gradrmss, self.dEs)
-        print("Finished GSM!")
+        print('Finished GSM!')
 
     def add_last_node(self, rtype):
-        assert rtype == 1 or rtype == 2, "rtype must be 1 or 2"
+        assert rtype == 1 or rtype == 2, 'rtype must be 1 or 2'
         noptsteps = 100
-        if self.nodes[self.nR-1].PES.lot.do_coupling:
+        if self.nodes[self.nR - 1].PES.lot.do_coupling:
             opt_type = 'MECI'
         else:
             opt_type = 'UNCONSTRAINED'
 
         if rtype == 1:
-            print(" copying last node, opting")
-            self.nodes[self.nR] = Molecule.copy_from_options(self.nodes[self.nR-1], new_node_id=self.nR)
-            print(f" Optimizing node {self.nR}")
+            print(' copying last node, opting')
+            self.nodes[self.nR] = Molecule.copy_from_options(self.nodes[self.nR - 1], new_node_id=self.nR)
+            print(f' Optimizing node {self.nR}')
             self.optimizer[self.nR].conv_grms = self.options['CONV_TOL']
             self.optimizer[self.nR].conv_gmax = self.options['CONV_gmax']
             self.optimizer[self.nR].conv_Ediff = self.options['CONV_Ediff']
@@ -146,19 +145,19 @@ class SE_GSM(MainGSM):
                 path=path,
             )
             self.active[self.nR] = True
-            if (self.nodes[self.nR].xyz == self.nodes[self.nR-1].xyz).all():
-                print(" Opt did not produce new geometry")
+            if (self.nodes[self.nR].xyz == self.nodes[self.nR - 1].xyz).all():
+                print(' Opt did not produce new geometry')
             else:
                 self.nR += 1
         elif rtype == 2:
-            print(" already created node, opting")
-            self.optimizer[self.nR-1].conv_grms = self.options['CONV_TOL']
-            self.optimizer[self.nR-1].conv_gmax = self.options['CONV_gmax']
-            self.optimizer[self.nR-1].conv_Ediff = self.options['CONV_Ediff']
-            self.optimizer[self.nR-1].conv_dE = self.options['CONV_dE']
-            path = os.path.join(os.getcwd(), f'scratch/{self.ID:03d}/{self.nR-1}')
-            self.optimizer[self.nR-1].optimize(
-                molecule=self.nodes[self.nR-1],
+            print(' already created node, opting')
+            self.optimizer[self.nR - 1].conv_grms = self.options['CONV_TOL']
+            self.optimizer[self.nR - 1].conv_gmax = self.options['CONV_gmax']
+            self.optimizer[self.nR - 1].conv_Ediff = self.options['CONV_Ediff']
+            self.optimizer[self.nR - 1].conv_dE = self.options['CONV_dE']
+            path = os.path.join(os.getcwd(), f'scratch/{self.ID:03d}/{self.nR - 1}')
+            self.optimizer[self.nR - 1].optimize(
+                molecule=self.nodes[self.nR - 1],
                 refE=self.nodes[0].V0,
                 opt_steps=noptsteps,
                 opt_type=opt_type,
@@ -167,36 +166,40 @@ class SE_GSM(MainGSM):
         return
 
     def grow_nodes(self):
-        if self.nodes[self.nR-1].gradrms < self.options['ADD_NODE_TOL']:
+        if self.nodes[self.nR - 1].gradrms < self.options['ADD_NODE_TOL']:
             if self.nR == self.nnodes:
-                print(" Ran out of nodes, exiting GSM")
+                print(' Ran out of nodes, exiting GSM')
                 raise ValueError
             if self.nodes[self.nR] is None:
                 self.add_GSM_nodeR()
-                print(f" getting energy for node {self.nR-1}: {self.nodes[self.nR-1].energy - self.nodes[0].V0:5.4f}")
+                print(
+                    f' getting energy for node {self.nR - 1}: {self.nodes[self.nR - 1].energy - self.nodes[0].V0:5.4f}'
+                )
         return
 
     def add_GSM_nodes(self, newnodes=1):
-        if self.current_nnodes+newnodes > self.nnodes:
-            print("Adding too many nodes, cannot interpolate")
+        if self.current_nnodes + newnodes > self.nnodes:
+            print('Adding too many nodes, cannot interpolate')
         for _i in range(newnodes):
             self.add_GSM_nodeR()
 
     def ic_reparam_g(self, ic_reparam_steps=4, n0=0, nconstraints=1):  # see line 3863 of gstring.cpp
-        '''
+        """
         Dont do ic_reparam_g for SE-GSM
-        '''
+        """
         return
 
     def set_frontier_convergence(self, nR):
         # set
         self.optimizer[nR].conv_grms = self.options['ADD_NODE_TOL']
-        self.optimizer[nR].conv_gmax = 100.  # self.options['ADD_NODE_TOL'] # could use some multiplier times CONV_GMAX...
-        self.optimizer[nR].conv_Ediff = 1000.  # 2.5
-        print(f" conv_tol of node {nR} is {self.optimizer[nR].conv_grms:.4f}")
+        self.optimizer[
+            nR
+        ].conv_gmax = 100.0  # self.options['ADD_NODE_TOL'] # could use some multiplier times CONV_GMAX...
+        self.optimizer[nR].conv_Ediff = 1000.0  # 2.5
+        print(f' conv_tol of node {nR} is {self.optimizer[nR].conv_grms:.4f}')
 
     def set_active(self, nR, nP=None):
-        print(f" setting active node to {nR} ")
+        print(f' setting active node to {nR} ')
 
         for i in range(self.nnodes):
             if self.nodes[i] is not None:
@@ -208,90 +211,89 @@ class SE_GSM(MainGSM):
     def make_tan_list(self):
         ncurrent, nlist = self.make_difference_node_list()
         param_list = []
-        for n in range(ncurrent-1):
-            if nlist[2*n] not in param_list:
-                param_list.append(nlist[2*n])
+        for n in range(ncurrent - 1):
+            if nlist[2 * n] not in param_list:
+                param_list.append(nlist[2 * n])
         return param_list
 
     def make_move_list(self):
         ncurrent, nlist = self.make_difference_node_list()
         param_list = []
         for n in range(ncurrent):
-            if nlist[2*n+1] not in param_list:
-                param_list.append(nlist[2*n+1])
+            if nlist[2 * n + 1] not in param_list:
+                param_list.append(nlist[2 * n + 1])
         return param_list
 
     def make_difference_node_list(self):
         ncurrent = 0
-        nlist = [0]*(2*self.nnodes)
-        for n in range(self.nR-1):
-            nlist[2*ncurrent] = n
-            nlist[2*ncurrent+1] = n+1
+        nlist = [0] * (2 * self.nnodes)
+        for n in range(self.nR - 1):
+            nlist[2 * ncurrent] = n
+            nlist[2 * ncurrent + 1] = n + 1
             ncurrent += 1
-        nlist[2*ncurrent+1] = self.nR - 1
-        nlist[2*ncurrent] = self.nR - 1
+        nlist[2 * ncurrent + 1] = self.nR - 1
+        nlist[2 * ncurrent] = self.nR - 1
         ncurrent += 1
         return ncurrent, nlist
 
     def past_ts(self):
-        '''
-        '''
+        """ """
         ispast = ispast1 = ispast2 = ispast3 = 0
-        THRESH1 = 5.
-        THRESH2 = 3.
-        THRESH3 = -1.
+        THRESH1 = 5.0
+        THRESH2 = 3.0
+        THRESH3 = -1.0
         CTHRESH = 0.005
         OTHRESH = -0.015
-        emax = -100.
+        emax = -100.0
         nodemax = 1
         # n0 is zero until after finished growing
-        ns = self.n0-1
+        ns = self.n0 - 1
         if ns < nodemax:
             ns = nodemax
 
-        print(" Energies", end=' ')
+        print(' Energies', end=' ')
         energies = self.energies
         for n in range(ns, self.nR):
-            print(f" {energies[n]:4.3f}", end=' ')
+            print(f' {energies[n]:4.3f}', end=' ')
             if energies[n] > emax:
                 nodemax = n
                 emax = energies[n]
-        print("\n nodemax ", nodemax)
+        print('\n nodemax ', nodemax)
 
         for n in range(nodemax, self.nR):
-            if energies[n] < emax-THRESH1:
+            if energies[n] < emax - THRESH1:
                 ispast1 += 1
-            if energies[n] < emax-THRESH2:
+            if energies[n] < emax - THRESH2:
                 ispast2 += 1
-            if energies[n] < emax-THRESH3:
+            if energies[n] < emax - THRESH3:
                 ispast3 += 1
             if ispast1 > 1:
                 break
-        print(" ispast1", ispast1)
-        print(" ispast2", ispast2)
-        print(" ispast3", ispast3)
+        print(' ispast1', ispast1)
+        print(' ispast2', ispast2)
+        print(' ispast3', ispast3)
 
         # TODO 5/9/2019 what about multiple constraints
         # Done 6/23/2019
-        constraints = self.nodes[self.nR-1].constraints[:, 0]
-        gradient = self.nodes[self.nR-1].gradient
+        constraints = self.nodes[self.nR - 1].constraints[:, 0]
+        gradient = self.nodes[self.nR - 1].gradient
 
         overlap = np.dot(gradient.T, constraints)
-        cgrad = overlap*constraints
+        cgrad = overlap * constraints
 
-        cgrad = np.linalg.norm(cgrad)*np.sign(overlap)
+        cgrad = np.linalg.norm(cgrad) * np.sign(overlap)
 
-        print(f" cgrad: {np.asarray(cgrad).item():4.3f} nodemax: {nodemax} nR: {self.nR}")
+        print(f' cgrad: {np.asarray(cgrad).item():4.3f} nodemax: {nodemax} nR: {self.nR}')
 
         # 6/17 THIS should check if the last node is high in energy
-        if cgrad > CTHRESH and not self.nodes[self.nR-1].PES.lot.do_coupling and nodemax != self.TSnode:
-            print(" constraint gradient positive")
+        if cgrad > CTHRESH and not self.nodes[self.nR - 1].PES.lot.do_coupling and nodemax != self.TSnode:
+            print(' constraint gradient positive')
             ispast = 2
         elif ispast1 > 0 and cgrad > OTHRESH:
-            print(" over the hill(1)")
+            print(' over the hill(1)')
             ispast = 1
         elif ispast2 > 1:
-            print(" over the hill(2)")
+            print(' over the hill(2)')
             ispast = 1
         else:
             ispast = 0
@@ -299,40 +301,44 @@ class SE_GSM(MainGSM):
         if ispast == 0:
             bch = self.check_for_reaction_g(1, self.driving_coords)
             if ispast3 > 1 and bch:
-                print(f"over the hill(3) connection changed {bch!r} ")
+                print(f'over the hill(3) connection changed {bch!r} ')
                 ispast = 3
-        print(" ispast=", ispast)
+        print(' ispast=', ispast)
         return ispast
 
     def check_if_grown(self):
-        '''
+        """
         Check if the string is grown
         Returns True if grown
-        '''
+        """
 
         self.pastts = self.past_ts()
         isDone = False
         # TODO break planes
-        condition1 = (abs(self.nodes[self.nR-1].bdist) <= (1-self.BDIST_RATIO)*abs(self.nodes[0].bdist))
-        print(f" bdist {self.nodes[self.nR-1].bdist:.3f}")
+        condition1 = abs(self.nodes[self.nR - 1].bdist) <= (1 - self.BDIST_RATIO) * abs(self.nodes[0].bdist)
+        print(f' bdist {self.nodes[self.nR - 1].bdist:.3f}')
 
         fp = self.find_peaks('growing')
         if self.pastts and self.current_nnodes > 3 and condition1:  # TODO extra criterion here
-            print(" pastts is ", self.pastts)
-            if self.TSnode == self.nR-1:
-                print(" The highest energy node is the last")
-                print(" not continuing with TS optimization.")
+            print(' pastts is ', self.pastts)
+            if self.TSnode == self.nR - 1:
+                print(' The highest energy node is the last')
+                print(' not continuing with TS optimization.')
                 self.tscontinue = False
-            output.printcool("Over the hill")
+            output.printcool('Over the hill')
             isDone = True
-        elif fp == -1 and self.energies[self.nR-1] > 200. and self.nodes[self.nR-1].gradrms > self.options['CONV_TOL']*5:
-            print("growth_iters over: all uphill and high energy")
+        elif (
+            fp == -1
+            and self.energies[self.nR - 1] > 200.0
+            and self.nodes[self.nR - 1].gradrms > self.options['CONV_TOL'] * 5
+        ):
+            print('growth_iters over: all uphill and high energy')
             self.end_early = 2
             self.tscontinue = False
             self.nnodes = self.nR
             isDone = True
         elif fp == -2:
-            print("growth_iters over: all uphill and flattening out")
+            print('growth_iters over: all uphill and flattening out')
             self.end_early = 2
             self.tscontinue = False
             self.nnodes = self.nR
@@ -342,29 +348,28 @@ class SE_GSM(MainGSM):
         return isDone
 
     def is_converged(self, totalgrad, fp, rtype, ts_cgradq):
-
-        if self.TSnode == self.nnodes-2 and (self.find or totalgrad < 0.2) and fp == 1:
-            if self.nodes[self.nR-1].gradrms > self.options['CONV_TOL']:
-                print("TS node is second to last node, adding one more node")
+        if self.TSnode == self.nnodes - 2 and (self.find or totalgrad < 0.2) and fp == 1:
+            if self.nodes[self.nR - 1].gradrms > self.options['CONV_TOL']:
+                print('TS node is second to last node, adding one more node')
                 self.add_last_node(1)
                 self.nnodes = self.nR
-                self.active[self.nnodes-1] = False  # GSM makes self.active[self.nnodes-1]=True as well
-                self.active[self.nnodes-2] = True  # GSM makes self.active[self.nnodes-1]=True as well
-                print("done adding node")
-                print("nnodes = ", self.nnodes)
+                self.active[self.nnodes - 1] = False  # GSM makes self.active[self.nnodes-1]=True as well
+                self.active[self.nnodes - 2] = True  # GSM makes self.active[self.nnodes-1]=True as well
+                print('done adding node')
+                print('nnodes = ', self.nnodes)
                 self.ictan, self.dqmaga = self.get_tangents(self.nodes)
                 self.refresh_coordinates()
             return False
 
         # => check string profile <= #
         if fp == -1:  # total string is uphill
-            print("fp == -1, check V_profile")
-            print("total dissociation")
+            print('fp == -1, check V_profile')
+            print('total dissociation')
             self.endearly = True  # bools
             self.tscontinue = False
             return True
         elif fp == -2:
-            print("termination due to dissociation")
+            print('termination due to dissociation')
             self.tscontinue = False
             self.endearly = True  # bools
             return True
@@ -376,8 +381,8 @@ class SE_GSM(MainGSM):
             fp = self.find_peaks('opting')
             if fp > 1:
                 rxnocc, wint = self.check_for_reaction()
-            if fp > 1 and rxnocc and wint < self.nnodes-1:
-                print("Need to trim string")
+            if fp > 1 and rxnocc and wint < self.nnodes - 1:
+                print('Need to trim string')
                 self.tscontinue = False
                 self.endearly = True  # bools
                 return True
@@ -387,8 +392,7 @@ class SE_GSM(MainGSM):
             return super().is_converged(totalgrad, fp, rtype, ts_cgradq)
 
     def check_for_reaction(self):
-        '''
-        '''
+        """ """
         isrxn = self.check_for_reaction_g(1, self.driving_coords)
         minnodes = []
         maxnodes = []
@@ -396,58 +400,56 @@ class SE_GSM(MainGSM):
         energies = self.energies
         if energies[1] > energies[0]:
             minnodes.append(0)
-        if energies[self.nnodes-1] < energies[self.nnodes-2]:
-            minnodes.append(self.nnodes-1)
-        for n in range(self.n0, self.nnodes-1):
-            if energies[n+1] > energies[n] and energies[n] < energies[n-1]:
+        if energies[self.nnodes - 1] < energies[self.nnodes - 2]:
+            minnodes.append(self.nnodes - 1)
+        for n in range(self.n0, self.nnodes - 1):
+            if energies[n + 1] > energies[n] and energies[n] < energies[n - 1]:
                 minnodes.append(n)
-            if energies[n+1] < energies[n] and energies[n] > energies[n-1]:
+            if energies[n + 1] < energies[n] and energies[n] > energies[n - 1]:
                 maxnodes.append(n)
         if len(minnodes) > 2 and len(maxnodes) > 1:
             wint = minnodes[1]  # the real reaction ends at first minimum
-            print(" wint ", wint)
+            print(' wint ', wint)
 
         return isrxn, wint
 
     def check_for_reaction_g(self, rtype, driving_coords):
-        '''
-        '''
+        """ """
 
         c = Counter(elem[0] for elem in driving_coords)
         nadds = c['ADD']
         nbreaks = c['BREAK']
         isrxn = False
 
-        if (nadds+nbreaks) < 1:
+        if (nadds + nbreaks) < 1:
             return False
         nadded = 0
         nbroken = 0
-        nnR = self.nR-1
+        nnR = self.nR - 1
         xyz = self.nodes[nnR].xyz
         atoms = self.nodes[nnR].atoms
 
         for i in driving_coords:
-            if "ADD" in i:
-                index = [i[1]-1, i[2]-1]
+            if 'ADD' in i:
+                index = [i[1] - 1, i[2] - 1]
                 bond = Distance(index[0], index[1])
                 d = bond.value(xyz)
-                d0 = (atoms[index[0]].vdw_radius + atoms[index[1]].vdw_radius)/2
+                d0 = (atoms[index[0]].vdw_radius + atoms[index[1]].vdw_radius) / 2
                 if d < d0:
                     nadded += 1
-            if "BREAK" in i:
-                index = [i[1]-1, i[2]-1]
+            if 'BREAK' in i:
+                index = [i[1] - 1, i[2] - 1]
                 bond = Distance(index[0], index[1])
                 d = bond.value(xyz)
-                d0 = (atoms[index[0]].vdw_radius + atoms[index[1]].vdw_radius)/2
+                d0 = (atoms[index[0]].vdw_radius + atoms[index[1]].vdw_radius) / 2
                 if d > d0:
                     nbroken += 1
         if rtype == 1:
-            if (nadded+nbroken) >= (nadds+nbreaks):
+            if (nadded + nbroken) >= (nadds + nbreaks):
                 isrxn = True
         else:
             isrxn = True
-        print(f" check_for_reaction_g isrxn: {isrxn!r} nadd+nbrk: {nadds+nbreaks}")
+        print(f' check_for_reaction_g isrxn: {isrxn!r} nadd+nbrk: {nadds + nbreaks}')
         return isrxn
 
         # # => Convergence Criteria
-

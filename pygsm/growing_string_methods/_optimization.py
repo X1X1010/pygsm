@@ -98,12 +98,16 @@ def optimize_string(gsm, max_iter=30, nconstraints=1, opt_steps=1, rtype=2):
             if gsm.find and (not gsm.optimizer[gsm.TSnode].maxol_good or added):
                 gsm.ictan, gsm.dqmaga = gsm.get_three_way_tangents(gsm.nodes, gsm.energies)
                 gsm.modify_TS_Hess()
-            elif gsm.find and (
-                gsm.optimizer[gsm.TSnode].nneg > 3
-                or gsm.optimizer[gsm.TSnode].nneg == 0
-                or gsm.hess_counter > 10
-                or np.abs(gsm.TS_E_0 - gsm.emax) > 10.0
-            ) and not gsm.optimizer[gsm.TSnode].converged:
+            elif (
+                gsm.find
+                and (
+                    gsm.optimizer[gsm.TSnode].nneg > 3
+                    or gsm.optimizer[gsm.TSnode].nneg == 0
+                    or gsm.hess_counter > 10
+                    or np.abs(gsm.TS_E_0 - gsm.emax) > 10.0
+                )
+                and not gsm.optimizer[gsm.TSnode].converged
+            ):
                 gsm.nodes[gsm.TSnode].form_Primitive_Hessian()
                 if gsm.hessrcount < 1 and gsm.pTSnode == gsm.TSnode:
                     print(' resetting TS node coords Ut (and Hessian)')

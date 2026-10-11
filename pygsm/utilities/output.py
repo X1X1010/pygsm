@@ -59,12 +59,16 @@ def printcool(text, sym='#', bold=False, color=2, ansi=None, bottom='-', minwidt
         elif not color:
             logger.info(f'{sym}| {padleft} ' + line + f' {padright} |{sym}\n')
         else:
-            logger.info(f'{sym}| \x1b[{"1;" if bold else ""}9{color}m{padleft} ' + line + f' {padright}\x1b[0m |{sym}\n')
+            logger.info(
+                f'{sym}| \x1b[{"1;" if bold else ""}9{color}m{padleft} ' + line + f' {padright}\x1b[0m |{sym}\n'
+            )
     logger.info(bar + '\n')
     return bottom * (width + 8) + '\n'
 
 
-def printcool_dictionary(Dict, title='Dictionary Keys : Values', bold=False, color=2, keywidth=25, topwidth=50, center=True, leftpad=0):
+def printcool_dictionary(
+    Dict, title='Dictionary Keys : Values', bold=False, color=2, keywidth=25, topwidth=50, center=True, leftpad=0
+):
     """Print the non-``None`` entries of a mapping as a key/value table under a ``printcool`` banner.
 
     Keys are sorted unless ``Dict`` is an ``OrderedDict``.
@@ -73,7 +77,9 @@ def printcool_dictionary(Dict, title='Dictionary Keys : Values', bold=False, col
         return
     bar = printcool(title, bold=bold, color=color, minwidth=topwidth, center=center)
     keys = list(Dict) if isinstance(Dict, OrderedDict) else sorted(Dict)
-    logger.info('\n'.join(' ' * leftpad + f'{key!s:<{keywidth}} {Dict[key]!s} ' for key in keys if Dict[key] is not None))
+    logger.info(
+        '\n'.join(' ' * leftpad + f'{key!s:<{keywidth}} {Dict[key]!s} ' for key in keys if Dict[key] is not None)
+    )
     logger.info(f'\n{bar}')
 
 

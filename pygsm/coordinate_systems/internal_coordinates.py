@@ -16,25 +16,18 @@ CacheWarning = False
 
 
 class InternalCoordinates:
-
     @staticmethod
     def default_options():
-        ''' InternalCoordinates default options.'''
+        """InternalCoordinates default options."""
 
         if hasattr(InternalCoordinates, '_default_options'):
             return InternalCoordinates._default_options.copy()
         opt = options.Options()
 
-        opt.add_option(
-            key="xyz",
-            required=True,
-            doc='cartesian coordinates in angstrom'
-        )
+        opt.add_option(key='xyz', required=True, doc='cartesian coordinates in angstrom')
 
         opt.add_option(
-            key='atoms',
-            required=True,
-                doc='atom element named tuples/dictionary must be of type list[elements].'
+            key='atoms', required=True, doc='atom element named tuples/dictionary must be of type list[elements].'
         )
 
         opt.add_option(
@@ -57,8 +50,8 @@ class InternalCoordinates:
             key='addtr',
             value=False,
             allowed_types=[bool],
-            doc="Add translation and rotation coordinates\
-                    use for TRIC.",
+            doc='Add translation and rotation coordinates\
+                    use for TRIC.',
         )
 
         opt.add_option(
@@ -67,13 +60,10 @@ class InternalCoordinates:
             allowed_types=[list],
             doc='A list of Distance,Angle,Torsion constraints (see slots.py),\
                     This is only useful if doing a constrained geometry optimization\
-                    since GSM will handle the constraint automatically.'
+                    since GSM will handle the constraint automatically.',
         )
         opt.add_option(
-            key='cVals',
-            value=None,
-            allowed_types=[list],
-            doc='List of Distance,Angle,Torsion constraints values'
+            key='cVals', value=None, allowed_types=[list], doc='List of Distance,Angle,Torsion constraints values'
         )
 
         opt.add_option(
@@ -86,48 +76,38 @@ class InternalCoordinates:
             key='primitives',
             value=None,
             doc='This is a Primitive internal coordinates object -- can be used instead \
-                        of creating new primitive object'
+                        of creating new primitive object',
         )
 
-        opt.add_option(
-            key='topology',
-            value=None,
-            doc='This is the molecule topology, used for building primitives'
-        )
+        opt.add_option(key='topology', value=None, doc='This is the molecule topology, used for building primitives')
 
         opt.add_option(
-            key='print_level',
-            value=1,
-            required=False,
-            allowed_types=[int],
-            doc='0-- no printing, 1-- printing')
+            key='print_level', value=1, required=False, allowed_types=[int], doc='0-- no printing, 1-- printing'
+        )
 
         InternalCoordinates._default_options = opt
         return InternalCoordinates._default_options.copy()
 
     @classmethod
     def from_options(cls, **kwargs):
-        """ Returns an instance of this class with default options updated from values in kwargs"""
+        """Returns an instance of this class with default options updated from values in kwargs"""
         return cls(cls.default_options().set_values(kwargs))
 
-    def __init__(self,
-                 options
-                 ):
-
+    def __init__(self, options):
         self.options = options
         self.stored_wilsonB = OrderedDict()
 
     def addConstraint(self, cPrim, cVal):
-        raise NotImplementedError("Constraints not supported with Cartesian coordinates")
+        raise NotImplementedError('Constraints not supported with Cartesian coordinates')
 
     def haveConstraints(self):
-        raise NotImplementedError("Constraints not supported with Cartesian coordinates")
+        raise NotImplementedError('Constraints not supported with Cartesian coordinates')
 
     def augmentGH(self, xyz, G, H):
-        raise NotImplementedError("Constraints not supported with Cartesian coordinates")
+        raise NotImplementedError('Constraints not supported with Cartesian coordinates')
 
     def calcGradProj(self, xyz, gradx):
-        raise NotImplementedError("Constraints not supported with Cartesian coordinates")
+        raise NotImplementedError('Constraints not supported with Cartesian coordinates')
 
     def clearCache(self):
         self.stored_wilsonB = OrderedDict()
@@ -150,7 +130,7 @@ class InternalCoordinates:
             WilsonB.append(Der[i].flatten())
         self.stored_wilsonB[xhash] = np.array(WilsonB)
         if len(self.stored_wilsonB) > 1000 and not CacheWarning:
-            output.logger.warning("\x1b[91mWarning: more than 100 B-matrices stored, memory leaks likely\x1b[0m")
+            output.logger.warning('\x1b[91mWarning: more than 100 B-matrices stored, memory leaks likely\x1b[0m')
             CacheWarning = True
         ans = np.array(WilsonB)
         return ans
@@ -186,27 +166,35 @@ class InternalCoordinates:
                 x1[i, j] += h
                 x2[i, j] -= h
                 PMDiff = self.calcDiff(x1, x2)
-                FiniteDifference[:, i, j] = PMDiff/(2*h)
+                FiniteDifference[:, i, j] = PMDiff / (2 * h)
         for i in range(Analytical.shape[0]):
-            output.logger.info(f"IC {i}/{Analytical.shape[0]} : {self.Internals[i]}")
-            lines = [""]
+            output.logger.info(f'IC {i}/{Analytical.shape[0]} : {self.Internals[i]}')
+            lines = ['']
             maxerr = 0.0
             for j in range(Analytical.shape[1]):
-                lines.append(f"Atom {j+1}")
+                lines.append(f'Atom {j + 1}')
                 for k in range(Analytical.shape[2]):
                     error = Analytical[i, j, k] - FiniteDifference[i, j, k]
                     if np.abs(error) > 1e-5:
-                        color = "\x1b[91m"
+                        color = '\x1b[91m'
                     else:
-                        color = "\x1b[92m"
-                    lines.append("{} {: .5e} {: .5e} {}{: .5e}\x1b[0m".format("xyz"[k], Analytical[i, j, k], FiniteDifference[i, j, k], color, Analytical[i, j, k] - FiniteDifference[i, j, k]))
+                        color = '\x1b[92m'
+                    lines.append(
+                        '{} {: .5e} {: .5e} {}{: .5e}\x1b[0m'.format(
+                            'xyz'[k],
+                            Analytical[i, j, k],
+                            FiniteDifference[i, j, k],
+                            color,
+                            Analytical[i, j, k] - FiniteDifference[i, j, k],
+                        )
+                    )
                     if maxerr < np.abs(error):
                         maxerr = np.abs(error)
             if maxerr > 1e-5:
                 output.logger.info('\n'.join(lines))
             else:
-                output.logger.info(f"Max Error = {maxerr:.5e}")
-        output.logger.info("Finite-difference Finished")
+                output.logger.info(f'Max Error = {maxerr:.5e}')
+        output.logger.info('Finite-difference Finished')
 
     def checkFiniteDifferenceHess(self, xyz):
         xyz = xyz.reshape(-1, 3)
@@ -214,7 +202,7 @@ class InternalCoordinates:
         FiniteDifference = np.zeros_like(Analytical)
         h = 1e-4
         verbose = False
-        output.logger.info("-=# Now checking second derivatives of internal coordinates w/r.t. Cartesians #=-\n")
+        output.logger.info('-=# Now checking second derivatives of internal coordinates w/r.t. Cartesians #=-\n')
         for j in range(xyz.shape[0]):
             for m in range(3):
                 for k in range(xyz.shape[0]):
@@ -233,12 +221,12 @@ class InternalCoordinates:
                         x4[k, n] -= h  # (-, -)
                         PMDiff1 = self.calcDiff(x1, x2)
                         PMDiff2 = self.calcDiff(x4, x3)
-                        FiniteDifference[:, j, m, k, n] += (PMDiff1+PMDiff2)/(4*h**2)
+                        FiniteDifference[:, j, m, k, n] += (PMDiff1 + PMDiff2) / (4 * h**2)
         for i in range(Analytical.shape[0]):
-            title = f"{f'IC {i+1}/{Analytical.shape[0]}':>20} : {self.Internals[i]!s:>20}"
+            title = f'{f"IC {i + 1}/{Analytical.shape[0]}":>20} : {self.Internals[i]!s:>20}'
             lines = [title]
             if verbose:
-                print(title+'\n')
+                print(title + '\n')
             maxerr = 0.0
             numerr = 0
             for j in range(Analytical.shape[1]):
@@ -248,19 +236,20 @@ class InternalCoordinates:
                             ana = Analytical[i, j, m, k, n]
                             fin = FiniteDifference[i, j, m, k, n]
                             error = ana - fin
-                            message = "Atom {} {} {} {} a: {: 12.5e} n: {: 12.5e} e: {: 12.5e} {}".format(j+1, 'xyz'[m], k+1, 'xyz'[n], ana, fin,
-                                                                                                error, 'X' if np.abs(error) > 1e-5 else '')
+                            message = 'Atom {} {} {} {} a: {: 12.5e} n: {: 12.5e} e: {: 12.5e} {}'.format(
+                                j + 1, 'xyz'[m], k + 1, 'xyz'[n], ana, fin, error, 'X' if np.abs(error) > 1e-5 else ''
+                            )
                             if np.abs(error) > 1e-5:
                                 numerr += 1
                             if (ana != 0.0 or fin != 0.0) and verbose:
-                                print(message+'\n')
+                                print(message + '\n')
                             lines.append(message)
                             if maxerr < np.abs(error):
                                 maxerr = np.abs(error)
             if maxerr > 1e-5 and not verbose:
-                print('\n'.join(lines)+'\n')
-            print(f"{title} : Max Error = {maxerr: 12.5e} ({numerr} above threshold)\n")
-        print("Finite-difference Finished\n")
+                print('\n'.join(lines) + '\n')
+            print(f'{title} : Max Error = {maxerr: 12.5e} ({numerr} above threshold)\n')
+        print('Finite-difference Finished\n')
         return FiniteDifference
 
     def calcGrad(self, xyz, gradx, frozen_atoms=None):
@@ -282,7 +271,7 @@ class InternalCoordinates:
         Bmat = self.wilsonB(xyz)
         Bmat = block_matrix.full_matrix(Bmat)
 
-        BptGq = self.calcCg(xyz,gradx)
+        BptGq = self.calcCg(xyz, gradx)
         Hx_BptGq = hessx - BptGq
 
         Hq = np.einsum('ps,sm,mn,nr,rq', Ginv, Bmat, Hx_BptGq, Bmat.T, Ginv, optimize=True)
@@ -309,7 +298,7 @@ class InternalCoordinates:
         # Iterate until convergence:
         microiter = 0
         ndqs = []
-        ndqt = 100.
+        ndqt = 100.0
         rmsds = []
         self.bork = False
         # Damping factor
@@ -319,16 +308,22 @@ class InternalCoordinates:
         def finish(microiter, rmsdt, ndqt, xyzsave, xyz_iter1):
             if ndqt > 1e-1:
                 if verbose:
-                    output.logger.info(f" Failed to obtain coordinates after {microiter} microiterations (rmsd = {rmsdt:.3e} |dQ| = {ndqt:.3e})\n")
+                    output.logger.info(
+                        f' Failed to obtain coordinates after {microiter} microiterations (rmsd = {rmsdt:.3e} |dQ| = {ndqt:.3e})\n'
+                    )
                 self.bork = True
                 self.writeCache(xyz, dQ, xyz_iter1)
                 return xyzsave.reshape((-1, 3))
             elif ndqt > 1e-3:
                 if verbose:
-                    output.logger.info(f" Approximate coordinates obtained after {microiter} microiterations (rmsd = {rmsdt:.3e} |dQ| = {ndqt:.3e})\n")
+                    output.logger.info(
+                        f' Approximate coordinates obtained after {microiter} microiterations (rmsd = {rmsdt:.3e} |dQ| = {ndqt:.3e})\n'
+                    )
             else:
                 if verbose:
-                    output.logger.info(f" Cartesian coordinates obtained after {microiter} microiterations (rmsd = {rmsdt:.3e} |dQ| = {ndqt:.3e})\n")
+                    output.logger.info(
+                        f' Cartesian coordinates obtained after {microiter} microiterations (rmsd = {rmsdt:.3e} |dQ| = {ndqt:.3e})\n'
+                    )
             self.writeCache(xyz, dQ, xyzsave)
             return xyzsave.reshape((-1, 3))
 
@@ -339,11 +334,11 @@ class InternalCoordinates:
             Ginv = self.GInverse(xyz1)
 
             # Get new Cartesian coordinates
-            dxyz = damp*block_matrix.dot(block_matrix.transpose(Bmat), block_matrix.dot(Ginv, dQ1))
+            dxyz = damp * block_matrix.dot(block_matrix.transpose(Bmat), block_matrix.dot(Ginv, dQ1))
 
             if frozen_atoms is not None:
-                for a in [3*i for i in frozen_atoms]:
-                    dxyz[a:a+3] = 0.
+                for a in [3 * i for i in frozen_atoms]:
+                    dxyz[a : a + 3] = 0.0
 
             xyz2 = xyz1 + dxyz.reshape((-1, 3))
             if microiter == 1:
@@ -351,25 +346,29 @@ class InternalCoordinates:
                 xyz_iter1 = xyz2.copy()
             # Calculate the actual change in internal coordinates
             dQ_actual = self.calcDiff(xyz2, xyz1)
-            rmsd = np.sqrt(np.mean((np.array(xyz2-xyz1).flatten())**2))
-            ndq = np.linalg.norm(dQ1-dQ_actual)
+            rmsd = np.sqrt(np.mean((np.array(xyz2 - xyz1).flatten()) ** 2))
+            ndq = np.linalg.norm(dQ1 - dQ_actual)
             if len(ndqs) > 0:
                 if ndq > ndqt:
                     if verbose:
-                        output.logger.info(f" Iter: {microiter} Err-dQ (Best) = {ndq:.5e} ({ndqt:.5e}) RMSD: {rmsd:.5e} Damp: {damp:.5e} (Bad)\n")
+                        output.logger.info(
+                            f' Iter: {microiter} Err-dQ (Best) = {ndq:.5e} ({ndqt:.5e}) RMSD: {rmsd:.5e} Damp: {damp:.5e} (Bad)\n'
+                        )
                     damp /= 2
                     fail_counter += 1
                 else:
                     if verbose:
-                        output.logger.info(f" Iter: {microiter} Err-dQ (Best) = {ndq:.5e} ({ndqt:.5e}) RMSD: {rmsd:.5e} Damp: {damp:.5e} (Good)\n")
+                        output.logger.info(
+                            f' Iter: {microiter} Err-dQ (Best) = {ndq:.5e} ({ndqt:.5e}) RMSD: {rmsd:.5e} Damp: {damp:.5e} (Good)\n'
+                        )
                     fail_counter = 0
-                    damp = min(damp*1.2, 1.0)
+                    damp = min(damp * 1.2, 1.0)
                     rmsdt = rmsd
                     ndqt = ndq
                     xyzsave = xyz2.copy()
             else:
                 if verbose:
-                    output.logger.info(f" Iter: {microiter} Err-dQ = {ndq:.5e} RMSD: {rmsd:.5e} Damp: {damp:.5e}\n")
+                    output.logger.info(f' Iter: {microiter} Err-dQ = {ndq:.5e} RMSD: {rmsd:.5e} Damp: {damp:.5e}\n')
                 rmsdt = rmsd
                 ndqt = ndq
             ndqs.append(ndq)

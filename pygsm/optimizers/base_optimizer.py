@@ -42,44 +42,32 @@ def force_positive_definite(H):
 
 # TODO Add primitive constraint e.g. a list of internal coordinates to be left basically frozen throughout optimization
 class base_optimizer:
-    ''' some common functions that the children can use (ef, cg, hybrid ef/cg, etc).
+    """some common functions that the children can use (ef, cg, hybrid ef/cg, etc).
     e.g. dgrad_step.
-    '''
+    """
 
     @staticmethod
     def default_options():
-        """ default options. """
+        """default options."""
 
         if hasattr(base_optimizer, '_default_options'):
             return base_optimizer._default_options.copy()
         opt = options.Options()
 
         opt.add_option(
-            key='OPTTHRESH',
-            value=0.0005,
-            required=False,
-            allowed_types=[float],
-            doc='Gradrms convergence threshold'
+            key='OPTTHRESH', value=0.0005, required=False, allowed_types=[float], doc='Gradrms convergence threshold'
         )
 
         opt.add_option(
-            key='conv_Ediff',
-            value=100.,
-            required=False,
-            allowed_types=[float],
-            doc='Energy difference convergence'
+            key='conv_Ediff', value=100.0, required=False, allowed_types=[float], doc='Energy difference convergence'
         )
 
         opt.add_option(
-            key='conv_dE',
-            value=1.,
-            required=False,
-            allowed_types=[float],
-            doc='State difference Energy convergence'
+            key='conv_dE', value=1.0, required=False, allowed_types=[float], doc='State difference Energy convergence'
         )
         opt.add_option(
             key='conv_gmax',
-            value=100.,
+            value=100.0,
             required=False,
             allowed_types=[float],
             doc='max gradient convergence threshold',
@@ -87,7 +75,7 @@ class base_optimizer:
 
         opt.add_option(
             key='conv_disp',
-            value=100.,
+            value=100.0,
             required=False,
             allowed_types=[float],
             doc='max atomic displacement threshold',
@@ -120,7 +108,7 @@ class base_optimizer:
         opt.add_option(
             key='abs_max_step',
             value=0.4,
-            doc='the absolute max step allowed in optimization, a hard cutoff is required because converting internal coordinates becomes pathological'
+            doc='the absolute max step allowed in optimization, a hard cutoff is required because converting internal coordinates becomes pathological',
         )
 
         opt.add_option(
@@ -134,11 +122,7 @@ class base_optimizer:
             value=1,
         )
 
-        opt.add_option(
-            key='SCALE_CLIMB',
-            value=1.,
-            doc='Used to scale the climbing image search'
-        )
+        opt.add_option(key='SCALE_CLIMB', value=1.0, doc='Used to scale the climbing image search')
 
         opt.add_option(
             key='update_hess_in_bg',
@@ -148,15 +132,15 @@ class base_optimizer:
 
         opt.add_option(
             key='SCALEW',
-            value=1.,
+            value=1.0,
         )
 
         opt.add_option(
             key='Linesearch',
-            value="NoLineSearch",
-                allowed_values=["NoLineSearch", "backtrack"],
+            value='NoLineSearch',
+            allowed_values=['NoLineSearch', 'backtrack'],
             required=False,
-            doc='A function to do a linesearch e.g. bactrack,NoLineSearch, etc.'
+            doc='A function to do a linesearch e.g. bactrack,NoLineSearch, etc.',
         )
 
         opt.add_option(
@@ -164,34 +148,26 @@ class base_optimizer:
             value=0.075,
         )
 
-        opt.add_option(
-            key='print_level',
-            value=1,
-            doc="control the printout, 0 less, 1 more, 2 too much"
-        )
+        opt.add_option(key='print_level', value=1, doc='control the printout, 0 less, 1 more, 2 too much')
 
-        opt.add_option(
-            key='HESS_TANG_TOL_TS',
-            value=0.35,
-            doc='Hessian  overlap with tangent tolerance for TS node'
-        )
+        opt.add_option(key='HESS_TANG_TOL_TS', value=0.35, doc='Hessian  overlap with tangent tolerance for TS node')
 
         base_optimizer._default_options = opt
         return base_optimizer._default_options.copy()
 
     @classmethod
     def from_options(cls, **kwargs):
-        """ Returns an instance of this class with default options updated from values in kwargs"""
+        """Returns an instance of this class with default options updated from values in kwargs"""
         return cls(cls.default_options().set_values(kwargs))
 
-    def __init__(self,
-                 options,
-                 ):
-
+    def __init__(
+        self,
+        options,
+    ):
         self.options = options
-        if self.options['Linesearch'] == "backtrack":
+        if self.options['Linesearch'] == 'backtrack':
             self.Linesearch = backtrack
-        elif self.options['Linesearch'] == "NoLineSearch":
+        elif self.options['Linesearch'] == 'NoLineSearch':
             self.Linesearch = NoLineSearch
 
         # additional convergence criterion (default parameters for Q-Chem)
@@ -214,10 +190,10 @@ class base_optimizer:
 
         # Hessian
         self.Hint = None
-        self.dx = 0.
-        self.dg = 0.
+        self.dx = 0.0
+        self.dg = 0.0
         self.maxol_good = True
-        self.gtse = 100.
+        self.gtse = 100.0
 
         # additional parameters needed by linesearch
         self.linesearch_parameters = {
@@ -268,7 +244,7 @@ class base_optimizer:
         self.options['DMAX'] = value
 
     def get_nconstraints(self, opt_type):
-        if opt_type in ["ICTAN", "CLIMB"]:
+        if opt_type in ['ICTAN', 'CLIMB']:
             nconstraints = 1
         elif opt_type in ['MECI']:
             nconstraints = 2
@@ -280,26 +256,25 @@ class base_optimizer:
 
     def check_inputs(self, molecule, opt_type, ictan):
         if opt_type in ['MECI', 'SEAM', 'TS-SEAM']:
-            assert molecule.PES.lot.do_coupling is True, "Turn do_coupling on."
-        if opt_type in ["UCONSTRAINED"]:
+            assert molecule.PES.lot.do_coupling is True, 'Turn do_coupling on.'
+        if opt_type in ['UCONSTRAINED']:
             assert ictan is None
         if opt_type in ['ICTAN', 'CLIMB', 'TS', 'SEAM', 'TS-SEAM', 'BEALES_CG'] and ictan.any() is None:
-            raise RuntimeError("Need ictan")
-
+            raise RuntimeError('Need ictan')
 
     def set_lambda1(self, opt_type, eigen, maxoln=None):
         if opt_type == 'TS':
             leig = eigen[1]  # ! this is eigen[0] if update_ic_eigen() ### also diff values
             if maxoln != 0:
                 leig = eigen[0]
-            if leig < 0. and maxoln == 0:
+            if leig < 0.0 and maxoln == 0:
                 lambda1 = -leig
             else:
                 lambda1 = 0.01
         else:
             leig = eigen[0]
             if leig < 0:
-                lambda1 = -leig+0.015
+                lambda1 = -leig + 0.015
             else:
                 lambda1 = 0.005
         if abs(lambda1) < 0.005:
@@ -308,17 +283,16 @@ class base_optimizer:
         return lambda1
 
     def get_constraint_vectors(self, molecule, opt_type, ictan=None):
-
-        if opt_type == "UNCONSTRAINED":
+        if opt_type == 'UNCONSTRAINED':
             constraints = None
-        elif opt_type == 'ICTAN' or opt_type == "CLIMB" or opt_type == "BEALES_CG":
+        elif opt_type == 'ICTAN' or opt_type == 'CLIMB' or opt_type == 'BEALES_CG':
             constraints = ictan
         elif opt_type == 'MECI':
-            print("MECI")
+            print('MECI')
             dgrad_U = block_matrix.dot(molecule.coord_basis, molecule.difference_gradient)
             dvec_U = block_matrix.dot(molecule.coord_basis, molecule.derivative_coupling)
             constraints = np.hstack((dgrad_U, dvec_U))
-        elif opt_type == "SEAM" or opt_type == "TS-SEAM":
+        elif opt_type == 'SEAM' or opt_type == 'TS-SEAM':
             dgrad_U = block_matrix.dot(molecule.coord_basis, molecule.difference_gradient)
             dvec_U = block_matrix.dot(molecule.coord_basis, molecule.derivative_coupling)
             constraints = np.hstack((ictan, dgrad_U, dvec_U))
@@ -335,51 +309,51 @@ class base_optimizer:
 
         # 6/5 climb works with block matrix distributed constraints
         # => ictan climb
-        if opt_type == "CLIMB":
+        if opt_type == 'CLIMB':
             gts = np.dot(g.T, molecule.constraints[:, 0])
-            max_step = 0.05/self.SCALE_CLIMB
+            max_step = 0.05 / self.SCALE_CLIMB
             if gts > np.abs(max_step):
-                gts = np.sign(gts)*max_step
-            print(f" gts {gts.item():.4f}")
-            constraint_steps = gts*molecule.constraints[:, 0]
+                gts = np.sign(gts) * max_step
+            print(f' gts {gts.item():.4f}')
+            constraint_steps = gts * molecule.constraints[:, 0]
             constraint_steps = constraint_steps[:, np.newaxis]
         # => MECI
         elif opt_type == 'MECI':
             dq = self.dgrad_step(molecule)
-            constraint_steps[:, 0] = dq*molecule.constraints[:, 0]
+            constraint_steps[:, 0] = dq * molecule.constraints[:, 0]
 
         elif opt_type == 'SEAM':
             dq = self.dgrad_step(molecule)
-            constraint_steps[:, 0] = dq*molecule.constraints[:, 1]
+            constraint_steps[:, 0] = dq * molecule.constraints[:, 1]
         # => seam climb
         elif opt_type == 'TS-SEAM':
             gts = np.dot(g.T, molecule.constraints[:, 0])
 
             # climbing step
-            max_step = 0.05/self.SCALE_CLIMB
+            max_step = 0.05 / self.SCALE_CLIMB
             if gts > np.abs(max_step):
-                gts = np.sign(gts)*max_step
-            print(f" gts {gts.item():.4f}")
-            constraint_steps = gts*molecule.constraints[:, 0]
+                gts = np.sign(gts) * max_step
+            print(f' gts {gts.item():.4f}')
+            constraint_steps = gts * molecule.constraints[:, 0]
             constraint_steps = constraint_steps[:, np.newaxis]
 
             # to CI step
             dq = self.dgrad_step(molecule)
-            constraint_steps[:, 0] += dq*molecule.constraints[:, 1]
+            constraint_steps[:, 0] += dq * molecule.constraints[:, 1]
 
         return constraint_steps
 
     def dgrad_step(self, molecule):
-        """ takes a linear step along dgrad"""
+        """takes a linear step along dgrad"""
 
         norm_dg = np.linalg.norm(molecule.difference_gradient)
         if self.options['print_level'] > 0:
-            print(f" norm_dg is {norm_dg:1.4f}")
-            print(f" dE is {molecule.difference_energy:1.4f}")
+            print(f' norm_dg is {norm_dg:1.4f}')
+            print(f' dE is {molecule.difference_energy:1.4f}')
 
-        dq = -molecule.difference_energy/units.KCAL_MOL_PER_AU/norm_dg
-        if dq < self.DMAX/5:
-            dq = -self.DMAX/5
+        dq = -molecule.difference_energy / units.KCAL_MOL_PER_AU / norm_dg
+        if dq < self.DMAX / 5:
+            dq = -self.DMAX / 5
         if dq < -0.075:
             dq = -0.075
 
@@ -388,54 +362,53 @@ class base_optimizer:
     def step_controller(self, step, ratio, gradrms, pgradrms, dEpre, opt_type, dE_iter):
         # => step controller controls DMAX/DMIN <= #
 
-        if opt_type in ["TS", "CLIMB"]:
-            if ratio < 0. and abs(dEpre) > 0.05:
-                print("sign problem, decreasing DMAX")
+        if opt_type in ['TS', 'CLIMB']:
+            if ratio < 0.0 and abs(dEpre) > 0.05:
+                print('sign problem, decreasing DMAX')
                 self.DMAX /= 1.35
-            elif (ratio < 0.75 or ratio > 1.5):  # and abs(dEpre)>0.05:
+            elif ratio < 0.75 or ratio > 1.5:  # and abs(dEpre)>0.05:
                 if self.options['print_level'] > 0:
-                    print(" decreasing DMAX")
+                    print(' decreasing DMAX')
                 if step < self.DMAX:
-                    self.DMAX = step/1.1
+                    self.DMAX = step / 1.1
                 else:
-                    self.DMAX = self.DMAX/1.2
+                    self.DMAX = self.DMAX / 1.2
 
             elif ratio > 0.85 and ratio < 1.3:
-
                 if gradrms > (pgradrms + 0.0005):
                     print(' decreasing DMAX, gradrms increased')
-                    self.DMAX -= self.DMAX/10.
+                    self.DMAX -= self.DMAX / 10.0
                 elif gradrms < (pgradrms + 0.0005):
                     if self.DMAX < 0.05:
                         print(' increased DMAX, gradrms decreased')
                         print(gradrms)
                         print(pgradrms)
-                        print(" increasing DMAX")
-                        self.DMAX = self.DMAX*1.1
-                    elif gradrms < (pgradrms-0.0005) and ratio > 0.9 and ratio < 1.1:
-                        self.DMAX = self.DMAX*1.1
+                        print(' increasing DMAX')
+                        self.DMAX = self.DMAX * 1.1
+                    elif gradrms < (pgradrms - 0.0005) and ratio > 0.9 and ratio < 1.1:
+                        self.DMAX = self.DMAX * 1.1
 
             if self.DMAX > 0.25:
                 self.DMAX = 0.25
         else:
             if dE_iter > 0.001 and opt_type in ['UNCONSTRAINED', 'ICTAN']:
                 if self.options['print_level'] > 0:
-                    print(" decreasing DMAX")
+                    print(' decreasing DMAX')
                 if step < self.DMAX:
-                    self.DMAX = step/1.5
+                    self.DMAX = step / 1.5
                 else:
-                    self.DMAX = self.DMAX/1.5
+                    self.DMAX = self.DMAX / 1.5
             elif (ratio < 0.25 or ratio > 1.5) and abs(dEpre) > 0.05:
                 if self.options['print_level'] > 0:
-                    print(" decreasing DMAX")
+                    print(' decreasing DMAX')
                 if step < self.DMAX:
-                    self.DMAX = step/1.1
+                    self.DMAX = step / 1.1
                 else:
-                    self.DMAX = self.DMAX/1.2
-            elif ratio > 0.75 and ratio < 1.25 and step > self.DMAX and gradrms < (pgradrms*1.35):
+                    self.DMAX = self.DMAX / 1.2
+            elif ratio > 0.75 and ratio < 1.25 and step > self.DMAX and gradrms < (pgradrms * 1.35):
                 if self.options['print_level'] > 0:
-                    print(" increasing DMAX")
-                self.DMAX = self.DMAX*1.1 + 0.01
+                    print(' increasing DMAX')
+                self.DMAX = self.DMAX * 1.1 + 0.01
             if self.DMAX > 0.25:
                 self.DMAX = 0.25
 
@@ -443,18 +416,17 @@ class base_optimizer:
             self.DMAX = self.DMIN
 
     def eigenvector_step(self, molecule, g):
-
         SCALE = self.options['SCALEQN']
         if molecule.newHess > 0:
-            SCALE = self.options['SCALEQN']*molecule.newHess
+            SCALE = self.options['SCALEQN'] * molecule.newHess
         if self.options['SCALEQN'] > 10.0:
             SCALE = 10.0
 
         if self.options['print_level'] > 1:
-            print(f"new_hess {molecule.newHess}")
+            print(f'new_hess {molecule.newHess}')
 
         if self.options['print_level'] > 1:
-            print("constraints")
+            print('constraints')
             print(molecule.constraints.T)
 
         P = np.eye(len(molecule.constraints), dtype=float)
@@ -467,53 +439,53 @@ class base_optimizer:
         lambda1 = self.set_lambda1('NOT-TS', e)
 
         if self.options['print_level'] > 1:
-            print(" eigenvalues ", e)
+            print(' eigenvalues ', e)
         if self.options['print_level'] > 1:
-            print(" eigenvectors ", v_temp)
+            print(' eigenvectors ', v_temp)
 
         if self.options['print_level'] > 1:
-            print(" g ", g.T)
+            print(' g ', g.T)
 
         if self.options['print_level'] > 1:
-            print(" gqe ", gqe.T)
+            print(' gqe ', gqe.T)
 
-        dqe0 = -gqe.flatten()/(e+lambda1)/SCALE
-        dqe0 = [np.sign(i)*self.options['MAXAD'] if abs(i) > self.options['MAXAD'] else i for i in dqe0]
+        dqe0 = -gqe.flatten() / (e + lambda1) / SCALE
+        dqe0 = [np.sign(i) * self.options['MAXAD'] if abs(i) > self.options['MAXAD'] else i for i in dqe0]
         dqe0 = np.asarray(dqe0)
 
         # => Convert step back to DLC basis <= #
         dq = np.dot(v_temp, dqe0)
-        dq = [np.sign(i)*self.options['MAXAD'] if abs(i) > self.options['MAXAD'] else i for i in dq]
+        dq = [np.sign(i) * self.options['MAXAD'] if abs(i) > self.options['MAXAD'] else i for i in dq]
         dq = np.asarray(dq)
 
         dq = np.reshape(dq, (-1, 1))
         for c in molecule.constraints.T:
-            dq -= np.dot(c[:, np.newaxis].T, dq)*c[:, np.newaxis]
+            dq -= np.dot(c[:, np.newaxis].T, dq) * c[:, np.newaxis]
 
         if self.options['print_level'] > 1:
-            print(" dq ", dq.T)
+            print(' dq ', dq.T)
         return np.reshape(dq, (-1, 1))
 
     # need to modify this only for the DLC region
     def TS_eigenvector_step(self, molecule, g, ictan):
-        '''
+        """
         Takes an eigenvector step using the Bofill updated Hessian ~1 negative eigenvalue in the
         direction of the reaction path.
 
-        '''
+        """
         SCALE = self.options['SCALEQN']
         if molecule.newHess > 0:
-            SCALE = self.options['SCALEQN']*molecule.newHess
+            SCALE = self.options['SCALEQN'] * molecule.newHess
         if self.options['SCALEQN'] > 10.0:
             SCALE = 10.0
 
         # constraint vector
         norm = np.linalg.norm(ictan)
-        C = ictan/norm
+        C = ictan / norm
         Vecs = molecule.coord_basis
         Cn = block_matrix.dot(block_matrix.dot(Vecs, block_matrix.transpose(Vecs)), C)
         norm = np.linalg.norm(Cn)
-        Cn = Cn/norm
+        Cn = Cn / norm
 
         # => get eigensolution of Hessian <=
         self.Hessian = molecule.Hessian.copy()
@@ -526,11 +498,11 @@ class base_optimizer:
         # => Overlap metric <= #
         overlap = np.dot(block_matrix.dot(tmph, block_matrix.transpose(Vecs)), Cn)
 
-        print(" overlap", overlap[:4].T)
-        print(" nneg", self.nneg)
+        print(' overlap', overlap[:4].T)
+        print(' nneg', self.nneg)
         # Max overlap metrics
         path_overlap, maxoln = self.maxol_w_Hess(overlap[0:4])
-        print(f" t/ol {maxoln}: {path_overlap:3.2f}")
+        print(f' t/ol {maxoln}: {path_overlap:3.2f}')
 
         # => set lamda1 scale factor <=#
         lambda1 = self.set_lambda1('TS', eigen, maxoln)
@@ -550,13 +522,13 @@ class base_optimizer:
             dqe0 = np.zeros((molecule.num_coordinates, 1))
             for i in range(molecule.num_coordinates):
                 if i != maxoln:
-                    dqe0[i] = -gqe[i] / (abs(eigen[i])+lambda1) / SCALE
+                    dqe0[i] = -gqe[i] / (abs(eigen[i]) + lambda1) / SCALE
             lambda0 = 0.0025
-            dqe0[maxoln] = gqe[maxoln] / (abs(eigen[maxoln]) + lambda0)/SCALE
+            dqe0[maxoln] = gqe[maxoln] / (abs(eigen[maxoln]) + lambda0) / SCALE
 
             # => Convert step back to DLC basis <= #
             dq = np.dot(tmph.T, dqe0)  # should it be transposed?
-            dq = [np.sign(i)*self.options['MAXAD'] if abs(i) > self.options['MAXAD'] else i for i in dq]
+            dq = [np.sign(i) * self.options['MAXAD'] if abs(i) > self.options['MAXAD'] else i for i in dq]
             dq = np.asarray(dq)
 
             dq = np.reshape(dq, (-1, 1))
@@ -578,19 +550,19 @@ class base_optimizer:
         return path_overlap, path_overlap_n
 
     def update_Hessian(self, molecule, mode='BFGS'):
-        '''
+        """
         mode 1 is BFGS, mode 2 is BOFILL
-        '''
-        assert mode == 'BFGS' or mode == 'BOFILL', "no update implemented with that mode"
+        """
+        assert mode == 'BFGS' or mode == 'BOFILL', 'no update implemented with that mode'
         # do this even if mode==BOFILL
         change = self.update_bfgs(molecule)
 
         if molecule.coord_obj.__class__.__name__ == 'DelocalizedInternalCoordinates':
             molecule.update_Primitive_Hessian(change=change)
             if self.options['print_level'] > 1:
-                print("change")
+                print('change')
                 print(change)
-                print(" updated primitive internals Hessian")
+                print(' updated primitive internals Hessian')
                 print(molecule.Primitive_Hessian)
             if mode == 'BFGS':
                 molecule.form_Hessian_in_basis()
@@ -609,7 +581,7 @@ class base_optimizer:
 
     def update_bfgsp(self, molecule):
         if self.options['print_level'] > 1:
-            print("In update bfgsp")
+            print('In update bfgsp')
             print('dx_prim ', self.dx_prim.T)
             print('dg_prim ', self.dg_prim.T)
 
@@ -620,26 +592,25 @@ class base_optimizer:
         change = np.zeros_like(molecule.Primitive_Hessian)
 
         if self.options['print_level'] > 1:
-            print("Hdx")
+            print('Hdx')
             print(Hdx.T)
-            print(f"dgtdx: {dgtdx:1.8f} dxHdx: {dxHdx:1.8f} dgdg")
-            print("dgdg")
+            print(f'dgtdx: {dgtdx:1.8f} dxHdx: {dxHdx:1.8f} dgdg')
+            print('dgdg')
             print(dgdg)
 
-        if dgtdx > 0.:
+        if dgtdx > 0.0:
             if dgtdx < 0.001:
                 dgtdx = 0.001
-            change += dgdg/dgtdx
-        if dxHdx > 0.:
+            change += dgdg / dgtdx
+        if dxHdx > 0.0:
             if dxHdx < 0.001:
                 dxHdx = 0.001
-            change -= np.outer(Hdx, Hdx)/dxHdx
+            change -= np.outer(Hdx, Hdx) / dxHdx
 
         return change
 
     def update_bofill(self, molecule):
-        print(" in update bofill")
-
+        print(' in update bofill')
 
         G = np.copy(molecule.Hessian)  # nicd,nicd
         Gdx = np.dot(G, self.dx)  # (nicd,nicd)(nicd,1) = (nicd,1)
@@ -647,21 +618,21 @@ class base_optimizer:
 
         # MS
         dgmGdxtdx = np.dot(dgmGdx.T, self.dx)  # (1,nicd)(nicd,1)
-        Gms = np.outer(dgmGdx, dgmGdx)/dgmGdxtdx
+        Gms = np.outer(dgmGdx, dgmGdx) / dgmGdxtdx
 
         # PSB
         dxdx = np.outer(self.dx, self.dx)
         dxtdx = np.dot(self.dx.T, self.dx)
         dxtdg = np.dot(self.dx.T, self.dg)
         dxtGdx = np.dot(self.dx.T, Gdx)
-        dxtdx2 = dxtdx*dxtdx
+        dxtdx2 = dxtdx * dxtdx
         dxtdgmdxtGdx = dxtdg - dxtGdx
-        Gpsb = np.outer(dgmGdx, self.dx)/dxtdx + np.outer(self.dx, dgmGdx)/dxtdx - dxtdgmdxtGdx*dxdx/dxtdx2
+        Gpsb = np.outer(dgmGdx, self.dx) / dxtdx + np.outer(self.dx, dgmGdx) / dxtdx - dxtdgmdxtGdx * dxdx / dxtdx2
 
         # Bofill mixing
         dxtE = np.dot(self.dx.T, dgmGdx)  # (1,nicd)(nicd,1)
         EtE = np.dot(dgmGdx.T, dgmGdx)  # E is dgmGdx
-        phi = 1. - dxtE*dxtE/(dxtdx*EtE)
+        phi = 1.0 - dxtE * dxtE / (dxtdx * EtE)
 
-        change = (1.-phi)*Gms + phi*Gpsb
+        change = (1.0 - phi) * Gms + phi * Gpsb
         return change

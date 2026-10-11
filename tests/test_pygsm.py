@@ -10,5 +10,5 @@ import pygsm
 
 def test_pyGSM_imported():
     """Sample test, will always pass so long as import statement worked."""
-    assert "pygsm" in sys.modules
-    assert hasattr(pygsm, "Molecule")
+    assert 'pygsm' in sys.modules
+    assert hasattr(pygsm, 'Molecule')

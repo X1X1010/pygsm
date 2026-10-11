@@ -1,4 +1,3 @@
-
 # standard library imports
 from io import StringIO
 
@@ -12,9 +11,8 @@ from .base_optimizer import base_optimizer
 
 
 class conjugate_gradient(base_optimizer):
-
-    def optimize(self, molecule, refE=0., opt_type='UNCONSTRAINED', opt_steps=3, ictan=None):
-        print(f" initial E {molecule.energy - refE:5.4f}")
+    def optimize(self, molecule, refE=0.0, opt_type='UNCONSTRAINED', opt_steps=3, ictan=None):
+        print(f' initial E {molecule.energy - refE:5.4f}')
         if opt_type == 'TS':
             raise RuntimeError
 
@@ -22,10 +20,10 @@ class conjugate_gradient(base_optimizer):
         geoms = []
         energies = []
         geoms.append(molecule.geometry)
-        energies.append(molecule.energy-refE)
+        energies.append(molecule.energy - refE)
         self.initial_step = True
-        self.disp = 1000.
-        self.Ediff = 1000.
+        self.disp = 1000.0
+        self.Ediff = 1000.0
         self.check_inputs(molecule, opt_type, ictan)
         nconstraints = self.get_nconstraints(opt_type)
         self.buf = StringIO()
@@ -51,13 +49,13 @@ class conjugate_gradient(base_optimizer):
         gp = g.copy()
         gp_prim = np.dot(molecule.coord_basis, gp)
 
-        molecule.gradrms = np.sqrt(np.dot(g[nconstraints:].T, g[nconstraints:])/n).item()
+        molecule.gradrms = np.sqrt(np.dot(g[nconstraints:].T, g[nconstraints:]) / n).item()
         if molecule.gradrms < self.conv_grms:
-            print(" already at min")
+            print(' already at min')
             return geoms, energies
 
         for ostep in range(opt_steps):
-            print(f" On opt step {ostep+1} ")
+            print(f' On opt step {ostep + 1} ')
 
             if self.initial_step is True:
                 # d: store the negative gradient of the object function on point x.
@@ -71,20 +69,20 @@ class conjugate_gradient(base_optimizer):
                 dnew = -g_prim  #
                 deltanew = np.dot(dnew.T, dnew)
                 deltaold = np.dot(-gp_prim.T, -gp_prim)
-                beta = deltanew/deltaold
-                print(f" beta = {beta:1.2f}")
-                d_prim = dnew + beta*d_prim
+                beta = deltanew / deltaold
+                print(f' beta = {beta:1.2f}')
+                d_prim = dnew + beta * d_prim
 
             # form in DLC basis (does nothing if cartesian)
             d = np.dot(molecule.coord_basis.T, d_prim)
 
             # normalize the direction
             actual_step = np.linalg.norm(d)
-            print(f" actual_step= {actual_step:1.2f}")
-            d = d/actual_step  # normalize
+            print(f' actual_step= {actual_step:1.2f}')
+            d = d / actual_step  # normalize
             if actual_step > self.options['DMAX']:
                 step = self.options['DMAX']
-                print(f" reducing step, new step = {step:1.2f}")
+                print(f' reducing step, new step = {step:1.2f}')
             else:
                 step = actual_step
 
@@ -98,9 +96,9 @@ class conjugate_gradient(base_optimizer):
             constraint_steps = self.get_constraint_steps(molecule, opt_type, g)
 
             # line search
-            print(" Linesearch")
+            print(' Linesearch')
             ls = self.Linesearch(n, x, fx, g, d, step, xp, gp, constraint_steps, self.linesearch_parameters, molecule)
-            print(" Done linesearch")
+            print(' Done linesearch')
 
             # revert to the previous point
             if ls['status'] < 0:
@@ -118,9 +116,9 @@ class conjugate_gradient(base_optimizer):
 
             # control step size
             if step < p_step:
-                self.options['DMAX'] /= 2.
+                self.options['DMAX'] /= 2.0
             elif step > p_step:
-                self.options['DMAX'] *= 2.
+                self.options['DMAX'] *= 2.0
             if self.options['DMAX'] < 0.01:
                 self.options['DMAX'] = 0.01
             elif self.options['DMAX'] > 0.25:
@@ -128,24 +126,32 @@ class conjugate_gradient(base_optimizer):
 
             # dE
             dEstep = fx - fxp
-            print(f" dEstep={dEstep:5.4f}")
+            print(f' dEstep={dEstep:5.4f}')
 
             # update molecule xyz
             geoms.append(molecule.geometry)
-            energies.append(molecule.energy-refE)
+            energies.append(molecule.energy - refE)
 
             if self.options['print_level'] > 0:
-                print(" Opt step: {} E: {:5.4f} gradrms: {:1.5f} ss: {:1.3f} DMAX: {:1.3f}".format(ostep+1, fx-refE, molecule.gradrms, step, self.options['DMAX']))
-            self.buf.write(' Opt step: {} E: {:5.4f} gradrms: {:1.5f} ss: {:1.3f} DMAX: {:1.3f}\n'.format(ostep+1, fx-refE, molecule.gradrms, step, self.options['DMAX']))
+                print(
+                    ' Opt step: {} E: {:5.4f} gradrms: {:1.5f} ss: {:1.3f} DMAX: {:1.3f}'.format(
+                        ostep + 1, fx - refE, molecule.gradrms, step, self.options['DMAX']
+                    )
+                )
+            self.buf.write(
+                ' Opt step: {} E: {:5.4f} gradrms: {:1.5f} ss: {:1.3f} DMAX: {:1.3f}\n'.format(
+                    ostep + 1, fx - refE, molecule.gradrms, step, self.options['DMAX']
+                )
+            )
 
-            gmax = np.max(g)/units.ANGSTROM_TO_AU
-            self.disp = np.max(x - xp)/units.ANGSTROM_TO_AU
+            gmax = np.max(g) / units.ANGSTROM_TO_AU
+            self.disp = np.max(x - xp) / units.ANGSTROM_TO_AU
             self.Ediff = fx - fxp / units.KCAL_MOL_PER_AU
-            print(f" maximum displacement component {self.disp:1.2f} (au)")
-            print(f" maximum gradient component {gmax:1.2f} (au)")
+            print(f' maximum displacement component {self.disp:1.2f} (au)')
+            print(f' maximum gradient component {gmax:1.2f} (au)')
 
             # check for convergence TODO
-            molecule.gradrms = np.sqrt(np.dot(g[nconstraints:].T, g[nconstraints:])/n).item()
+            molecule.gradrms = np.sqrt(np.dot(g[nconstraints:].T, g[nconstraints:]) / n).item()
             if molecule.gradrms < self.conv_grms:
                 break
 
@@ -161,12 +167,12 @@ class conjugate_gradient(base_optimizer):
                 x = np.copy(molecule.coordinates)
                 fx = molecule.energy
                 dE = molecule.difference_energy
-                if dE != 1000.:
-                    print(f" difference energy is {dE:5.4f}")
+                if dE != 1000.0:
+                    print(f' difference energy is {dE:5.4f}')
                 g = molecule.gradient.copy()
                 molecule.form_Hessian_in_basis()
             print()
 
-        print(" opt-summary")
+        print(' opt-summary')
         print(self.buf.getvalue())
         return geoms, energies

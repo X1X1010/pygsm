@@ -1,4 +1,3 @@
-
 # standard library imports
 import os
 import sys
@@ -15,19 +14,17 @@ from .base_optimizer import base_optimizer
 
 
 class eigenvector_follow(base_optimizer):
-
     def optimize(
-            self,
-            molecule,
-            refE=0.,
-            opt_type='UNCONSTRAINED',
-            opt_steps=3,
-            ictan=None,
-            xyzframerate=4,
-            verbose=False,
-            path=None,
+        self,
+        molecule,
+        refE=0.0,
+        opt_type='UNCONSTRAINED',
+        opt_steps=3,
+        ictan=None,
+        xyzframerate=4,
+        verbose=False,
+        path=None,
     ):
-
         if path is None:
             path = os.getcwd()
         # stash/initialize some useful attributes
@@ -35,12 +32,12 @@ class eigenvector_follow(base_optimizer):
         nconstraints = self.get_nconstraints(opt_type)
         self.buf = StringIO()
 
-        print(f" initial E {molecule.energy - refE:5.4f}")
-        print(f" CONV_TOL {self.conv_grms:1.5f}")
+        print(f' initial E {molecule.energy - refE:5.4f}')
+        print(f' CONV_TOL {self.conv_grms:1.5f}')
         geoms = []
         energies = []
         geoms.append(molecule.geometry)
-        energies.append(molecule.energy-refE)
+        energies.append(molecule.energy - refE)
         self.converged = False
 
         # form initial coord basis
@@ -55,7 +52,7 @@ class eigenvector_follow(base_optimizer):
         # project out the constraint
         gc = g.copy()
         for c in molecule.constraints.T:
-            gc -= np.dot(gc.T, c[:, np.newaxis])*c[:, np.newaxis]
+            gc -= np.dot(gc.T, c[:, np.newaxis]) * c[:, np.newaxis]
         gmax = float(np.max(np.absolute(gc)))
 
         if self.check_only_grad_converged:
@@ -71,7 +68,7 @@ class eigenvector_follow(base_optimizer):
 
         if opt_type == 'TS':
             self.Linesearch = NoLineSearch
-        if opt_type == 'SEAM' or opt_type == 'MECI' or opt_type == "TS-SEAM":
+        if opt_type == 'SEAM' or opt_type == 'MECI' or opt_type == 'TS-SEAM':
             self.opt_cross = True
 
         # TODO are these used? -- n is used for gradrms,linesearch
@@ -83,13 +80,13 @@ class eigenvector_follow(base_optimizer):
             self.x_prim = np.zeros((molecule.num_primitives, 1), dtype=float)
             self.g_prim = np.zeros((molecule.num_primitives, 1), dtype=float)
 
-        molecule.gradrms = np.sqrt(np.dot(gc.T, gc)/n).item()
+        molecule.gradrms = np.sqrt(np.dot(gc.T, gc) / n).item()
         dE = molecule.difference_energy
         update_hess = False
 
         # ====>  Do opt steps <======= #
         for ostep in range(opt_steps):
-            print(f" On opt step {ostep+1} for node {molecule.node_id}")
+            print(f' On opt step {ostep + 1} for node {molecule.node_id}')
 
             # update Hess
             if update_hess:
@@ -108,12 +105,12 @@ class eigenvector_follow(base_optimizer):
                 else:
                     dq = self.TS_eigenvector_step(molecule, g, ictan)
                     if not self.maxol_good:
-                        print(" Switching to climb! Maxol not good!")
+                        print(' Switching to climb! Maxol not good!')
                         nconstraints = 1
                         opt_type = 'CLIMB'
 
             actual_step = np.linalg.norm(dq)
-            dq = dq/actual_step  # normalize
+            dq = dq / actual_step  # normalize
             if actual_step > self.DMAX:
                 step = self.DMAX
             else:
@@ -131,7 +128,9 @@ class eigenvector_follow(base_optimizer):
             # => calculate constraint step <= #
             constraint_steps = self.get_constraint_steps(molecule, opt_type, g)
 
-            ls = self.Linesearch(nconstraints, x, fx, g, dq, step, xp, constraint_steps, self.linesearch_parameters, molecule, verbose)
+            ls = self.Linesearch(
+                nconstraints, x, fx, g, dq, step, xp, constraint_steps, self.linesearch_parameters, molecule, verbose
+            )
 
             # get values from linesearch
             molecule = ls['molecule']
@@ -146,56 +145,56 @@ class eigenvector_follow(base_optimizer):
                 molecule.xyz = xyzp
                 g = gp.copy()
                 fx = fxp
-                ratio = 0.
+                ratio = 0.0
                 molecule.newHess = 5
 
             if ls['step'] > self.DMAX:
                 if ls['step'] <= self.options['abs_max_step']:  # absolute max
-                    print(" Increasing DMAX to {}".format(ls['step']))
+                    print(' Increasing DMAX to {}'.format(ls['step']))
                     self.DMAX = ls['step']
                 else:
                     self.DMAX = self.options['abs_max_step']
             elif ls['step'] < self.DMAX:
-                if ls['step'] >= self.DMIN:     # absolute min
-                    print(" Decreasing DMAX to {}".format(ls['step']))
+                if ls['step'] >= self.DMIN:  # absolute min
+                    print(' Decreasing DMAX to {}'.format(ls['step']))
                     self.DMAX = ls['step']
                 elif ls['step'] <= self.DMIN:
                     self.DMAX = self.DMIN
-                    print(f" Decreasing DMAX to {self.DMIN}")
+                    print(f' Decreasing DMAX to {self.DMIN}')
 
             # calculate predicted value from Hessian, gp is previous constrained gradient
-            scaled_dq = dq*step
+            scaled_dq = dq * step
             dEtemp = np.dot(self.Hessian, scaled_dq)
-            dEpre = np.dot(np.transpose(scaled_dq), gc) + 0.5*np.dot(np.transpose(dEtemp), scaled_dq)
+            dEpre = np.dot(np.transpose(scaled_dq), gc) + 0.5 * np.dot(np.transpose(dEtemp), scaled_dq)
             dEpre *= units.KCAL_MOL_PER_AU
-            constraint_energy = np.dot(gp.T, constraint_steps)*units.KCAL_MOL_PER_AU
+            constraint_energy = np.dot(gp.T, constraint_steps) * units.KCAL_MOL_PER_AU
             dEpre = (dEpre + constraint_energy).item()
 
             # project out the constraint
             gc = g.copy()
             for c in molecule.constraints.T:
-                gc -= np.dot(gc.T, c[:, np.newaxis])*c[:, np.newaxis]
+                gc -= np.dot(gc.T, c[:, np.newaxis]) * c[:, np.newaxis]
 
             # control step size
             dEstep = fx - fxp
-            print(f" dEstep={dEstep:5.4f}")
-            ratio = dEstep/dEpre
-            molecule.gradrms = np.sqrt(np.dot(gc.T, gc)/n).item()
+            print(f' dEstep={dEstep:5.4f}')
+            ratio = dEstep / dEpre
+            molecule.gradrms = np.sqrt(np.dot(gc.T, gc) / n).item()
             if ls['status'] != -2:
                 self.step_controller(actual_step, ratio, molecule.gradrms, pgradrms, dEpre, opt_type, dEstep)
 
             # update molecule xyz
-            xyz = molecule.update_xyz(x-xp)
+            xyz = molecule.update_xyz(x - xp)
             if ostep % xyzframerate == 0:
                 geoms.append(molecule.geometry)
-                energies.append(molecule.energy-refE)
-                manage_xyz.write_xyzs_w_comments(f'{path}/opt_{molecule.node_id}.xyz', geoms, energies, scale=1.)
+                energies.append(molecule.energy - refE)
+                manage_xyz.write_xyzs_w_comments(f'{path}/opt_{molecule.node_id}.xyz', geoms, energies, scale=1.0)
 
             # save variables for update Hessian!
             if molecule.coord_obj.__class__.__name__ != 'CartesianCoordinates':
                 # only form g_prim for non-constrained
                 self.g_prim = block_matrix.dot(molecule.coord_basis, gc)
-                self.dx = x-xp
+                self.dx = x - xp
                 self.dg = g - gp
 
                 self.dx_prim_actual = molecule.coord_obj.Prims.calcDiff(xyz, xyzp)
@@ -204,51 +203,68 @@ class eigenvector_follow(base_optimizer):
                 self.dg_prim = self.g_prim - gp_prim
 
             else:
-                raise NotImplementedError(" ef not implemented for CART")
+                raise NotImplementedError(' ef not implemented for CART')
 
             if self.options['print_level'] > 0:
-                print(f" Node: {molecule.node_id} Opt step: {ostep+1} E: {fx-refE:5.4f} predE: {dEpre:5.4f} ratio: {ratio:1.3f} gradrms: {molecule.gradrms:1.5f} ss: {step:1.3f} DMAX: {self.DMAX:1.3f}")
-            self.buf.write(f" Node: {molecule.node_id} Opt step: {ostep+1} E: {fx-refE:5.4f} predE: {dEpre:5.4f} ratio: {ratio:1.3f} gradrms: {molecule.gradrms:1.5f} ss: {step:1.3f} DMAX: {self.DMAX:1.3f}")
+                print(
+                    f' Node: {molecule.node_id} Opt step: {ostep + 1} E: {fx - refE:5.4f} predE: {dEpre:5.4f} ratio: {ratio:1.3f} gradrms: {molecule.gradrms:1.5f} ss: {step:1.3f} DMAX: {self.DMAX:1.3f}'
+                )
+            self.buf.write(
+                f' Node: {molecule.node_id} Opt step: {ostep + 1} E: {fx - refE:5.4f} predE: {dEpre:5.4f} ratio: {ratio:1.3f} gradrms: {molecule.gradrms:1.5f} ss: {step:1.3f} DMAX: {self.DMAX:1.3f}'
+            )
 
             # check for convergence TODO
             fx = molecule.energy
             dE = molecule.difference_energy
-            if dE < 1000.:
-                print(f" difference energy is {dE:5.4f}")
+            if dE < 1000.0:
+                print(f' difference energy is {dE:5.4f}')
             gmax = float(np.max(np.absolute(gc)))
-            disp = float(np.linalg.norm((xyz-xyzp).flatten()))
+            disp = float(np.linalg.norm((xyz - xyzp).flatten()))
             xnorm = np.sqrt(np.dot(x.T, x))
             if xnorm < 1.0:
                 xnorm = 1.0
 
-            print(f" gmax {gmax:5.4f} disp {disp:5.4f} Ediff {dEstep:5.4f} gradrms {molecule.gradrms:5.4f}\n")
+            print(f' gmax {gmax:5.4f} disp {disp:5.4f} Ediff {dEstep:5.4f} gradrms {molecule.gradrms:5.4f}\n')
 
             # TODO turn back on conv_DE
-            if self.opt_cross and abs(dE) < self.conv_dE and molecule.gradrms < self.conv_grms and abs(gmax) < self.conv_gmax and abs(dEstep) < self.conv_Ediff and abs(disp) < self.conv_disp:
-                if opt_type == "TS-SEAM":
+            if (
+                self.opt_cross
+                and abs(dE) < self.conv_dE
+                and molecule.gradrms < self.conv_grms
+                and abs(gmax) < self.conv_gmax
+                and abs(dEstep) < self.conv_Ediff
+                and abs(disp) < self.conv_disp
+            ):
+                if opt_type == 'TS-SEAM':
                     gts = np.dot(g.T, molecule.constraints[:, 0])
-                    print(f" gts {gts:1.4f}")
-                    if abs(gts) < self.conv_grms*5:
+                    print(f' gts {gts:1.4f}')
+                    if abs(gts) < self.conv_grms * 5:
                         self.converged = True
                 else:
                     self.converged = True
-            elif not self.opt_cross and molecule.gradrms < self.conv_grms and abs(gmax) < self.conv_gmax and abs(dEstep) < self.conv_Ediff and abs(disp) < self.conv_disp:
-                if opt_type == "CLIMB":
+            elif (
+                not self.opt_cross
+                and molecule.gradrms < self.conv_grms
+                and abs(gmax) < self.conv_gmax
+                and abs(dEstep) < self.conv_Ediff
+                and abs(disp) < self.conv_disp
+            ):
+                if opt_type == 'CLIMB':
                     gts = np.dot(g.T, molecule.constraints[:, 0])
-                    if abs(gts) < self.conv_grms*5.:
+                    if abs(gts) < self.conv_grms * 5.0:
                         self.converged = True
-                elif opt_type == "TS":
-                    if self.gtse < self.conv_grms*5.:
+                elif opt_type == 'TS':
+                    if self.gtse < self.conv_grms * 5.0:
                         self.converged = True
                 else:
                     self.converged = True
 
             if self.converged:
-                print(" converged")
+                print(' converged')
                 if ostep % xyzframerate != 0:
                     geoms.append(molecule.geometry)
-                    energies.append(molecule.energy-refE)
-                    manage_xyz.write_xyzs_w_comments(f'{path}/opt_{molecule.node_id}.xyz', geoms, energies, scale=1.)
+                    energies.append(molecule.energy - refE)
+                    manage_xyz.write_xyzs_w_comments(f'{path}/opt_{molecule.node_id}.xyz', geoms, energies, scale=1.0)
                 break
 
             # update DLC  --> this changes q, g, Hint
@@ -260,10 +276,10 @@ class eigenvector_follow(base_optimizer):
                 # project out the constraint
                 gc = g.copy()
                 for c in molecule.constraints.T:
-                    gc -= np.dot(gc.T, c[:, np.newaxis])*c[:, np.newaxis]
+                    gc -= np.dot(gc.T, c[:, np.newaxis]) * c[:, np.newaxis]
             print()
             sys.stdout.flush()
 
-        print(f" opt-summary {molecule.node_id}")
+        print(f' opt-summary {molecule.node_id}')
         print(self.buf.getvalue())
         return geoms, energies

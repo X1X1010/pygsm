@@ -74,7 +74,9 @@ def _build_topology_data(inpfileq: dict, geoms):
     hybrid_indices = _read_index_list(inpfileq['hybrid_coord_idx_file'])
     if hybrid_indices is not None:
         output.printcool(' Using Hybrid COORDINATES :)')
-        assert inpfileq['coordinate_type'] == 'TRIC', "hybrid indices won't work (currently) with other coordinate systems"
+        assert inpfileq['coordinate_type'] == 'TRIC', (
+            "hybrid indices won't work (currently) with other coordinate systems"
+        )
 
     prim_indices = _read_primitive_regions(inpfileq['prim_idx_file'])
     if prim_indices is not None:
@@ -265,7 +267,7 @@ def main(argv: Sequence[str] | None = None):
     else:
         geoms = manage_xyz.read_xyzs(inpfileq['xyzfile'])
 
-    output.printcool(f"Build the {inpfileq['EST_Package']} level of theory (LOT) object")
+    output.printcool(f'Build the {inpfileq["EST_Package"]} level of theory (LOT) object')
     lot = create_lot(inpfileq, geoms[0])
 
     if inpfileq['gsm_type'] == 'SE_Cross' and inpfileq['PES_type'] != 'Penalty_PES':
@@ -275,17 +277,19 @@ def main(argv: Sequence[str] | None = None):
         assert inpfileq['PES_type'] == 'Penalty_PES', 'Need penalty pes for optimizing MESX/MECI'
 
     _load_pes_side_inputs(inpfileq)
-    output.printcool(f"Building the {inpfileq['PES_type']} objects")
+    output.printcool(f'Building the {inpfileq["PES_type"]} objects')
     pes = choose_pes(lot, inpfileq)
 
     form_hessian = inpfileq['optimizer'] == 'eigenvector_follow'
     frozen_indices = _read_index_list(inpfileq['frozen_coord_idx_file'])
 
     output.printcool('Building the topology')
-    atoms, xyz1, xyz2, top1, hybrid_indices, driving_coordinates, driving_coord_prims = _build_topology_data(inpfileq, geoms)
+    atoms, xyz1, xyz2, top1, hybrid_indices, driving_coordinates, driving_coord_prims = _build_topology_data(
+        inpfileq, geoms
+    )
     coord_obj1 = _build_coordinate_object(inpfileq, atoms, xyz1, xyz2, top1, hybrid_indices, driving_coord_prims)
 
-    output.printcool(f"Building the reactant object with {inpfileq['coordinate_type']}")
+    output.printcool(f'Building the reactant object with {inpfileq["coordinate_type"]}')
     reactant = Molecule.from_options(
         geom=geoms[0],
         PES=pes,
@@ -314,16 +318,18 @@ def main(argv: Sequence[str] | None = None):
         _run_only_drive_mode(gsm)
         return
 
-    if (inpfileq['gsm_type'] != 'SE_Cross' and isinstance(pes, (Penalty_PES,))) or (inpfileq['gsm_type'] != 'SE_Cross' and inpfileq['PES_type'] == 'Avg_PES'):
+    if (inpfileq['gsm_type'] != 'SE_Cross' and isinstance(pes, (Penalty_PES,))) or (
+        inpfileq['gsm_type'] != 'SE_Cross' and inpfileq['PES_type'] == 'Avg_PES'
+    ):
         optimizer.opt_cross = True
 
     if not inpfileq['reactant_geom_fixed'] and inpfileq['gsm_type'] != 'SE_Cross':
-        path = os.path.join(os.getcwd(), f"scratch/{inpfileq['ID']:03}/0")
+        path = os.path.join(os.getcwd(), f'scratch/{inpfileq["ID"]:03}/0')
         output.printcool('REACTANT GEOMETRY NOT FIXED!!! OPTIMIZING')
         _optimize_endpoint_if_needed(optimizer, reactant, reactant.energy, 100, path)
 
     if product is not None and not inpfileq['product_geom_fixed']:
-        path = os.path.join(os.getcwd(), f"scratch/{inpfileq['ID']:03}/{inpfileq['num_nodes'] - 1}")
+        path = os.path.join(os.getcwd(), f'scratch/{inpfileq["ID"]:03}/{inpfileq["num_nodes"] - 1}')
         output.printcool('PRODUCT GEOMETRY NOT FIXED!!! OPTIMIZING')
         _optimize_endpoint_if_needed(optimizer, product, reactant.energy, 100, path)
 
@@ -371,7 +377,12 @@ def read_isomers_file(isomers_file):
                 elif entry in {'TORSION', 'OOP'}:
                     four_ints = True
             else:
-                if (two_ints and index > 2) or (two_ints and index > 3) or (three_ints and index > 3) or (four_ints and index > 4):
+                if (
+                    (two_ints and index > 2)
+                    or (two_ints and index > 3)
+                    or (three_ints and index > 3)
+                    or (four_ints and index > 4)
+                ):
                     driving_coordinate.append(float(entry))
                 else:
                     driving_coordinate.append(int(entry))
@@ -393,11 +404,11 @@ def post_processing(gsm, analyze_ICs=False, have_TS=True):
 
     internals = [gsm.nodes[0].primitive_internal_coordinates]
     if have_TS:
-        minnodeR = np.argmin(gsm.energies[:gsm.TSnode])
+        minnodeR = np.argmin(gsm.energies[: gsm.TSnode])
         ts_energy = gsm.energies[gsm.TSnode] - gsm.energies[minnodeR]
         print(f' TS energy: {ts_energy:5.4f}')
         print(f' absolute energy TS node {gsm.nodes[gsm.TSnode].energy:5.4f}')
-        minnodeP = gsm.TSnode + np.argmin(gsm.energies[gsm.TSnode:])
+        minnodeP = gsm.TSnode + np.argmin(gsm.energies[gsm.TSnode :])
         print(f' min reactant node: {minnodeR} min product node {minnodeP} TS node is {gsm.TSnode}')
 
         internals.append(gsm.nodes[minnodeR].primitive_internal_values)

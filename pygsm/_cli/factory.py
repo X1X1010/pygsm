@@ -42,7 +42,7 @@ def create_lot(inpfileq: dict, geom):
             solvent=inpfileq['solvent'],
             **lot_options,
         )
-    raise NotImplementedError(f"Unsupported level of theory package `{inpfileq['EST_Package']}`")
+    raise NotImplementedError(f'Unsupported level of theory package `{inpfileq["EST_Package"]}`')
 
 
 def choose_pes(lot, inpfileq: dict):
@@ -74,7 +74,7 @@ def choose_pes(lot, inpfileq: dict):
         return Avg_PES(PES1=pes1, PES2=pes2, lot=lot)
     if inpfileq['PES_type'] == 'Penalty_PES':
         return Penalty_PES(PES1=pes1, PES2=pes2, lot=lot, sigma=inpfileq['sigma'])
-    raise NotImplementedError(f"Unsupported PES type `{inpfileq['PES_type']}`")
+    raise NotImplementedError(f'Unsupported PES type `{inpfileq["PES_type"]}`')
 
 
 def choose_optimizer(inpfileq: dict):
@@ -88,7 +88,7 @@ def choose_optimizer(inpfileq: dict):
     try:
         opt_class = optimizer_map[inpfileq['optimizer']]
     except KeyError as exc:
-        raise NotImplementedError(f"Optimizer `{inpfileq['optimizer']}` not implemented") from exc
+        raise NotImplementedError(f'Optimizer `{inpfileq["optimizer"]}` not implemented') from exc
 
     return opt_class.from_options(
         print_level=inpfileq['opt_print_level'],

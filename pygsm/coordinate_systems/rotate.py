@@ -1,4 +1,3 @@
-
 import numpy as np
 from numpy.linalg import multi_dot
 
@@ -9,7 +8,6 @@ References
 ----------
 1. E. A. Coutsias, C. Seok, K. A. Dill. "Using Quaternions to Calculate RMSD.". J. Comput. Chem 2004.
 """
-
 
 
 def build_correlation(x, y):
@@ -31,7 +29,7 @@ def build_correlation(x, y):
 
     """
     if not (x.ndim == 2 and y.ndim == 2 and x.shape[1] == 3 and y.shape[1] == 3 and x.shape[0] == y.shape[0]):
-        raise ValueError(f"Input dimensions not (any_same_value, 3): x ({x.shape}), y ({y.shape})")
+        raise ValueError(f'Input dimensions not (any_same_value, 3): x ({x.shape}), y ({y.shape})')
     xmat = x.T
     ymat = y.T
     return np.dot(xmat, ymat.T)
@@ -99,10 +97,9 @@ def al(p):
     # Given a quaternion p, return the 4x4 matrix A_L(p)
     # which when multiplied with a column vector q gives
     # the quaternion product pq.
-    return np.array([[p[0], -p[1], -p[2], -p[3]],
-                     [p[1],  p[0], -p[3],  p[2]],
-                     [p[2],  p[3],  p[0], -p[1]],
-                     [p[3], -p[2],  p[1],  p[0]]])
+    return np.array(
+        [[p[0], -p[1], -p[2], -p[3]], [p[1], p[0], -p[3], p[2]], [p[2], p[3], p[0], -p[1]], [p[3], -p[2], p[1], p[0]]]
+    )
 
 
 def ar(p):
@@ -122,10 +119,9 @@ def ar(p):
         4x4 matrix describing action of quaternion multiplication
 
     """
-    return np.array([[p[0], -p[1], -p[2], -p[3]],
-                     [p[1],  p[0],  p[3], -p[2]],
-                     [p[2], -p[3],  p[0],  p[1]],
-                     [p[3],  p[2], -p[1],  p[0]]])
+    return np.array(
+        [[p[0], -p[1], -p[2], -p[3]], [p[1], p[0], p[3], -p[2]], [p[2], -p[3], p[0], p[1]], [p[3], p[2], -p[1], p[0]]]
+    )
 
 
 def conj(q):
@@ -173,7 +169,7 @@ def form_rot(q):
 
 
 def sorted_eigh(mat, b=None, asc=False):
-    """ Return eigenvalues of a symmetric matrix in descending order and associated eigenvectors """
+    """Return eigenvalues of a symmetric matrix in descending order and associated eigenvectors"""
     if b is not None:
         L, Q = np.linalg.eigh(mat, b)
     else:
@@ -195,7 +191,7 @@ def is_linear(x, y):
     x = x - np.mean(x, axis=0)
     y = y - np.mean(y, axis=0)
     L, _Q = sorted_eigh(build_F(x, y))
-    return bool(0.0 < L[0]/L[1] < 1.01)
+    return bool(0.0 < L[0] / L[1] < 1.01)
 
 
 def get_quat(x, y, eig=False):
@@ -291,11 +287,11 @@ def get_R_der(x, y):
             for w in range(3):
                 x[u, w] += h
                 RPlus = build_correlation(x, y)
-                x[u, w] -= 2*h
+                x[u, w] -= 2 * h
                 RMinus = build_correlation(x, y)
                 x[u, w] += h
-                FDiffR = (RPlus-RMinus)/(2*h)
-                output.logger.info(u, w, np.max(np.abs(ADiffR[u, w]-FDiffR)))
+                FDiffR = (RPlus - RMinus) / (2 * h)
+                output.logger.info(u, w, np.max(np.abs(ADiffR[u, w] - FDiffR)))
     return ADiffR
 
 
@@ -357,11 +353,11 @@ def get_F_der(x, y):
             for w in range(3):
                 x[u, w] += h
                 FPlus = build_F(x, y)
-                x[u, w] -= 2*h
+                x[u, w] -= 2 * h
                 FMinus = build_F(x, y)
                 x[u, w] += h
-                FDiffF = (FPlus-FMinus)/(2*h)
-                output.logger.info(u, w, np.max(np.abs(dF[u, w]-FDiffF)))
+                FDiffF = (FPlus - FMinus) / (2 * h)
+                output.logger.info(u, w, np.max(np.abs(dF[u, w] - FDiffF)))
     return dF
 
 
@@ -399,8 +395,8 @@ def get_q_der(x, y, second=False, fdcheck=False, use_loops=False):
     q, l = get_quat(x, y, eig=True)
     F = build_F(x, y)
     dF = get_F_der(x, y)
-    mat = np.eye(4)*l - F
-    Minv = math_utils.invert_svd(np.eye(4)*l - F, thresh=1e-6)
+    mat = np.eye(4) * l - F
+    Minv = math_utils.invert_svd(np.eye(4) * l - F, thresh=1e-6)
     dq = np.zeros((x.shape[0], 3, 4), dtype=float)
     for u in range(x.shape[0]):
         for w in range(3):
@@ -417,10 +413,10 @@ def get_q_der(x, y, second=False, fdcheck=False, use_loops=False):
             for u in range(x.shape[0]):
                 for w in range(3):
                     dl[u, w] = multi_dot([q, dF[u, w], q.T])
-                    dM[u, w] = np.eye(4)*dl[u, w] - dF[u, w]
+                    dM[u, w] = np.eye(4) * dl[u, w] - dF[u, w]
                     term1 = -multi_dot([Minv, dM[u, w], Minv])
-                    term2 = multi_dot([Minv, Minv.T, dM[u, w].T, (np.eye(4)-np.dot(mat, Minv))])
-                    term3 = multi_dot([(np.eye(4)-np.dot(Minv, mat)), dM[u, w].T, Minv.T, Minv])
+                    term2 = multi_dot([Minv, Minv.T, dM[u, w].T, (np.eye(4) - np.dot(mat, Minv))])
+                    term3 = multi_dot([(np.eye(4) - np.dot(Minv, mat)), dM[u, w].T, Minv.T, Minv])
                     dinv[u, w] = term1 + term2 + term3
                     for a in range(x.shape[0]):
                         for b in range(3):
@@ -431,30 +427,30 @@ def get_q_der(x, y, second=False, fdcheck=False, use_loops=False):
             dl = np.einsum('p,uwpr,r->uw', q, dF, q, optimize=True)
             dM = np.einsum('uw,pr->uwpr', dl, np.eye(4), optimize=True) - dF
             dinv = -np.einsum('ps,uwst,tr->uwpr', Minv, dM, Minv, optimize=True)
-            dinv += np.einsum('ps,ts,uwvt,vr->uwpr', Minv, Minv, dM, np.eye(4)-np.dot(mat, Minv), optimize=True)
-            dinv += np.einsum('ps,uwts,vt,vr->uwpr', np.eye(4)-np.dot(Minv, mat), dM, Minv, Minv, optimize=True)
+            dinv += np.einsum('ps,ts,uwvt,vr->uwpr', Minv, Minv, dM, np.eye(4) - np.dot(mat, Minv), optimize=True)
+            dinv += np.einsum('ps,uwts,vt,vr->uwpr', np.eye(4) - np.dot(Minv, mat), dM, Minv, Minv, optimize=True)
             dq2 = np.einsum('uwpr,abrs,s->uwabp', dinv, dF, q, optimize=True)
             dq2 += np.einsum('pr,abrs,uws->uwabp', Minv, dF, dq, optimize=True)
 
     if fdcheck:
         # If fdcheck = True, then return finite difference derivatives
         h = 1e-6
-        print("-=# Now checking first derivatives of superposition quaternion w/r.t. Cartesians #=-\n")
+        print('-=# Now checking first derivatives of superposition quaternion w/r.t. Cartesians #=-\n')
         FDiffQ = np.zeros((x.shape[0], 3, 4), dtype=float)
         for u in range(x.shape[0]):
             for w in range(3):
                 x[u, w] += h
                 QPlus = get_quat(x, y)
-                x[u, w] -= 2*h
+                x[u, w] -= 2 * h
                 QMinus = get_quat(x, y)
                 x[u, w] += h
-                FDiffQ[u, w] = (QPlus-QMinus)/(2*h)
-                maxerr = np.max(np.abs(dq[u, w]-FDiffQ[u, w]))
-                print(f"atom {u:>3} {'xyz'[w]} : maxerr = {maxerr:.3e} {'X' if maxerr > 1e-6 else ''}\n")
+                FDiffQ[u, w] = (QPlus - QMinus) / (2 * h)
+                maxerr = np.max(np.abs(dq[u, w] - FDiffQ[u, w]))
+                print(f'atom {u:>3} {"xyz"[w]} : maxerr = {maxerr:.3e} {"X" if maxerr > 1e-6 else ""}\n')
         dq = FDiffQ
         if second:
             h = 1.0e-3
-            print("-=# Now checking second derivatives of superposition quaternion w/r.t. Cartesians #=-\n")
+            print('-=# Now checking second derivatives of superposition quaternion w/r.t. Cartesians #=-\n')
             Q0 = get_quat(x, y)
             FDiffQ2 = np.zeros((x.shape[0], 3, y.shape[0], 3, 4), dtype=float)
             for u in range(x.shape[0]):
@@ -464,26 +460,28 @@ def get_q_der(x, y, second=False, fdcheck=False, use_loops=False):
                             if a == u and b == w:
                                 x[u, w] += h
                                 QPlus = get_quat(x, y)
-                                x[u, w] -= 2*h
+                                x[u, w] -= 2 * h
                                 QMinus = get_quat(x, y)
                                 x[u, w] += h
-                                FDiffQ2[u, w, a, b] = (QPlus+QMinus-2*Q0)/h**2
+                                FDiffQ2[u, w, a, b] = (QPlus + QMinus - 2 * Q0) / h**2
                             else:
                                 x[u, w] += h
-                                x[a, b] += h   # (+, +)
+                                x[a, b] += h  # (+, +)
                                 FDiffQ2[u, w, a, b] = get_quat(x, y)
-                                x[u, w] -= 2*h  # (-, +)
+                                x[u, w] -= 2 * h  # (-, +)
                                 FDiffQ2[u, w, a, b] -= get_quat(x, y)
-                                x[a, b] -= 2*h  # (-, -)
+                                x[a, b] -= 2 * h  # (-, -)
                                 FDiffQ2[u, w, a, b] += get_quat(x, y)
-                                x[u, w] += 2*h  # (+, -)
+                                x[u, w] += 2 * h  # (+, -)
                                 FDiffQ2[u, w, a, b] -= get_quat(x, y)
                                 x[u, w] -= h
                                 x[a, b] += h
-                                FDiffQ2[u, w, a, b] /= (4*h**2)
-                            maxerr = np.max(np.abs(dq2[u, w, a, b]-FDiffQ2[u, w, a, b]))
+                                FDiffQ2[u, w, a, b] /= 4 * h**2
+                            maxerr = np.max(np.abs(dq2[u, w, a, b] - FDiffQ2[u, w, a, b]))
                             if maxerr > 1e-8:
-                                print(f"atom {u:>3} {'xyz'[w]}, {a:>3} {'xyz'[b]} : maxerr = {maxerr:.3e} {'X' if maxerr > 1e-6 else ''}\n")
+                                print(
+                                    f'atom {u:>3} {"xyz"[w]}, {a:>3} {"xyz"[b]} : maxerr = {maxerr:.3e} {"X" if maxerr > 1e-6 else ""}\n'
+                                )
             dq2 = FDiffQ2
     if second:
         return dq, dq2
@@ -497,21 +495,21 @@ def calc_fac_dfac(q0, second=False):
     and also its derivative. Takes the first element of the quaternion only
     """
     # Ill-defined around q0=1.0
-    qm1 = q0-1.0
+    qm1 = q0 - 1.0
     if np.abs(qm1) < 1e-8:
-        fac = 2 - 2*qm1/3
-        dfac = -2/3
+        fac = 2 - 2 * qm1 / 3
+        dfac = -2 / 3
         if second:
             dfac2 = 0
     else:
-        s = np.sqrt(1-q0**2)
+        s = np.sqrt(1 - q0**2)
         a = np.arccos(q0)
-        fac = 2*a/s
-        dfac = -2/s**2
-        dfac += 2*q0*a/s**3
-        dfac2 = -3*q0
-        dfac2 += (1+2*q0**2)*a/s
-        dfac2 *= (2/s**4)
+        fac = 2 * a / s
+        dfac = -2 / s**2
+        dfac += 2 * q0 * a / s**3
+        dfac2 = -3 * q0
+        dfac2 += (1 + 2 * q0**2) * a / s
+        dfac2 *= 2 / s**4
     if second:
         return fac, dfac, dfac2
     else:
@@ -538,7 +536,7 @@ def get_expmap(x, y):
     q = get_quat(x, y)
     # print q
     fac, _ = calc_fac_dfac(q[0])
-    v = fac*q[1:]
+    v = fac * q[1:]
     return v
 
 
@@ -580,45 +578,46 @@ def get_expmap_der(x, y, second=False, fdcheck=False, use_loops=False):
     else:
         fac, dfac = calc_fac_dfac(q[0])
     dvdq = np.zeros((4, 3), dtype=float)
-    dvdq[0, :] = dfac*q[1:]
+    dvdq[0, :] = dfac * q[1:]
     for i in range(3):
-        dvdq[i+1, i] = fac
+        dvdq[i + 1, i] = fac
     if second:
         dvdq2 = np.zeros((4, 4, 3), dtype=float)
-        dvdq2[0, 0, :] = dfac2*q[1:]
+        dvdq2[0, 0, :] = dfac2 * q[1:]
         for i in range(3):
-            dvdq2[0, i+1, i] = dfac
-            dvdq2[i+1, 0, i] = dfac
+            dvdq2[0, i + 1, i] = dfac
+            dvdq2[i + 1, 0, i] = dfac
     if fdcheck:
         h = 1e-6
         fac, _ = calc_fac_dfac(q[0])
-        V0 = fac*q[1:]
-        print("-=# Now checking first derivatives of exponential map w/r.t. quaternion #=-\n")
+        V0 = fac * q[1:]
+        print('-=# Now checking first derivatives of exponential map w/r.t. quaternion #=-\n')
         for p in range(4):
             # Do backwards difference only, because arccos of q[0] > 1 is undefined
             q[p] -= h
             fac, _ = calc_fac_dfac(q[0])
-            VMinus = fac*q[1:]
+            VMinus = fac * q[1:]
             q[p] += h
-            FDiffV = (V0-VMinus)/h
-            maxerr = np.max(np.abs(dvdq[p]-FDiffV))
-            print(f"q {i:>3} : maxerr = {maxerr:.3e} {'X' if maxerr > 1e-6 else ''}\n")
+            FDiffV = (V0 - VMinus) / h
+            maxerr = np.max(np.abs(dvdq[p] - FDiffV))
+            print(f'q {i:>3} : maxerr = {maxerr:.3e} {"X" if maxerr > 1e-6 else ""}\n')
         if second:
             h = 1e-5
-            print("-=# Now checking second derivatives of exponential map w/r.t. quaternion #=-\n")
+            print('-=# Now checking second derivatives of exponential map w/r.t. quaternion #=-\n')
 
             def V_(q_):
                 fac_, _ = calc_fac_dfac(q_[0])
-                return fac_*q_[1:]
+                return fac_ * q_[1:]
+
             for p in range(4):
                 for r in range(4):
                     if p == r:
                         FDiffV2 = V0.copy()
                         q[p] -= h
-                        FDiffV2 -= 2*V_(q)
+                        FDiffV2 -= 2 * V_(q)
                         q[p] -= h
                         FDiffV2 += V_(q)
-                        q[p] += 2*h
+                        q[p] += 2 * h
                     else:
                         FDiffV2 = V0.copy()
                         q[p] -= h
@@ -631,9 +630,9 @@ def get_expmap_der(x, y, second=False, fdcheck=False, use_loops=False):
                         FDiffV2 -= V_(q)
                         q[r] += h
                     FDiffV2 /= h**2
-                    maxerr = np.max(np.abs(dvdq2[p, r]-FDiffV2))
+                    maxerr = np.max(np.abs(dvdq2[p, r] - FDiffV2))
                     if maxerr > 1e-7:
-                        print(f"q {p:>3} {r:>3} : maxerr = {maxerr:.3e} {'X' if maxerr > 1e-5 else ''}\n")
+                        print(f'q {p:>3} {r:>3} : maxerr = {maxerr:.3e} {"X" if maxerr > 1e-5 else ""}\n')
 
     # Dimensionality: Number of atoms, number of dimensions (3), number of elements in q (4)
     if second:
@@ -673,21 +672,21 @@ def get_expmap_der(x, y, second=False, fdcheck=False, use_loops=False):
     # LPW 2019-03-09: Using einsum gives 166x speedup over for loops for trp-cage (200 atoms); 0.06 vs. 10.1 s
     if fdcheck:
         h = 1e-3
-        print("-=# Now checking first derivatives of exponential map w/r.t. Cartesians #=-\n")
+        print('-=# Now checking first derivatives of exponential map w/r.t. Cartesians #=-\n')
         FDiffV = np.zeros((x.shape[0], 3, 3), dtype=float)
         for u in range(x.shape[0]):
             for w in range(3):
                 x[u, w] += h
                 VPlus = get_expmap(x, y)
-                x[u, w] -= 2*h
+                x[u, w] -= 2 * h
                 VMinus = get_expmap(x, y)
                 x[u, w] += h
-                FDiffV[u, w] = (VPlus-VMinus)/(2*h)
-                maxerr = np.max(np.abs(dvdx[u, w]-FDiffV[u, w]))
-                print(f"atom {u:>3} {'xyz'[w]} : maxerr = {maxerr:.3e} {'X' if maxerr > 1e-6 else ''}\n")
+                FDiffV[u, w] = (VPlus - VMinus) / (2 * h)
+                maxerr = np.max(np.abs(dvdx[u, w] - FDiffV[u, w]))
+                print(f'atom {u:>3} {"xyz"[w]} : maxerr = {maxerr:.3e} {"X" if maxerr > 1e-6 else ""}\n')
         dvdx = FDiffV
         if second:
-            print("-=# Now checking second derivatives of exponential map w/r.t. Cartesians #=-\n")
+            print('-=# Now checking second derivatives of exponential map w/r.t. Cartesians #=-\n')
             FDiffV2 = np.zeros((x.shape[0], 3, y.shape[0], 3, 3), dtype=float)
             for u in range(x.shape[0]):
                 for w in range(3):
@@ -696,26 +695,28 @@ def get_expmap_der(x, y, second=False, fdcheck=False, use_loops=False):
                             if a == u and b == w:
                                 x[u, w] += h
                                 VPlus = get_expmap(x, y)
-                                x[u, w] -= 2*h
+                                x[u, w] -= 2 * h
                                 VMinus = get_expmap(x, y)
                                 x[u, w] += h
-                                FDiffV2[u, w, a, b] = (VPlus+VMinus-2*V0)/h**2
+                                FDiffV2[u, w, a, b] = (VPlus + VMinus - 2 * V0) / h**2
                             else:
                                 x[u, w] += h
-                                x[a, b] += h   # (+, +)
+                                x[a, b] += h  # (+, +)
                                 FDiffV2[u, w, a, b] = get_expmap(x, y)
-                                x[u, w] -= 2*h  # (-, +)
+                                x[u, w] -= 2 * h  # (-, +)
                                 FDiffV2[u, w, a, b] -= get_expmap(x, y)
-                                x[a, b] -= 2*h  # (-, -)
+                                x[a, b] -= 2 * h  # (-, -)
                                 FDiffV2[u, w, a, b] += get_expmap(x, y)
-                                x[u, w] += 2*h  # (+, -)
+                                x[u, w] += 2 * h  # (+, -)
                                 FDiffV2[u, w, a, b] -= get_expmap(x, y)
                                 x[u, w] -= h
                                 x[a, b] += h
-                                FDiffV2[u, w, a, b] /= (4*h**2)
-                            maxerr = np.max(np.abs(dvdx2[u, w, a, b]-FDiffV2[u, w, a, b]))
+                                FDiffV2[u, w, a, b] /= 4 * h**2
+                            maxerr = np.max(np.abs(dvdx2[u, w, a, b] - FDiffV2[u, w, a, b]))
                             if maxerr > 1e-8:
-                                print(f"atom {u:>3} {'xyz'[w]}, {a:>3} {'xyz'[b]} : maxerr = {maxerr:.3e} {'X' if maxerr > 1e-6 else ''}\n")
+                                print(
+                                    f'atom {u:>3} {"xyz"[w]}, {a:>3} {"xyz"[b]} : maxerr = {maxerr:.3e} {"X" if maxerr > 1e-6 else ""}\n'
+                                )
             dvdx2 = FDiffV2
 
     if second:
@@ -728,7 +729,7 @@ def eckart_frame(
     geom,
     masses,
 ):
-    """ Moves the molecule to the Eckart frame
+    """Moves the molecule to the Eckart frame
 
     Params:
         geom ((natoms,4) np.ndarray) - Contains atom symbol and xyz coordinates
@@ -743,7 +744,7 @@ def eckart_frame(
     """
 
     # Center of mass
-    COM = np.sum(manage_xyz.xyz_to_np(geom) * np.outer(masses, [1.0]*3), 0) / np.sum(masses)
+    COM = np.sum(manage_xyz.xyz_to_np(geom) * np.outer(masses, [1.0] * 3), 0) / np.sum(masses)
     # Inertial tensor
     I = np.zeros((3, 3))
     for atom, mass in zip(geom, masses):
@@ -770,7 +771,7 @@ def vibrational_basis(
     geom,
     masses,
 ):
-    """ Compute the vibrational basis in mass-weighted Cartesian coordinates.
+    """Compute the vibrational basis in mass-weighted Cartesian coordinates.
     This is the null-space of the translations and rotations in the Eckart frame.
 
     Params:
@@ -788,7 +789,7 @@ def vibrational_basis(
     G = manage_xyz.xyz_to_np(geom2)
 
     # Known basis functions for translations
-    TR = np.zeros((3*len(geom), 6))
+    TR = np.zeros((3 * len(geom), 6))
     # Translations
     TR[0::3, 0] = np.sqrt(masses)  # +X
     TR[1::3, 1] = np.sqrt(masses)  # +Y
@@ -798,9 +799,9 @@ def vibrational_basis(
     for A, mass in enumerate(masses):
         mass_12 = np.sqrt(mass)
         for j in range(3):
-            TR[3*A+j, 3] = + mass_12 * (G[A, 1] * O[j, 2] - G[A, 2] * O[j, 1])  # + Gy Oz - Gz Oy
-            TR[3*A+j, 4] = - mass_12 * (G[A, 0] * O[j, 2] - G[A, 2] * O[j, 0])  # - Gx Oz + Gz Ox
-            TR[3*A+j, 5] = + mass_12 * (G[A, 0] * O[j, 1] - G[A, 1] * O[j, 0])  # + Gx Oy - Gy Ox
+            TR[3 * A + j, 3] = +mass_12 * (G[A, 1] * O[j, 2] - G[A, 2] * O[j, 1])  # + Gy Oz - Gz Oy
+            TR[3 * A + j, 4] = -mass_12 * (G[A, 0] * O[j, 2] - G[A, 2] * O[j, 0])  # - Gx Oz + Gz Ox
+            TR[3 * A + j, 5] = +mass_12 * (G[A, 0] * O[j, 1] - G[A, 1] * O[j, 0])  # + Gx Oy - Gy Ox
 
     # Single Value Decomposition (review)
     U, _s, _V = np.linalg.svd(TR, full_matrices=True)
@@ -818,26 +819,26 @@ def calc_rot_vec_diff(v1_in, v2_in):
     v1 = v1_in.copy()
     v2 = v2_in.copy()
     if np.linalg.norm(v1) < 1e-6 and np.linalg.norm(v2) < 1e-6:
-        return v1-v2
+        return v1 - v2
     # Take the vector with the larger norm b/c the unit vector is better defined
     va, vb = (v1, v2) if np.dot(v1, v1) > np.dot(v2, v2) else (v2, v1)
     # Displace the larger vector along multiples of 2pi*va/|va| until displacement is minimized
     vh = va / np.linalg.norm(va)
     revcount = 0
     while True:
-        vd = np.dot(va-vb, va-vb)
-        va += 2*np.pi*vh
+        vd = np.dot(va - vb, va - vb)
+        va += 2 * np.pi * vh
         revcount += 1
-        if np.dot(va-vb, va-vb) > vd:
-            va -= 2*np.pi*vh
+        if np.dot(va - vb, va - vb) > vd:
+            va -= 2 * np.pi * vh
             revcount -= 1
             break
     while True:
-        vd = np.dot(va-vb, va-vb)
-        va -= 2*np.pi*vh
+        vd = np.dot(va - vb, va - vb)
+        va -= 2 * np.pi * vh
         revcount -= 1
-        if np.dot(va-vb, va-vb) > vd:
-            va += 2*np.pi*vh
+        if np.dot(va - vb, va - vb) > vd:
+            va += 2 * np.pi * vh
             revcount += 1
             break
-    return v1-v2
+    return v1 - v2

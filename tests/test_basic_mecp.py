@@ -2,7 +2,7 @@ from pathlib import Path
 
 import pytest
 
-pytest.importorskip("tblite")
+pytest.importorskip('tblite')
 
 from pygsm.coordinate_systems.delocalized_coordinates import (
     DelocalizedInternalCoordinates,

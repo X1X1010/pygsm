@@ -13,11 +13,7 @@ from .slots import RotationA, RotationB, RotationC
 
 
 class DelocalizedInternalCoordinates(InternalCoordinates):
-
-    def __init__(self,
-                 options
-                 ):
-
+    def __init__(self, options):
         super().__init__(options)
 
         # Cache  some useful attributes
@@ -29,20 +25,20 @@ class DelocalizedInternalCoordinates(InternalCoordinates):
 
         # The DLC contains an instance of primitive internal coordinates.
         if self.options['primitives'] is None:
-            print(" making primitives ")
+            print(' making primitives ')
             t1 = time()
             self.Prims = PrimitiveInternalCoordinates(options.copy())
             dt = time() - t1
-            print(f" Time to make prims {dt:.3f}")
+            print(f' Time to make prims {dt:.3f}')
             self.options['primitives'] = self.Prims
         else:
-            print(" setting primitives from options!")
+            print(' setting primitives from options!')
             t0 = time()
             self.Prims = PrimitiveInternalCoordinates.copy(self.options['primitives'])
 
-            print(f" num of primitives {len(self.Prims.Internals)}")
+            print(f' num of primitives {len(self.Prims.Internals)}')
             dt = time() - t0
-            print(f" Time to copy prims {dt:.3f}")
+            print(f' Time to copy prims {dt:.3f}')
             self.Prims.clearCache()
 
         xyz = options['xyz']
@@ -52,12 +48,16 @@ class DelocalizedInternalCoordinates(InternalCoordinates):
         addtr = options['addtr']
         if addtr:
             if connect:
-                raise RuntimeError(" Intermolecular displacements are defined by translation and rotations! \
-                                    Don't add connect!")
+                raise RuntimeError(
+                    " Intermolecular displacements are defined by translation and rotations! \
+                                    Don't add connect!"
+                )
         elif addcart:
             if connect:
-                raise RuntimeError(" Intermolecular displacements are defined by cartesians! \
-                                    Don't add connect!")
+                raise RuntimeError(
+                    " Intermolecular displacements are defined by cartesians! \
+                                    Don't add connect!"
+                )
         else:
             pass
 
@@ -132,7 +132,7 @@ class DelocalizedInternalCoordinates(InternalCoordinates):
         # Number of constraints
         nc = len(self.Prims.cPrims)
         # Total dimension
-        nt = ni+nc
+        nt = ni + nc
         # Lower block of the augmented Hessian
         cT = np.zeros((nc, ni), dtype=float)
         c0 = np.zeros(nc, dtype=float)
@@ -141,12 +141,12 @@ class DelocalizedInternalCoordinates(InternalCoordinates):
             iPrim = self.Prims.Internals.index(c)
             # The DLC corresponding to the constrained primitive (a.k.a. cProj) is self.Vecs[self.cDLC[ic]].
             # For a differential change in the DLC, the primitive that we are constraining changes by:
-            cT[ic, self.cDLC[ic]] = 1.0/self.Vecs[iPrim, self.cDLC[ic]]
+            cT[ic, self.cDLC[ic]] = 1.0 / self.Vecs[iPrim, self.cDLC[ic]]
             # Calculate the further change needed in this constrained variable
             c0[ic] = self.Prims.cVals[ic] - c.value(xyz)
             if c.isPeriodic:
-                Plus2Pi = c0[ic] + 2*np.pi
-                Minus2Pi = c0[ic] - 2*np.pi
+                Plus2Pi = c0[ic] + 2 * np.pi
+                Minus2Pi = c0[ic] - 2 * np.pi
                 if np.abs(c0[ic]) > np.abs(Plus2Pi):
                     c0[ic] = Plus2Pi
                 if np.abs(c0[ic]) > np.abs(Minus2Pi):
@@ -178,10 +178,10 @@ class DelocalizedInternalCoordinates(InternalCoordinates):
                 # Look up the index of the DLC that corresponds to the constraint
                 iDLC = self.cDLC[ic]
                 # Calculate the further change needed in this constrained variable
-                dQ[iDLC] = (self.Prims.cVals[ic] - c.value(xyz1))/self.Vecs[iPrim, iDLC]
+                dQ[iDLC] = (self.Prims.cVals[ic] - c.value(xyz1)) / self.Vecs[iPrim, iDLC]
                 if c.isPeriodic:
-                    Plus2Pi = dQ[iDLC] + 2*np.pi
-                    Minus2Pi = dQ[iDLC] - 2*np.pi
+                    Plus2Pi = dQ[iDLC] + 2 * np.pi
+                    Minus2Pi = dQ[iDLC] - 2 * np.pi
                     if np.abs(dQ[iDLC]) > np.abs(Plus2Pi):
                         dQ[iDLC] = Plus2Pi
                     if np.abs(dQ[iDLC]) > np.abs(Minus2Pi):
@@ -200,13 +200,13 @@ class DelocalizedInternalCoordinates(InternalCoordinates):
         constraintSmall = len(self.Prims.cPrims) > 0
         for ic, c in enumerate(self.Prims.cPrims):
             w = c.w if type(c) in [RotationA, RotationB, RotationC] else 1.0
-            current = c.value(xyz)/w
-            reference = self.Prims.cVals[ic]/w
-            diff = (current - reference)
-            if np.abs(diff-2*np.pi) < np.abs(diff):
-                diff -= 2*np.pi
-            if np.abs(diff+2*np.pi) < np.abs(diff):
-                diff += 2*np.pi
+            current = c.value(xyz) / w
+            reference = self.Prims.cVals[ic] / w
+            diff = current - reference
+            if np.abs(diff - 2 * np.pi) < np.abs(diff):
+                diff -= 2 * np.pi
+            if np.abs(diff + 2 * np.pi) < np.abs(diff):
+                diff += 2 * np.pi
             if np.abs(diff) > thre:
                 constraintSmall = False
         if constraintSmall:
@@ -216,7 +216,6 @@ class DelocalizedInternalCoordinates(InternalCoordinates):
     def wilsonB(self, xyz):
         Bp = self.Prims.wilsonB(xyz)
         return block_matrix.dot(block_matrix.transpose(self.Vecs), Bp)
-
 
     def calcGradProj(self, xyz, gradx):
         """
@@ -288,9 +287,9 @@ class DelocalizedInternalCoordinates(InternalCoordinates):
         self.Vecs = block_matrix(tmpvecs)
 
         time_eig = output.click()
-        print(f" Timings: Build G: {time_G:.3f} Eig: {time_eig:.3f}")
+        print(f' Timings: Build G: {time_G:.3f} Eig: {time_eig:.3f}')
 
-        self.Internals = [f"DLC {i+1}" for i in range(self.Vecs.shape[1])]
+        self.Internals = [f'DLC {i + 1}' for i in range(self.Vecs.shape[1])]
 
         # Vecs has number of rows equal to the number of primitives, and
         # number of columns equal to the number of delocalized internal coordinates.
@@ -299,7 +298,7 @@ class DelocalizedInternalCoordinates(InternalCoordinates):
 
         if C is not None:
             # orthogonalize
-            if (C[:] == 0.).all():
+            if (C[:] == 0.0).all():
                 raise RuntimeError
             Cn = math_utils.orthogonalize(C)
 
@@ -343,11 +342,11 @@ class DelocalizedInternalCoordinates(InternalCoordinates):
                 Float array containing difference in primitive coordinates
         """
 
-        print(" starting to build G prim")
+        print(' starting to build G prim')
         output.click()
         G = self.Prims.GMatrix(xyz)  # in primitive coords
         time_G = output.click()
-        print(f" Timings: Build G: {time_G:.3f} ")
+        print(f' Timings: Build G: {time_G:.3f} ')
 
         tmpvecs = []
         for A in G.matlist:
@@ -362,7 +361,7 @@ class DelocalizedInternalCoordinates(InternalCoordinates):
         self.Vecs = block_matrix(tmpvecs)
         output.click()
 
-        self.Internals = [f"DLC {i+1}" for i in range(len(LargeIdx))]
+        self.Internals = [f'DLC {i + 1}' for i in range(len(LargeIdx))]
 
         # Vecs has number of rows equal to the number of primitives, and
         # number of columns equal to the number of delocalized internal coordinates.
@@ -370,7 +369,7 @@ class DelocalizedInternalCoordinates(InternalCoordinates):
         # TODO use block diagonal
         if C is not None:
             # orthogonalize
-            if (C[:] == 0.).all():
+            if (C[:] == 0.0).all():
                 raise RuntimeError
             G = block_matrix.full_matrix(self.Prims.GMatrix(xyz))
             Cn = math_utils.conjugate_orthogonalize(C, G)
@@ -391,12 +390,12 @@ class DelocalizedInternalCoordinates(InternalCoordinates):
 
         return
 
-            # # LPW: Coefficients of DLC's are in each column and DLCs corresponding to constraints should basically be like (0 1 0 0 0 ..)
-            # # Expect to see a diagonal matrix here
-            # # Expect to see "large" eigenvalues here (no less than 0.1 ideally)
+        # # LPW: Coefficients of DLC's are in each column and DLCs corresponding to constraints should basically be like (0 1 0 0 0 ..)
+        # # Expect to see a diagonal matrix here
+        # # Expect to see "large" eigenvalues here (no less than 0.1 ideally)
 
     def form_cVec_from_cPrims(self):
-        """ forms the constraint vector from self.cPrim -- not used in GSM"""
+        """forms the constraint vector from self.cPrim -- not used in GSM"""
         # CRA 3/2019 warning:
         # I'm not sure how this works!!!
         # multiple constraints appears to be problematic!!!
@@ -421,17 +420,17 @@ class DelocalizedInternalCoordinates(InternalCoordinates):
         return not self.__eq__(other)
 
     def largeRots(self):
-        """ Determine whether a molecule has rotated by an amount larger than some threshold (hardcoded in Prims.largeRots()). """
+        """Determine whether a molecule has rotated by an amount larger than some threshold (hardcoded in Prims.largeRots())."""
         return self.Prims.largeRots()
 
     def calcDiff(self, coord1, coord2):
-        """ Calculate difference in internal coordinates, accounting for changes in 2*pi of angles. """
+        """Calculate difference in internal coordinates, accounting for changes in 2*pi of angles."""
         PMDiff = self.Prims.calcDiff(coord1, coord2)
         Answer = block_matrix.dot(block_matrix.transpose(self.Vecs), PMDiff)
         return np.array(Answer).flatten()
 
     def calculate(self, coords):
-        """ Calculate the DLCs given the Cartesian coordinates. """
+        """Calculate the DLCs given the Cartesian coordinates."""
         PrimVals = self.Prims.calculate(coords)
         Answer = block_matrix.dot(block_matrix.transpose(self.Vecs), PrimVals)
         # print np.dot(np.array(self.Vecs[0,:]).flatten(), np.array(Answer).flatten())
@@ -459,12 +458,12 @@ class DelocalizedInternalCoordinates(InternalCoordinates):
         s3a = 0
         for vt, b, v in zip(Vt.matlist, Bp.matlist, self.Vecs.matlist):
             e3a = s3a + b.shape[1]
-            tmpvecs.append(np.linalg.multi_dot([vt, b/mass[s3a:e3a], b.T, v]))
+            tmpvecs.append(np.linalg.multi_dot([vt, b / mass[s3a:e3a], b.T, v]))
             s3a = e3a
         return block_matrix(tmpvecs)
 
     def derivatives(self, coords):
-        """ Obtain the change of the DLCs with respect to the Cartesian coordinates. """
+        """Obtain the change of the DLCs with respect to the Cartesian coordinates."""
         PrimDers = self.Prims.derivatives(coords)
         Answer = np.zeros((self.Vecs.shape[1], PrimDers.shape[1], PrimDers.shape[2]), dtype=float)
 
@@ -476,11 +475,10 @@ class DelocalizedInternalCoordinates(InternalCoordinates):
                     Answer[count, :, :] += block[j, i] * PrimDers[j, :, :]
                 count += 1
 
-
         return Answer
 
     def second_derivatives(self, coords):
-        """ Obtain the second derivatives of the DLCs with respect to the Cartesian coordinates. """
+        """Obtain the second derivatives of the DLCs with respect to the Cartesian coordinates."""
         PrimDers = self.Prims.second_derivatives(coords)
 
         # block matrix tensor dot
@@ -491,7 +489,6 @@ class DelocalizedInternalCoordinates(InternalCoordinates):
                 for j in range(block.shape[0]):
                     Answer[count, :, :, :, :] += block[j, i] * PrimDers[j, :, :, :, :]
                 count += 1
-
 
         return Answer
 
@@ -509,11 +506,11 @@ class DelocalizedInternalCoordinates(InternalCoordinates):
         return self.Prims.repr_diff(other.Prims)
 
     def guess_hessian(self, coords):
-        """ Build the guess Hessian, consisting of a diagonal matrix
-        in the primitive space and changed to the basis of DLCs. """
+        """Build the guess Hessian, consisting of a diagonal matrix
+        in the primitive space and changed to the basis of DLCs."""
         Hprim = self.Prims.guess_hessian(coords)
         return multi_dot([self.Vecs.T, Hprim, self.Vecs])
 
     def resetRotations(self, xyz):
-        """ Reset the reference geometries for calculating the orientational variables. """
+        """Reset the reference geometries for calculating the orientational variables."""
         self.Prims.resetRotations(xyz)

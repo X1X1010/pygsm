@@ -1,6 +1,7 @@
 """Class structures of important chemical concepts
 This class is the combination of Martinez group and Lee Ping's molecule class.
 """
+
 from time import time
 
 import numpy as np
@@ -23,7 +24,6 @@ and spin multiplicities.
 
 
 class Molecule:
-
     @staticmethod
     def _copy_coord_object(coord_obj, xyz=None):
         coord_options = coord_obj.options.copy()
@@ -38,13 +38,15 @@ class Molecule:
         coord_obj = cls._copy_coord_object(source.coord_obj, xyz_array if xyz is not None or fnm is not None else None)
 
         new = cls.__new__(cls)
-        new.Data = source.Data.copy().set_values({
-            'PES': pes,
-            'coord_obj': coord_obj,
-            'geom': new_geom,
-            'node_id': new_node_id,
-            'copy_wavefunction': copy_wavefunction,
-        })
+        new.Data = source.Data.copy().set_values(
+            {
+                'PES': pes,
+                'coord_obj': coord_obj,
+                'geom': new_geom,
+                'node_id': new_node_id,
+                'copy_wavefunction': copy_wavefunction,
+            }
+        )
         new.PES = pes
         new.coord_obj = coord_obj
         new.Data['xyz'] = xyz_array.copy()
@@ -73,89 +75,68 @@ class Molecule:
             value=None,
             required=False,
             allowed_types=[str],
-            doc='File name to create the Molecule object from. Only used if geom is none.'
+            doc='File name to create the Molecule object from. Only used if geom is none.',
         )
         opt.add_option(
             key='ftype',
             value=None,
             required=False,
             allowed_types=[str],
-            doc='filetype (optional) will attempt to read filetype if not given'
+            doc='filetype (optional) will attempt to read filetype if not given',
         )
 
         opt.add_option(
             key='coordinate_type',
             required=False,
             value='Cartesian',
-                allowed_values=['Cartesian', 'DLC', 'HDLC', 'TRIC'],
-            doc='The type of coordinate system to build'
+            allowed_values=['Cartesian', 'DLC', 'HDLC', 'TRIC'],
+            doc='The type of coordinate system to build',
         )
 
-        opt.add_option(
-            key='coord_obj',
-            required=False,
-            value=None,
-                doc='A coordinate object.'
-        )
+        opt.add_option(key='coord_obj', required=False, value=None, doc='A coordinate object.')
+
+        opt.add_option(key='geom', required=False, allowed_types=[list], doc='geometry including atomic symbols')
 
         opt.add_option(
-            key='geom',
-            required=False,
-            allowed_types=[list],
-            doc='geometry including atomic symbols'
-        )
-
-        opt.add_option(
-            key='xyz',
-            required=False,
-            allowed_types=[np.ndarray],
-            doc='The Cartesian coordinates in Angstrom'
+            key='xyz', required=False, allowed_types=[np.ndarray], doc='The Cartesian coordinates in Angstrom'
         )
 
         opt.add_option(
             key='PES',
             required=True,
-                doc='potential energy surface object to evaulate energies, gradients, etc. Pes is defined by charge, state, multiplicity,etc. '
-
+            doc='potential energy surface object to evaulate energies, gradients, etc. Pes is defined by charge, state, multiplicity,etc. ',
         )
         opt.add_option(
             key='copy_wavefunction',
             value=True,
             doc='When copying the level of theory object, sometimes it is not helpful to copy the lot data as this will over write data \
-                        (e.g. at the beginning of DE-GSM)'
+                        (e.g. at the beginning of DE-GSM)',
         )
 
         opt.add_option(
             key='Primitive_Hessian',
             value=None,
             required=False,
-            doc='Primitive hessian save file for doing optimization.'
+            doc='Primitive hessian save file for doing optimization.',
         )
 
         opt.add_option(
-            key='Hessian',
-            value=None,
-            required=False,
-            doc='Hessian save file in the basis of coordinate_type.'
+            key='Hessian', value=None, required=False, doc='Hessian save file in the basis of coordinate_type.'
         )
 
         opt.add_option(
             key='Form_Hessian',
             value=True,
-            doc='Form the Hessian in the current basis -- takes time for large molecules.'
+            doc='Form the Hessian in the current basis -- takes time for large molecules.',
         )
 
-        opt.add_option(
-            key="top_settings",
-            value={},
-            doc='some extra kwargs for forming coordinate object.'
-        )
+        opt.add_option(key='top_settings', value={}, doc='some extra kwargs for forming coordinate object.')
 
         opt.add_option(
             key='comment',
             required=False,
             value='',
-            doc='A string that is saved on the molecule, used for descriptive purposes'
+            doc='A string that is saved on the molecule, used for descriptive purposes',
         )
 
         opt.add_option(
@@ -177,18 +158,18 @@ class Molecule:
 
     @staticmethod
     def from_options(**kwargs):
-        """ Returns an instance of this class with default options updated from values in kwargs"""
+        """Returns an instance of this class with default options updated from values in kwargs"""
         return Molecule(Molecule.default_options().set_values(kwargs))
 
     def __repr__(self):
-        lines = [" molecule object"]
+        lines = [' molecule object']
         lines.append(self.Data.__str__())
-        return'\n'.join(lines)
+        return '\n'.join(lines)
 
     @staticmethod
     def copy_from_options(MoleculeA, xyz=None, fnm=None, new_node_id=1, copy_wavefunction=True):
         """Create a copy of MoleculeA"""
-        print(f" Copying from MoleculA {MoleculeA.node_id}")
+        print(f' Copying from MoleculA {MoleculeA.node_id}')
         return Molecule._copy_fast(
             MoleculeA,
             xyz=xyz,
@@ -198,7 +179,6 @@ class Molecule:
         )
 
     def __init__(self, options, **kwargs):
-
         self.Data = options
 
         # => Read in the coordinates <= #
@@ -208,7 +188,7 @@ class Molecule:
         _geom, atoms, xyz = load_geometry_inputs(self.Data)
 
         t1 = time()
-        print(f" Time to get coords= {t1 - t0:.3f}")
+        print(f' Time to get coords= {t1 - t0:.3f}')
 
         # Perform all the sanity checks and cache some useful attributes
 
@@ -222,42 +202,42 @@ class Molecule:
         self.atoms = [ELEMENT_TABLE.from_symbol(atom) for atom in atoms]
 
         tx = time()
-        print(f" Time to create PES,elements {tx-t1:.3f}")
+        print(f' Time to create PES,elements {tx - t1:.3f}')
         t1 = tx
 
         if not isinstance(self.Data['comment'], str):
-            raise TypeError("comment for a Molecule must be a string")
+            raise TypeError('comment for a Molecule must be a string')
 
         # Create the coordinate system
         if self.Data['coord_obj'] is not None:
-            print(" getting coord_object from options")
+            print(' getting coord_object from options')
             self.coord_obj = self.Data['coord_obj']
         else:
-            print(" Disabling this feature, Molecule cannot create coordinate system")
+            print(' Disabling this feature, Molecule cannot create coordinate system')
             raise NotImplementedError
         self.Data['coord_obj'] = self.coord_obj
 
         t2 = time()
-        print(f" Time  to build coordinate system= {t2-t1:.3f}")
+        print(f' Time  to build coordinate system= {t2 - t1:.3f}')
         self._initialize_runtime_state()
 
         if self.Data['Hessian'] is None and self.Data['Form_Hessian']:
             if self.Data['Primitive_Hessian'] is None and type(self.coord_obj) is not CartesianCoordinates:
                 self.form_Primitive_Hessian()
             t3 = time()
-            print(f" Time to build Prim Hessian {t3-t2:.3f}")
+            print(f' Time to build Prim Hessian {t3 - t2:.3f}')
             if self.Data['Primitive_Hessian'] is not None:
-                print(" forming Hessian in basis")
+                print(' forming Hessian in basis')
                 self.form_Hessian_in_basis()
             else:
                 self.form_Hessian()
 
-        print(" molecule constructed")
+        print(' molecule constructed')
 
     def _initialize_runtime_state(self):
-        self.gradrms = 0.
+        self.gradrms = 0.0
         self.isTSnode = False
-        self.bdist = 0.
+        self.bdist = 0.0
         self.newHess = 5
         self._state_token = 0
         self._cached_energy_token = -1
@@ -271,11 +251,11 @@ class Molecule:
         self._cached_energy = None
 
     def __add__(self, other):
-        """ add method for molecule objects. Concatenates"""
+        """add method for molecule objects. Concatenates"""
         raise NotImplementedError
 
     def center(self, center_mass=False):
-        """ Move geometric center to the origin. """
+        """Move geometric center to the origin."""
         if center_mass:
             com = self.center_of_mass
             self.xyz = self.xyz - com
@@ -308,7 +288,7 @@ class Molecule:
     def center_of_mass(self):
         M = self.total_mass_au
         atomic_masses = self.atomic_mass
-        return np.sum([self.xyz[i, :]*atomic_masses[i]/M for i in range(self.natoms)], axis=0)
+        return np.sum([self.xyz[i, :] * atomic_masses[i] / M for i in range(self.natoms)], axis=0)
 
     @property
     def geometry(self):
@@ -359,12 +339,12 @@ class Molecule:
         self.Data['Primitive_Hessian'] = value
 
     def form_Primitive_Hessian(self):
-        print(" making primitive Hessian")
+        print(' making primitive Hessian')
         self.Data['Primitive_Hessian'] = self.coord_obj.Prims.guess_hessian(self.xyz)
         self.newHess = 10
 
     def update_Primitive_Hessian(self, change=None):
-        print(" updating prim hess")
+        print(' updating prim hess')
         if change is not None:
             self.Primitive_Hessian += change
         return self.Primitive_Hessian
@@ -387,7 +367,9 @@ class Molecule:
         return self.Hessian
 
     def form_Hessian_in_basis(self):
-        self.Hessian = block_matrix.dot(block_matrix.dot(block_matrix.transpose(self.coord_basis), self.Primitive_Hessian), self.coord_basis)
+        self.Hessian = block_matrix.dot(
+            block_matrix.dot(block_matrix.transpose(self.coord_basis), self.Primitive_Hessian), self.coord_basis
+        )
         return self.Hessian
 
     @property
@@ -441,7 +423,7 @@ class Molecule:
         if self.coord_obj.__class__.__name__ == 'CartesianCoordinates':
             return
 
-        print(" updating coord basis")
+        print(' updating coord basis')
         self.coord_obj.clearCache()
         self.coord_obj.build_dlc(self.xyz, constraints)
         return self.coord_basis
@@ -453,8 +435,6 @@ class Molecule:
     @property
     def coordinates(self):
         return np.reshape(self.coord_obj.calculate(self.xyz), (-1, 1))
-
-
 
     @property
     def BMatrix(self):

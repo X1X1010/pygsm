@@ -3,7 +3,7 @@ from pathlib import Path
 import numpy as np
 import pytest
 
-pytest.importorskip("ase")
+pytest.importorskip('ase')
 
 from ase.calculators.morse import MorsePotential
 

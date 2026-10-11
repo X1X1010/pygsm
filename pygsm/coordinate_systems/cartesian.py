@@ -11,6 +11,7 @@ class CartesianCoordinates(InternalCoordinates):
     This one does not support constraints, because that requires adding some
     primitive internal coordinates.
     """
+
     def __init__(self, options):
         super().__init__(options)
         self.Internals = []
@@ -18,8 +19,8 @@ class CartesianCoordinates(InternalCoordinates):
         self.cVals = []
         self.atoms = options['atoms']
         self.natoms = len(self.atoms)
-        top_settings={'make_primitives': False}
-        self.Prims = PrimitiveInternalCoordinates(options.copy().set_values({'extra_kwargs':top_settings}))
+        top_settings = {'make_primitives': False}
+        self.Prims = PrimitiveInternalCoordinates(options.copy().set_values({'extra_kwargs': top_settings}))
 
         for i in range(self.natoms):
             self.Prims.add(CartesianX(i, w=1.0))

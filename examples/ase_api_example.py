@@ -4,6 +4,7 @@ API example modified for an ASE calculator.
 The result is meaningless, apart from showing that the code runs, because of using a Morse potential.
 
 """
+
 from pathlib import Path
 
 import ase.io
@@ -19,17 +20,17 @@ from pygsm.utilities import elements, manage_xyz, output
 
 
 def main(geom):
-    output.printcool(" Building the LOT")
+    output.printcool(' Building the LOT')
     lot = ASELoT.from_options(MorsePotential(), geom=geom)
 
-    output.printcool(" Building the PES")
+    output.printcool(' Building the PES')
     pes = PES.from_options(
         lot=lot,
         ad_idx=0,
         multiplicity=1,
     )
 
-    output.printcool("Building the topology")
+    output.printcool('Building the topology')
     atom_symbols = manage_xyz.get_atoms(geom)
     ELEMENT_TABLE = elements.ElementData()
     atoms = [ELEMENT_TABLE.from_symbol(atom) for atom in atom_symbols]
@@ -37,15 +38,14 @@ def main(geom):
     #     xyz,
     #     atoms,
 
-
-    output.printcool("Building Delocalized Internal Coordinates")
+    output.printcool('Building Delocalized Internal Coordinates')
     coord_obj1 = DelocalizedInternalCoordinates.from_options(
         xyz=xyz,
         atoms=atoms,
         addtr=False,  # Add TRIC
     )
 
-    output.printcool("Building Molecule")
+    output.printcool('Building Molecule')
     reactant = Molecule.from_options(
         geom=geom,
         PES=pes,
@@ -53,11 +53,12 @@ def main(geom):
         Form_Hessian=True,
     )
 
-    output.printcool("Creating optimizer")
-    optimizer = eigenvector_follow.from_options(Linesearch='backtrack', OPTTHRESH=0.0005, DMAX=0.5, abs_max_step=0.5,
-                                                conv_Ediff=0.5)
+    output.printcool('Creating optimizer')
+    optimizer = eigenvector_follow.from_options(
+        Linesearch='backtrack', OPTTHRESH=0.0005, DMAX=0.5, abs_max_step=0.5, conv_Ediff=0.5
+    )
 
-    output.printcool(f"initial energy is {reactant.energy:5.4f} kcal/mol")
+    output.printcool(f'initial energy is {reactant.energy:5.4f} kcal/mol')
     geoms, energies = optimizer.optimize(
         molecule=reactant,
         refE=reactant.energy,
@@ -65,13 +66,13 @@ def main(geom):
         verbose=True,
     )
 
-    output.printcool(f"Final energy is {reactant.energy:5.4f}")
-    manage_xyz.write_xyz('minimized.xyz', geoms[-1], energies[-1], scale=1.)
+    output.printcool(f'Final energy is {reactant.energy:5.4f}')
+    manage_xyz.write_xyz('minimized.xyz', geoms[-1], energies[-1], scale=1.0)
 
 
 if __name__ == '__main__':
-    data_file = Path(__file__).resolve().parents[1] / "tests" / "data" / "diels_alder.xyz"
-    diels_adler = ase.io.read(data_file, ":")
+    data_file = Path(__file__).resolve().parents[1] / 'tests' / 'data' / 'diels_alder.xyz'
+    diels_adler = ase.io.read(data_file, ':')
     xyz = diels_adler[0].positions
 
     # this is a hack

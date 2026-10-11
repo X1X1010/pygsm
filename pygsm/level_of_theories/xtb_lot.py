@@ -18,7 +18,9 @@ def _require_tblite():
     try:
         from tblite.interface import Calculator
     except ModuleNotFoundError as error:
-        raise LoTError('xTB backend requires the optional dependency `tblite`. Install with `pip install pygsm[xtb]`.') from error
+        raise LoTError(
+            'xTB backend requires the optional dependency `tblite`. Install with `pip install pygsm[xtb]`.'
+        ) from error
     return Calculator
 
 
@@ -37,7 +39,9 @@ class xTB_lot(Lot):
 
     def run(self, geom, multiplicity, state, runtype='gradient'):
         if state != 0:
-            raise LoTError(f'xTB only provides the ground state of each multiplicity, got state {(multiplicity, state)}')
+            raise LoTError(
+                f'xTB only provides the ground state of each multiplicity, got state {(multiplicity, state)}'
+            )
         Calculator = _require_tblite()
 
         positions = manage_xyz.xyz_to_np(geom) * units.ANGSTROM_TO_AU

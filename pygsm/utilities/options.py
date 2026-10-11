@@ -2,9 +2,8 @@ import collections
 
 
 class Option:
-
-    """ Class Option represents a key, value Option, with possible restrictions
-        on type and value, and with documentation.
+    """Class Option represents a key, value Option, with possible restrictions
+    on type and value, and with documentation.
     """
 
     def __init__(
@@ -14,9 +13,9 @@ class Option:
         required=False,
         allowed_types=None,
         allowed_values=None,
-        doc="",
+        doc='',
     ):
-        """ Option constructor:
+        """Option constructor:
 
         Params/Members:
             key - the string value of the key of the option.
@@ -44,19 +43,19 @@ class Option:
         self.doc = doc
 
     def get_value(self):
-        """ Get value for this Option and check validity.
+        """Get value for this Option and check validity.
 
         Returns:
             value if the Option is in a valid state, else raises RuntimeError.
         """
 
         if self.required and self.value is None:
-            raise RuntimeError(f"Option {self.key} is required")
+            raise RuntimeError(f'Option {self.key} is required')
 
         return self.value
 
     def set_value(self, value):
-        """ Set value for this Option and check validity.
+        """Set value for this Option and check validity.
 
         Result:
             value is updated if Option is valid, else raises RuntimeError.
@@ -68,14 +67,14 @@ class Option:
             return
 
         if self.allowed_types and not any(isinstance(value, x) for x in self.allowed_types):
-            raise RuntimeError(f"Option {self.key} must be one of allowed types: {self.allowed_types}")
+            raise RuntimeError(f'Option {self.key} must be one of allowed types: {self.allowed_types}')
         if self.allowed_values and value not in self.allowed_values:
-            raise RuntimeError(f"Option {self.key} must be one of allowed values: {self.allowed_values!r}")
+            raise RuntimeError(f'Option {self.key} must be one of allowed values: {self.allowed_values!r}')
 
         self.value = value
 
     def __str__(self):
-        """ Return a string containing the full contents and documentation of this Option. """
+        """Return a string containing the full contents and documentation of this Option."""
 
         s = ''
         s += 'Option:\n'
@@ -90,28 +89,27 @@ class Option:
 
 
 class Options:
+    """Class Options represents a dict of key, value Option objects, including
+    restrictions on type, value, etc. Users should interact only with the
+    Options class - the Option class is used as internal data storage.
 
-    """ Class Options represents a dict of key, value Option objects, including
-        restrictions on type, value, etc. Users should interact only with the
-        Options class - the Option class is used as internal data storage.
+    Generally, codes declaring and using Options objects should first
+    define the valid options, rules, and defaults by using the "add_option"
+    method. Then, when the user wishes to set or get the values of specific
+    options, a copy of the Options object should be provided for the user
+    by calling the "copy" method of Options.
 
-        Generally, codes declaring and using Options objects should first
-        define the valid options, rules, and defaults by using the "add_option"
-        method. Then, when the user wishes to set or get the values of specific
-        options, a copy of the Options object should be provided for the user
-        by calling the "copy" method of Options.
-
-        The underlying Option objects are stored in the options field, which is
-        presently a collections.OrderedDict to remember the order of Option
-        declaration. This incurs a 2x performance penalty vs. a standard dict
-        object, so we may want to optimize the performance later.
+    The underlying Option objects are stored in the options field, which is
+    presently a collections.OrderedDict to remember the order of Option
+    declaration. This incurs a 2x performance penalty vs. a standard dict
+    object, so we may want to optimize the performance later.
     """
 
     def __init__(
         self,
         options=None,
     ):
-        """ Options constructor.
+        """Options constructor.
 
         Params/Members:
             - options - dict of key -> Option
@@ -128,26 +126,21 @@ class Options:
             keys.append(opt)
         return keys
 
-    def add_option(
-        self,
-        **kwargs
-    ):
-        """ Declare a new Option with possible default value, type and value
-            rules, and documentation.
+    def add_option(self, **kwargs):
+        """Declare a new Option with possible default value, type and value
+        rules, and documentation.
 
-            Params: See Option constructor for valid kwargs
-            Result: Options updated with new Option corresponding to key
+        Params: See Option constructor for valid kwargs
+        Result: Options updated with new Option corresponding to key
         """
 
-        self.options[kwargs['key']] = Option(
-            **kwargs
-        )
+        self.options[kwargs['key']] = Option(**kwargs)
 
     def get_option(
         self,
         key,
     ):
-        """ Get the Option corresponding to key (useful for doc searching an debugging).
+        """Get the Option corresponding to key (useful for doc searching an debugging).
 
         Params:
             - key - string key of Option (raises RuntimeError if not in Options)
@@ -158,14 +151,14 @@ class Options:
         """
 
         if key not in self.options:
-            raise ValueError(f"Key {key} is not in Options")
+            raise ValueError(f'Key {key} is not in Options')
         return self.options[key]
 
     def __getitem__(
         self,
         key,
     ):
-        """ Get the current value of Option corresponding to key, performing validity checks.
+        """Get the current value of Option corresponding to key, performing validity checks.
 
         Params:
             - key - string key of Option (raises RuntimeError if not in Options)
@@ -174,7 +167,7 @@ class Options:
         """
 
         if key not in self.options:
-            raise ValueError(f"Key {key} is not in Options")
+            raise ValueError(f'Key {key} is not in Options')
         return self.options[key].get_value()
 
     def __setitem__(
@@ -182,7 +175,7 @@ class Options:
         key,
         value,
     ):
-        """ Set the value of Option corresponding to key, performing validity checks.
+        """Set the value of Option corresponding to key, performing validity checks.
 
         Params:
             - key - string key of Option (raises RuntimeError if not in Options)
@@ -192,14 +185,14 @@ class Options:
         """
 
         if key not in self.options:
-            raise ValueError(f"Key {key} is not in Options")
+            raise ValueError(f'Key {key} is not in Options')
         return self.options[key].set_value(value)
 
     def set_values(
         self,
         options,
     ):
-        """ Set the values of multiple options.
+        """Set the values of multiple options.
 
         Params:
             - options - dict of key, value pairs to set (calls __setitem__ once
@@ -213,9 +206,9 @@ class Options:
         return self
 
     def copy(self):
-        """ Return a 1-level shallow copy of this Options object. This makes
-            copies of all underlying Option objects so that changes to the new
-            Options object will not affect the original Options object.
+        """Return a 1-level shallow copy of this Options object. This makes
+        copies of all underlying Option objects so that changes to the new
+        Options object will not affect the original Options object.
         """
 
         options2 = collections.OrderedDict()
@@ -224,6 +217,6 @@ class Options:
         return Options(options=options2)
 
     def __str__(self):
-        """ Return the string representations of all Option objects in this Options, in insertion order. """
+        """Return the string representations of all Option objects in this Options, in insertion order."""
         s = ''.join(str(v) for v in list(self.options.values()))
         return s

@@ -3,15 +3,14 @@ from scipy.linalg import block_diag
 
 
 class block_tensor:
-
-    def __init__(self,matlist,cnorms=None):
+    def __init__(self, matlist, cnorms=None):
         self.matlist = matlist
         if cnorms is None:
-            cnorms = np.zeros((self.shape[1],1))
-        self.cnorms=cnorms
+            cnorms = np.zeros((self.shape[1], 1))
+        self.cnorms = cnorms
 
     def __repr__(self):
-        lines= [f" block matrix: # blocks = {self.num_blocks}"]
+        lines = [f' block matrix: # blocks = {self.num_blocks}']
         for count, m in enumerate(self.matlist, 1):
             lines.append(str(m))
             if count > 10:
@@ -27,124 +26,129 @@ class block_tensor:
     def num_blocks(self):
         return len(self.matlist)
 
-
     @staticmethod
     def zeros_like(BM):
-        return block_tensor( [ np.zeros_like(A) for A in BM.matlist ] )
+        return block_tensor([np.zeros_like(A) for A in BM.matlist])
 
-    def __add__(self,rhs):
-        print("adding")
+    def __add__(self, rhs):
+        print('adding')
         if isinstance(rhs, self.__class__):
-            print("adding block matrices!")
-            assert(self.shape == rhs.shape)
-            return block_tensor( [A+B for A,B in zip(self.matlist,rhs.matlist) ] )
+            print('adding block matrices!')
+            assert self.shape == rhs.shape
+            return block_tensor([A + B for A, B in zip(self.matlist, rhs.matlist)])
         elif isinstance(rhs, (float, int)):
-            return block_tensor( [A+rhs for A in self.matlist ])
+            return block_tensor([A + rhs for A in self.matlist])
         else:
             raise NotImplementedError
 
-    def __radd__(self,lhs):
+    def __radd__(self, lhs):
         return self.__add__(lhs)
 
-    def __mul__(self,rhs):
+    def __mul__(self, rhs):
         if isinstance(rhs, self.__class__):
-            assert(self.shape == rhs.shape)
-            return block_tensor( [A*B for A,B in zip(self.matlist,rhs.matlist)] )
+            assert self.shape == rhs.shape
+            return block_tensor([A * B for A, B in zip(self.matlist, rhs.matlist)])
         elif isinstance(rhs, (float, int)):
-            return block_tensor( [A*rhs for A in self.matlist ])
+            return block_tensor([A * rhs for A in self.matlist])
         else:
             raise NotImplementedError
 
-    def __rmul__(self,lhs):
+    def __rmul__(self, lhs):
         return self.__mul__(lhs)
 
-    def __len__(self):  #size along first axis
+    def __len__(self):  # size along first axis
         return np.sum([len(A) for A in self.matlist])
 
-    def __truediv__(self,rhs):
+    def __truediv__(self, rhs):
         if isinstance(rhs, self.__class__):
-            assert(self.shape == rhs.shape)
-            return block_tensor( [A/B for A,B in zip(self.matlist,rhs.matlist)] )
+            assert self.shape == rhs.shape
+            return block_tensor([A / B for A, B in zip(self.matlist, rhs.matlist)])
         elif isinstance(rhs, (float, int)):
-            return block_tensor( [A/rhs for A in self.matlist ])
-        elif isinstance(rhs,np.ndarray):
+            return block_tensor([A / rhs for A in self.matlist])
+        elif isinstance(rhs, np.ndarray):
             answer = []
-            s=0
+            s = 0
             for block in self.matlist:
-                e=block.shape[1]+s
-                answer.append(block/rhs[s:e])
-                s=e
+                e = block.shape[1] + s
+                answer.append(block / rhs[s:e])
+                s = e
             return block_tensor(answer)
         else:
             raise NotImplementedError
 
-
     @property
     def shape(self):
-        tot = (0,0,0)
+        tot = (0, 0, 0)
         for a in self.matlist:
-            tot = tuple(map(sum,zip(a.shape,tot)))
+            tot = tuple(map(sum, zip(a.shape, tot)))
         return tot
 
     @staticmethod
     def transpose(A):
-        return block_tensor( [ A.T for A in A.matlist] )
+        return block_tensor([A.T for A in A.matlist])
 
     @staticmethod
-    def dot(left,right):
-        def block_vec_dot(block,vec):
-            if vec.ndim==2 and vec.shape[1]==1:
+    def dot(left, right):
+        def block_vec_dot(block, vec):
+            if vec.ndim == 2 and vec.shape[1] == 1:
                 vec = vec.flatten()
-            s=0
-            result=[]
+            s = 0
+            result = []
             for A in block.matlist:
                 e = s + np.shape(A)[1]
-                result.append(np.dot(A,vec[s:e]))
-                s=e
-            return np.reshape(np.concatenate(result),(-1,1))
-        def vec_block_dot(vec,block,**kwargs):
-            if vec.ndim==2 and vec.shape[1]==1:
+                result.append(np.dot(A, vec[s:e]))
+                s = e
+            return np.reshape(np.concatenate(result), (-1, 1))
+
+        def vec_block_dot(vec, block, **kwargs):
+            if vec.ndim == 2 and vec.shape[1] == 1:
                 vec = vec.flatten()
-            s=0
-            result=[]
+            s = 0
+            result = []
             for A in block.matlist:
                 e = s + np.shape(A)[1]
-                result.append(np.dot(vec[s:e],A))
-                s=e
-            return np.reshape(np.concatenate(result),(-1,1))
+                result.append(np.dot(vec[s:e], A))
+                s = e
+            return np.reshape(np.concatenate(result), (-1, 1))
 
         # (1) both are block matrices
-        if isinstance(left,block_tensor) and isinstance(right,block_tensor):
-            return block_tensor([np.dot(A,B) for A,B in zip(left.matlist,right.matlist)])
+        if isinstance(left, block_tensor) and isinstance(right, block_tensor):
+            return block_tensor([np.dot(A, B) for A, B in zip(left.matlist, right.matlist)])
         # (2) left is np.ndarray with a vector shape
-        elif isinstance(left,np.ndarray) and (left.ndim==1 or left.shape[1]==1) and isinstance(right,block_tensor):
-            return vec_block_dot(left,right)
+        elif (
+            isinstance(left, np.ndarray) and (left.ndim == 1 or left.shape[1] == 1) and isinstance(right, block_tensor)
+        ):
+            return vec_block_dot(left, right)
         # (3) right is np.ndarray with a vector shape
-        elif isinstance(right,np.ndarray) and (right.ndim==1 or right.shape[1]==1) and isinstance(left,block_tensor):
-            return block_vec_dot(left,right)
+        elif (
+            isinstance(right, np.ndarray)
+            and (right.ndim == 1 or right.shape[1] == 1)
+            and isinstance(left, block_tensor)
+        ):
+            return block_vec_dot(left, right)
         # (4) l/r is a matrix
-        elif isinstance(left,np.ndarray) and left.ndim==2:
+        elif isinstance(left, np.ndarray) and left.ndim == 2:
             #
             # [ A | B ] [ C 0 ] = [ AC BD ]
             #           [ 0 D ]
-            sc=0
-            tmp_ans=[]
+            sc = 0
+            tmp_ans = []
             for A in right.matlist:
-                ec = sc+A.shape[0]
-                tmp_ans.append(np.dot(left[:,sc:ec],A))
-                sc=ec
-            dot_product=np.hstack(tmp_ans)
+                ec = sc + A.shape[0]
+                tmp_ans.append(np.dot(left[:, sc:ec], A))
+                sc = ec
+            dot_product = np.hstack(tmp_ans)
             return dot_product
 
-        elif isinstance(right,np.ndarray) and right.ndim==2:
+        elif isinstance(right, np.ndarray) and right.ndim == 2:
             #
-            sc=0
-            tmp_ans=[]
+            sc = 0
+            tmp_ans = []
             for A in left.matlist:
-                ec = sc+A.shape[1]
-                tmp_ans.append(np.dot(A,right[sc:ec,:]))
-                sc=ec
-            dot_product=np.vstack(tmp_ans)
+                ec = sc + A.shape[1]
+                tmp_ans.append(np.dot(A, right[sc:ec, :]))
+                sc = ec
+            dot_product = np.vstack(tmp_ans)
             return dot_product
         else:
             raise NotImplementedError
