@@ -96,3 +96,9 @@ file = "pygsm/_version.py"
 
 [tool.ruff.format]
 quote-style = "single"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+markers = [
+    "golden: numerical regression tests against stored baselines (slow; need OMP_NUM_THREADS=1)",
+]
