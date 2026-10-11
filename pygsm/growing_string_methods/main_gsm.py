@@ -293,7 +293,7 @@ class MainGSM(GSM):
             )
 
             if self.nodes[self.nR] is None:
-                raise Exception('Ran out of space')
+                raise RuntimeError('Ran out of space')
 
             if self.__class__.__name__ != "DE_GSM":
                 ictan, bdist = self.get_tangent(
@@ -341,7 +341,7 @@ class MainGSM(GSM):
                 n2
             )
             if self.nodes[-self.nP-1] is None:
-                raise Exception('Ran out of space')
+                raise RuntimeError('Ran out of space')
 
             self.optimizer[n2].DMAX = self.optimizer[n1].DMAX
             self.current_nnodes += 1
@@ -543,7 +543,7 @@ class MainGSM(GSM):
         a = abs(q0-qm1)
         b = abs(qp1-q0)
         c = 2*(Em1/a/(a+b) - E0/a/b + Ep1/b/(a+b))
-        print(" tHt %1.3f a: %1.1f b: %1.1f c: %1.3f" % (tHt, a[0], b[0], c[0]))
+        print(" tHt %1.3f a: %1.1f b: %1.1f c: %1.3f" % tuple(np.asarray(v).item() for v in (tHt, a[0], b[0], c[0])))
 
         ttt = np.outer(tan, tan)
 

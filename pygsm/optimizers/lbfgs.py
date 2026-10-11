@@ -177,15 +177,15 @@ class lbfgs(base_optimizer):
             dEpre = np.dot(gc.T, dq)*units.KCAL_MOL_PER_AU
             constraint_energy = np.dot(gp.T, constraint_steps)*units.KCAL_MOL_PER_AU
             if opt_type not in ['UNCONSTRAINED', 'ICTAN']:
-                print("constraint_energy: %1.4f" % constraint_energy)
+                print("constraint_energy: %1.4f" % np.asarray(constraint_energy).item())
             dEpre += constraint_energy
 
             # if abs(dEpre)<0.05:
             #    dEpre = np.sign(dEpre)*0.05
             ratio = dEstep/dEpre
             print(" dEstep=%5.4f" % dEstep)
-            print(" dEpre=%5.4f" % dEpre)
-            print(" ratio=%5.4f" % ratio)
+            print(" dEpre=%5.4f" % np.asarray(dEpre).item())
+            print(" ratio=%5.4f" % np.asarray(ratio).item())
 
             # revert to the privious point
             if ls['status'] < 0 or (ratio < 0. and opt_type != 'CLIMB'):
@@ -285,12 +285,12 @@ class lbfgs(base_optimizer):
                 manage_xyz.write_xyzs_w_comments('{}/opt_{}.xyz'.format(path, molecule.node_id), geoms, energies, scale=1.)
 
             if self.options['print_level'] > 0:
-                print(" Node: %d Opt step: %d E: %5.4f predE: %5.4f ratio: %1.3f gradrms: %1.5f ss: %1.3f DMAX: %1.3f" % (molecule.node_id, ostep+1, fx-refE, dEpre, ratio, molecule.gradrms, step, self.DMAX))
-            self.buf.write(u' Node: %d Opt step: %d E: %5.4f predE: %5.4f ratio: %1.3f gradrms: %1.5f ss: %1.3f DMAX: %1.3f\n' % (molecule.node_id, ostep+1, fx-refE, dEpre, ratio, molecule.gradrms, step, self.DMAX))
+                print(" Node: %d Opt step: %d E: %5.4f predE: %5.4f ratio: %1.3f gradrms: %1.5f ss: %1.3f DMAX: %1.3f" % (molecule.node_id, ostep+1, fx-refE, np.asarray(dEpre).item(), np.asarray(ratio).item(), np.asarray(molecule.gradrms).item(), step, self.DMAX))
+            self.buf.write(u' Node: %d Opt step: %d E: %5.4f predE: %5.4f ratio: %1.3f gradrms: %1.5f ss: %1.3f DMAX: %1.3f\n' % (molecule.node_id, ostep+1, fx-refE, np.asarray(dEpre).item(), np.asarray(ratio).item(), np.asarray(molecule.gradrms).item(), step, self.DMAX))
 
             gmax = float(np.max(np.absolute(gc)))
             disp = float(np.linalg.norm((xyz-self.xyzp).flatten()))
-            print(" gmax %5.4f disp %5.4f dEstep %5.4f gradrms %5.4f\n" % (gmax, disp, dEstep, molecule.gradrms))
+            print(" gmax %5.4f disp %5.4f dEstep %5.4f gradrms %5.4f\n" % (gmax, disp, dEstep, np.asarray(molecule.gradrms).item()))
             self.converged = False
             if self.opt_cross and abs(dE) < self.conv_dE and molecule.gradrms < self.conv_grms and abs(gmax) < self.conv_gmax and abs(dEstep) < self.conv_Ediff and abs(disp) < self.conv_disp and ls['status'] == 0:
 

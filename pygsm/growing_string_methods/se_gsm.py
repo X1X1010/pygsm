@@ -332,7 +332,7 @@ class SE_GSM(MainGSM):
 
         cgrad = np.linalg.norm(cgrad)*np.sign(overlap)
 
-        print((" cgrad: %4.3f nodemax: %i nR: %i" % (cgrad, nodemax, self.nR)))
+        print((" cgrad: %4.3f nodemax: %i nR: %i" % (np.asarray(cgrad).item(), nodemax, self.nR)))
 
         # 6/17 THIS should check if the last node is high in energy
         if cgrad > CTHRESH and not self.nodes[self.nR-1].PES.lot.do_coupling and nodemax != self.TSnode:

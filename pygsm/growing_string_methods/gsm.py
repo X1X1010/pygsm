@@ -590,7 +590,7 @@ class GSM(object):
                     if current_d > d0:
                         bdist += np.dot(ictan[prim_idx], ictan[prim_idx])
                     if print_level > 0:
-                        print(" bond %s target (less than): %4.3f current d: %4.3f diff: %4.3f " % ((i[1], i[2]), d0, current_d, ictan[prim_idx]))
+                        print(" bond %s target (less than): %4.3f current d: %4.3f diff: %4.3f " % ((i[1], i[2]), d0, current_d, np.asarray(ictan[prim_idx]).item()))
 
                 elif "BREAK" in i:
                     # order indices to avoid duplicate bonds
@@ -613,7 +613,7 @@ class GSM(object):
                         bdist += np.dot(ictan[prim_idx], ictan[prim_idx])
 
                     if print_level > 0:
-                        print(" bond %s target (greater than): %4.3f, current d: %4.3f diff: %4.3f " % ((i[1], i[2]), d0, current_d, ictan[prim_idx]))
+                        print(" bond %s target (greater than): %4.3f, current d: %4.3f diff: %4.3f " % ((i[1], i[2]), d0, current_d, np.asarray(ictan[prim_idx]).item()))
                 elif "ANGLE" in i:
 
                     if i[1] < i[3]:
