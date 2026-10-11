@@ -43,39 +43,15 @@ class SE_Cross(SE_GSM):
         print(' SE_Cross growth phase over')
         print(' Warning last node still not fully optimized')
 
-        if True:
-            path = os.path.join(os.getcwd(), f'scratch/{self.ID:03d}/{self.nR - 1}')
-            # doing extra constrained penalty optimization for MECI
-            print(f' extra constrained optimization for the nnR-1 = {self.nR - 1}')
-            self.optimizer[self.nR - 1].conv_grms = self.options['CONV_TOL'] * 5
+        path = os.path.join(os.getcwd(), f'scratch/{self.ID:03d}/{self.nR - 1}')
+        # doing extra constrained penalty optimization for MECI, tightening the penalty step by step
+        print(f' extra constrained optimization for the nnR-1 = {self.nR - 1}')
+        self.optimizer[self.nR - 1].conv_grms = self.options['CONV_TOL'] * 5
+        for sigma in (1.5, 2.5, 3.5):
             ictan = self.get_tangent_xyz(
                 self.nodes[self.nR - 1].xyz, self.nodes[self.nR - 2].xyz, self.newic.primitive_internal_coordinates
             )
-            self.nodes[self.nR - 1].PES.sigma = 1.5
-            self.optimizer[self.nR - 1].optimize(
-                molecule=self.nodes[self.nR - 1],
-                refE=self.nodes[0].V0,
-                opt_type='ICTAN',
-                opt_steps=5,
-                ictan=ictan,
-                path=path,
-            )
-            ictan = self.get_tangent_xyz(
-                self.nodes[self.nR - 1].xyz, self.nodes[self.nR - 2].xyz, self.newic.primitive_internal_coordinates
-            )
-            self.nodes[self.nR - 1].PES.sigma = 2.5
-            self.optimizer[self.nR - 1].optimize(
-                molecule=self.nodes[self.nR - 1],
-                refE=self.nodes[0].V0,
-                opt_type='ICTAN',
-                opt_steps=5,
-                ictan=ictan,
-                path=path,
-            )
-            ictan = self.get_tangent_xyz(
-                self.nodes[self.nR - 1].xyz, self.nodes[self.nR - 2].xyz, self.newic.primitive_internal_coordinates
-            )
-            self.nodes[self.nR - 1].PES.sigma = 3.5
+            self.nodes[self.nR - 1].PES.sigma = sigma
             self.optimizer[self.nR - 1].optimize(
                 molecule=self.nodes[self.nR - 1],
                 refE=self.nodes[0].V0,

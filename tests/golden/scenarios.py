@@ -449,13 +449,13 @@ def mecp_penalty_ethylene():
 # ---------------------------------------------------------------------------
 
 
-def _cli(argv):
+def _cli(argv, result_file='TSnode_0.xyz'):
     from pygsm.cli import main
     from pygsm.utilities import manage_xyz
 
     with _quiet():
         main(argv)
-    ts = manage_xyz.read_xyzs('TSnode_0.xyz')[0]
+    ts = manage_xyz.read_xyzs(result_file)[0]
     return {'ts_xyz': _xyz(ts)}
 
 
@@ -487,6 +487,19 @@ def cli_se_gsm():
     ])  # fmt: skip
 
 
+def cli_se_cross():
+    """Singlet/triplet crossing search on twisted ethylene (SE-Cross, penalty PES, native xTB)."""
+    xyz = str(DATA_DIR / 'ethylene.xyz')
+    Path('isomers.txt').write_text('TORSION 2 1 4 5 90.0\n')
+    return _cli(
+        [
+            '-xyzfile', xyz, '-mode', 'SE_Cross', '-isomers', 'isomers.txt', '-package', 'xTB',
+            '-multiplicity', '1', '3', '-adiabatic_index', '0', '0', '-num_nodes', '20', '-max_gsm_iters', '15',
+        ],
+        result_file='meci_0.xyz',
+    )  # fmt: skip
+
+
 SCENARIOS = {
     fn.__name__: fn
     for fn in (
@@ -508,5 +521,6 @@ SCENARIOS = {
         cli_de_gsm,
         cli_de_gsm_xtb,
         cli_se_gsm,
+        cli_se_cross,
     )
 }

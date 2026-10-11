@@ -15,37 +15,19 @@ class DE_GSM(MainGSM):
         print(' Assuming primitives are union!')
         print(' number of primitives is', self.nodes[0].num_primitives)
 
-    # TODO Change rtype to a more meaningful argument name
-    def go_gsm(self, max_iters=50, opt_steps=3, rtype=2):
-        """
-        rtype=2 Find and Climb TS,
-        1 Climb with no exact find,
-        0 turning of climbing image and TS search
-        """
-        self.set_V0()
+    def _grow_phase(self, max_iters, opt_steps):
+        if self.growth_direction == 0:
+            self.add_GSM_nodes(2)
+        elif self.growth_direction == 1:
+            self.add_GSM_nodeR(1)
+        elif self.growth_direction == 2:
+            self.add_GSM_nodeP(1)
 
-        if not self.isRestarted:
-            if self.growth_direction == 0:
-                self.add_GSM_nodes(2)
-            elif self.growth_direction == 1:
-                self.add_GSM_nodeR(1)
-            elif self.growth_direction == 2:
-                self.add_GSM_nodeP(1)
+        self.grow_string(max_iters=max_iters, max_opt_steps=opt_steps)
+        output.printcool('Done Growing the String!!!')
+        self.done_growing = True
 
-            # Grow String
-            self.grow_string(max_iters=max_iters, max_opt_steps=opt_steps)
-            output.printcool('Done Growing the String!!!')
-            self.done_growing = True
-
-            self.reparameterize()
-
-        if self.tscontinue:
-            self.optimize_string(max_iter=max_iters, opt_steps=opt_steps, rtype=rtype)
-        else:
-            print('Exiting early')
-            self.end_early = True
-
-        print('Finished GSM!')
+        self.reparameterize()
 
     def add_GSM_nodes(self, newnodes=1):
         if self.current_nnodes + newnodes > self.nnodes:

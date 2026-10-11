@@ -44,81 +44,70 @@ class SE_GSM(MainGSM):
         # TODO should be actual gradient
         self.nodes[0].gradrms = 0.0
 
-    def go_gsm(self, max_iters=50, opt_steps=10, rtype=2):
-        """
-        rtype=2 Find and Climb TS,
-        1 Climb with no exact find,
-        0 turning of climbing image and TS search
-        """
-        self.set_V0()
+    default_growth_opt_steps = 10
 
-        if self.isRestarted is False:
-            self.nodes[0].gradrms = 0.0
-            self.nodes[0].V0 = self.nodes[0].energy
-            print(f' Initial energy is {self.nodes[0].energy:1.4f}')
-            self.add_GSM_nodeR()
-            self.grow_string(max_iters=max_iters, max_opt_steps=opt_steps)
-            if self.tscontinue:
-                self.pastts = self.past_ts()
-                print(f'pastts {self.pastts}')
-                try:
-                    if self.pastts == 1:  # normal over the hill
-                        self.add_GSM_nodeR(1)
-                        self.add_last_node(2)
-                    elif self.pastts == 2 or self.pastts == 3:  # when cgrad is positive
-                        self.add_last_node(1)
-                        if self.nodes[self.nR - 1].gradrms > 5.0 * self.options['CONV_TOL']:
-                            self.add_last_node(1)
-                    elif self.pastts == 3:  # product detected by bonding
-                        self.add_last_node(1)
-                except (IndexError, RuntimeError, ValueError) as error:
-                    print(f'Failed to add last node, continuing: {error}')
-                    # probably need to make sure last node is optimized
-
-            self.nnodes = self.nR
-            self.nodes = self.nodes[: self.nR]
-            energies = self.energies
-
-            if self.TSnode == self.nR - 1:
-                print(' The highest energy node is the last')
-                print(' not continuing with TS optimization.')
-                self.tscontinue = False
-
-            print(' Number of nodes is ', self.nnodes)
-            print(' Warning last node still not optimized fully')
-            self.xyz_writer(f'grown_string_{self.ID:03}.xyz', self.geometries, self.energies, self.gradrmss, self.dEs)
-            print(' SSM growth phase over')
-            self.done_growing = True
-
-            print(' beginning opt phase')
-            print('Setting all interior nodes to active')
-            for n in range(1, self.nnodes - 1):
-                self.active[n] = True
-            self.active[self.nnodes - 1] = False
-            self.active[0] = False
-
-        if not self.isRestarted:
-            print(' initial ic_reparam')
-            self.reparameterize(ic_reparam_steps=25)
-            print(' V_profile (after reparam): ', end=' ')
-            energies = self.energies
-            for n in range(self.nnodes):
-                print(f' {float(energies[n]):7.3f}', end=' ')
-            print()
-            self.xyz_writer(f'grown_string1_{self.ID:03}.xyz', self.geometries, self.energies, self.gradrmss, self.dEs)
-
+    def _grow_phase(self, max_iters, opt_steps):
+        self.nodes[0].gradrms = 0.0
+        self.nodes[0].V0 = self.nodes[0].energy
+        print(f' Initial energy is {self.nodes[0].energy:1.4f}')
+        self.add_GSM_nodeR()
+        self.grow_string(max_iters=max_iters, max_opt_steps=opt_steps)
         if self.tscontinue:
-            self.optimize_string(
-                max_iter=max_iters, opt_steps=3, rtype=rtype
-            )  # opt steps fixed at 3 for rtype=1 and 2, else set it to be the large number :) muah hahaahah
-        else:
-            print('Exiting early')
-            self.end_early = True
+            self.pastts = self.past_ts()
+            print(f'pastts {self.pastts}')
+            try:
+                if self.pastts == 1:  # normal over the hill
+                    self.add_GSM_nodeR(1)
+                    self.add_last_node(2)
+                elif self.pastts == 2 or self.pastts == 3:  # when cgrad is positive
+                    self.add_last_node(1)
+                    if self.nodes[self.nR - 1].gradrms > 5.0 * self.options['CONV_TOL']:
+                        self.add_last_node(1)
+                elif self.pastts == 3:  # product detected by bonding
+                    self.add_last_node(1)
+            except (IndexError, RuntimeError, ValueError) as error:
+                print(f'Failed to add last node, continuing: {error}')
+                # probably need to make sure last node is optimized
 
+        self.nnodes = self.nR
+        self.nodes = self.nodes[: self.nR]
+        energies = self.energies
+
+        if self.TSnode == self.nR - 1:
+            print(' The highest energy node is the last')
+            print(' not continuing with TS optimization.')
+            self.tscontinue = False
+
+        print(' Number of nodes is ', self.nnodes)
+        print(' Warning last node still not optimized fully')
+        self.xyz_writer(f'grown_string_{self.ID:03}.xyz', self.geometries, self.energies, self.gradrmss, self.dEs)
+        print(' SSM growth phase over')
+        self.done_growing = True
+
+        print(' beginning opt phase')
+        print('Setting all interior nodes to active')
+        for n in range(1, self.nnodes - 1):
+            self.active[n] = True
+        self.active[self.nnodes - 1] = False
+        self.active[0] = False
+
+        print(' initial ic_reparam')
+        self.reparameterize(ic_reparam_steps=25)
+        print(' V_profile (after reparam): ', end=' ')
+        energies = self.energies
+        for n in range(self.nnodes):
+            print(f' {float(energies[n]):7.3f}', end=' ')
+        print()
+        self.xyz_writer(f'grown_string1_{self.ID:03}.xyz', self.geometries, self.energies, self.gradrmss, self.dEs)
+
+    def _string_opt_steps(self, opt_steps):
+        # opt steps are fixed at 3 in the optimisation phase
+        return 3
+
+    def _finish(self):
         filename = f'opt_converged_{self.ID:03d}.xyz'
         print(' Printing string to ' + filename)
         self.xyz_writer(filename, self.geometries, self.energies, self.gradrmss, self.dEs)
-        print('Finished GSM!')
 
     def add_last_node(self, rtype):
         assert rtype == 1 or rtype == 2, 'rtype must be 1 or 2'
