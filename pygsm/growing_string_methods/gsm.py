@@ -9,7 +9,7 @@ from typing import List
 import numpy as np
 
 from pygsm.coordinate_systems import Distance, Angle, Dihedral, OutOfPlane
-from pygsm.utilities import nifty, options, block_matrix
+from pygsm.utilities import output, options
 from pygsm.molecule import Molecule
 from pygsm.utilities.manage_xyz import write_molden_geoms
 from ._shared import worker
@@ -36,13 +36,11 @@ class GSM(object):
         opt.add_option(
             key='reactant',
             required=True,
-            # allowed_types=[Molecule,wrappers.Molecule],
             doc='Molecule object as the initial reactant structure')
 
         opt.add_option(
             key='product',
             required=False,
-            # allowed_types=[Molecule,wrappers.Molecule],
             doc='Molecule object for the product structure (not required for single-ended methods.')
 
         opt.add_option(
@@ -184,11 +182,6 @@ class GSM(object):
     @classmethod
     def from_options(cls, **kwargs):
         return cls(cls.default_options().set_values(kwargs))
-
-    @classmethod
-    def copy_from_options(cls, gsm_obj, reactant, product):
-        new_gsm = cls.from_options(gsm_obj.options.copy().set_values({'reactant': reactant, 'product': product}))
-        return new_gsm
 
     def __init__(
             self,
@@ -371,18 +364,6 @@ class GSM(object):
         self._dqmaga = value
 
     @staticmethod
-    def add_xyz_along_tangent(
-            xyz1,
-            constraints,
-            step,
-            coord_obj,
-    ):
-        dq0 = step*constraints
-        new_xyz = coord_obj.newCartesian(xyz1, dq0)
-
-        return new_xyz
-
-    @staticmethod
     def add_node(
             nodeR,
             nodeP,
@@ -437,7 +418,6 @@ class GSM(object):
             constraint = nodeR.constraints[:, 0]
             dqmag = np.linalg.norm(ictan)
             print(f" dqmag: {dqmag:1.3f}")
-            # sign=-1
             sign = 1.
             dqmag *= (sign*stepsize)
             print(f" scaled dqmag: {dqmag:1.3f}")
@@ -448,75 +428,6 @@ class GSM(object):
             new_node = Molecule.copy_from_options(MoleculeA=nodeR, xyz=new_xyz, new_node_id=node_id)
 
         return new_node
-
-    @staticmethod
-    def interpolate_xyz(nodeR, nodeP, stepsize):
-        '''
-        Interpolate between two nodes
-        '''
-        ictan, _ = GSM.get_tangent(nodeR, nodeP)
-        Vecs = nodeR.update_coordinate_basis(constraints=ictan)
-        constraint = nodeR.constraints[:, 0]
-        prim_constraint = block_matrix.dot(Vecs, constraint)
-        dqmag = np.dot(prim_constraint.T, ictan)
-        print(f" dqmag: {dqmag:1.3f}")
-        # sign=-1
-        sign = 1.
-        dqmag *= (sign*stepsize)
-        print(f" scaled dqmag: {dqmag:1.3f}")
-
-        dq0 = dqmag*constraint
-        old_xyz = nodeR.xyz.copy()
-        new_xyz = nodeR.coord_obj.newCartesian(old_xyz, dq0)
-
-        return new_xyz
-
-    @staticmethod
-    def interpolate(start_node, end_node, num_interp):
-        '''
-    
-        '''
-        nifty.printcool(" interpolate")
-
-        num_nodes = num_interp + 2
-        nodes = [None]*(num_nodes)
-        nodes[0] = start_node
-        nodes[-1] = end_node
-        sign = 1
-        nR = 1
-        nP = 1
-        nn = nR + nP
-
-        for n in range(num_interp):
-            if num_nodes - nn > 1:
-                stepsize = 1./float(num_nodes - nn)
-            else:
-                stepsize = 0.5
-            if sign == 1:
-                iR = nR-1
-                iP = num_nodes - nP
-                iN = nR
-                nodes[nR] = GSM.add_node(nodes[iR], nodes[iP], stepsize, iN)
-                if nodes[nR] is None:
-                    raise RuntimeError
-
-                # print(" Energy of node {} is {:5.4}".format(nR,nodes[nR].energy-E0))
-                nR += 1
-                nn += 1
-
-            else:
-                n1 = num_nodes - nP
-                n2 = n1 - 1
-                n3 = nR - 1
-                nodes[n2] = GSM.add_node(nodes[n1], nodes[n3], stepsize, n2)
-                if nodes[n2] is None:
-                    raise RuntimeError
-                # print(" Energy of node {} is {:5.4}".format(nR,nodes[nR].energy-E0))
-                nP += 1
-                nn += 1
-            sign *= -1
-
-        return nodes
 
     @staticmethod
     def get_tangent_xyz(xyz1, xyz2, prim_coords):
@@ -553,13 +464,12 @@ class GSM(object):
             assert driving_coords is not None, " Driving coord is None!"
 
             c = Counter(elem[0] for elem in driving_coords)
-            nadds = c['ADD']
-            nbreaks = c['BREAK']
-            nangles = c['nangles']
-            ntorsions = c['ntorsions']
+            c['ADD']
+            c['BREAK']
+            c['nangles']
+            c['ntorsions']
 
             ictan = np.zeros((node1.num_primitives, 1), dtype=float)
-            # breakdq = 0.3
             bdist = 0.0
             atoms = node1.atoms
             xyz = node1.xyz.copy()
@@ -585,7 +495,6 @@ class GSM(object):
                     # TODO don't set tangent if value is too small
                     ictan[prim_idx] = -1*(d0-current_d)
                     # if nbreaks>0:
-                    #    ictan[prim_idx] *= 2
                     # => calc bdist <=
                     if current_d > d0:
                         bdist += np.dot(ictan[prim_idx], ictan[prim_idx])
@@ -625,13 +534,11 @@ class GSM(object):
                     anglet = i[4]
                     ang_value = angle.value(xyz)
                     ang_diff = anglet*np.pi/180. - ang_value
-                    # print(" angle: %s is index %i " %(angle,ang_idx))
                     if print_level > 0:
                         print((f" anglev: {ang_value:4.3f} align to {anglet:4.3f} diff(rad): {ang_diff:4.3f}"))
                     ictan[prim_idx] = -ang_diff
                     # TODO need to come up with an adist
                     # if abs(ang_diff)>0.1:
-                    #    bdist+=ictan[ICoord1.BObj.nbonds+ang_idx]*ictan[ICoord1.BObj.nbonds+ang_idx]
                 elif "TORSION" in i:
 
                     if i[1] < i[4]:
@@ -693,7 +600,6 @@ class GSM(object):
             ictan[n] = GSM.get_tangent_xyz(nodes[n-1].xyz, nodes[n].xyz, nodes[0].primitive_internal_coordinates)
 
             dqmaga[n] = 0.
-            # ictan0= np.copy(ictan[n])
             dqmaga[n] = np.linalg.norm(ictan[n])
 
             ictan[n] /= dqmaga[n]
@@ -701,22 +607,13 @@ class GSM(object):
             # NOTE:
             # vanilla GSM has a strange metric for distance
             # no longer following 7/1/2020
-            # constraint = self.newic.constraints[:,0]
             # just a fancy way to get the normalized tangent vector
-            # prim_constraint = block_matrix.dot(Vecs,constraint)
             # for prim in self.newic.primitive_internal_coordinates:
             #    if type(prim) is Distance:
-            #        index = self.newic.coord_obj.Prims.dof_index(prim)
-            #        prim_constraint[index] *= 2.5
-            # dqmaga[n] = float(np.dot(prim_constraint.T,ictan0))
-            # dqmaga[n] = float(np.sqrt(dqmaga[n]))
             if dqmaga[n] < 0.:
                 raise RuntimeError
 
         # TEMPORORARY parallel idea
-        # ictan = [0.]
-        # ictan += [ Process(target=get_tangent,args=(n,)) for n in range(n0+1,self.nnodes)]
-        # dqmaga = [ Process(target=get_dqmag,args=(n,ictan[n])) for n in range(n0+1,self.nnodes)]
 
         if print_level > 1:
             print('------------printing ictan[:]-------------')
@@ -740,7 +637,6 @@ class GSM(object):
         nnodes = len(nodes)
         ictan = [[]]*nnodes
         dqmaga = [0.]*nnodes
-        # TSnode = np.argmax(energies[1:nnodes-1])+1
         TSnode = np.argmax(energies)   # allow for the possibility of TS node to be endpoints?
 
         last_node_max = (TSnode == nnodes-1)
@@ -760,8 +656,6 @@ class GSM(object):
                 newic_n = n
 
                 # old way
-                # intic_n = n
-                # newic_n = n+1
 
             elif n > TSnode:
                 # The order is very important here
@@ -817,7 +711,7 @@ class GSM(object):
         ic_reparam_steps : int max number of reparameterization steps
         print_level : int verbosity
         '''
-        nifty.printcool("reparametrizing string nodes")
+        output.printcool("reparametrizing string nodes")
 
         nnodes = len(nodes)
         rpart = np.zeros(nnodes)
@@ -894,7 +788,6 @@ class GSM(object):
                     print(f" step [{n}]: {deltadqs[n]:1.3f}", end=' ')
                 print()
 
-            # disprms = np.linalg.norm(deltadqs)/np.sqrt(nnodes-1)
             disprms = np.linalg.norm(deltadqs)/np.sqrt(nnodes-1)
             print(f" disprms: {disprms:1.3}\n")
 
@@ -938,7 +831,6 @@ class GSM(object):
                 else:
                     for n in chain(range(1, TSnode), range(TSnode+1, nnodes-1)):
                         if deltadqs[n] < 0:
-                            # print(f" Moving node {n} along tan[{n}] this much {deltadqs[n]}")
                             print(f" Moving node {n} along tan[{n}] this much {deltadqs[n]}")
                             nodes[n].update_coordinate_basis(ictan[n])
                             constraint = nodes[n].constraints[:, 0]
@@ -982,7 +874,6 @@ class GSM(object):
                 else:
                     for n in range(1, nnodes-1):
                         if deltadqs[n] < 0:
-                            # print(f" Moving node {n} along tan[{n}] this much {deltadqs[n]}")
                             print(f" Moving node {n} along tan[{n}] this much {deltadqs[n]}")
                             nodes[n].update_coordinate_basis(ictan[n])
                             constraint = nodes[n].constraints[:, 0]
@@ -1043,61 +934,23 @@ class GSM(object):
     #    '''
     #
     #    # Get the information on fragment to rotate
-    #    sa,ea,sp,ep = self.nodes[0].coord_obj.Prims.prim_only_block_info[frag]
     #
-    #    theta = 0.
     #    # Haven't added any nodes yet
     #    if self.nR==1:
-    #        return theta
 
     #    for n in range(1,self.nR):
-    #        xyz_frag = self.nodes[n].xyz[sa:ea].copy()
-    #        axis = self.nodes[n].xyz[a2] - self.nodes[n].xyz[a1]
-    #        axis /= np.linalg.norm(axis)
     #
     #        # only want the fragment of interest
-    #        reference_xyz = self.nodes[n-1].xyz.copy()
 
     #        # Turn off
-    #        ref_axis = reference_xyz[a2] - reference_xyz[a1]
-    #        ref_axis /= np.linalg.norm(ref_axis)
 
     #        # ALIGN previous and current node to get rotation around axis of rotation
-    #        #print(' Rotating reference axis to current axis')
-    #        I = np.eye(3)
-    #        v = np.cross(ref_axis,axis)
     #        if v.all()==0.:
-    #            print('Rotation is identity')
-    #            R=I
-    #        else:
-    #            vx = np.array([[0, -v[2], v[1]], [v[2], 0, -v[0]], [-v[1], v[0], 0]])
-    #            c = np.dot(ref_axis,axis)
-    #            s = np.linalg.norm(v)
-    #            R = I + vx + np.dot(vx,vx) * (1. - c)/(s**2)
-    #        new_ref_axis = np.dot(ref_axis,R.T)
-    #        #print(' overlap of ref-axis and axis (should be 1.) %1.2f' % np.dot(new_ref_axis,axis))
-    #        new_ref_xyz = np.dot(reference_xyz,R.T)
 
     #
     #        # Calculate dtheta
-    #        ca = self.nodes[n].primitive_internal_coordinates[sp+3]
-    #        cb = self.nodes[n].primitive_internal_coordinates[sp+4]
-    #        cc = self.nodes[n].primitive_internal_coordinates[sp+5]
-    #        dv12_a = ca.calcDiff(self.nodes[n].xyz,new_ref_xyz)
-    #        dv12_b = cb.calcDiff(self.nodes[n].xyz,new_ref_xyz)
-    #        dv12_c = cc.calcDiff(self.nodes[n].xyz,new_ref_xyz)
-    #        dv12 = np.array([dv12_a,dv12_b,dv12_c])
-    #        #print(dv12)
-    #        dtheta = np.linalg.norm(dv12)  #?
     #
-    #        dtheta = dtheta + np.pi % (2*np.pi) - np.pi
-    #        theta += dtheta
 
-    #    theta = theta/ca.w
-    #    angle = theta * 180./np.pi
-    #    print(angle)
-
-    #    return theta
 
     @staticmethod
     def calc_optimization_metrics(nodes: List[Molecule]):

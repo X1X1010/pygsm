@@ -452,6 +452,15 @@ def cli_de_gsm():
     ])  # fmt: skip
 
 
+def cli_de_gsm_xtb():
+    """DE-GSM through the native tblite-backed xTB level of theory."""
+    xyz = str(DATA_DIR / 'diels_alder.xyz')
+    return _cli([
+        '-xyzfile', xyz, '-mode', 'DE_GSM', '-package', 'xTB',
+        '-num_nodes', '9', '-max_gsm_iters', '15', '-reactant_geom_fixed', '-product_geom_fixed',
+    ])  # fmt: skip
+
+
 def cli_se_gsm():
     xyz = str(DATA_DIR / 'diels_alder.xyz')
     Path('isomers.txt').write_text('ADD 4 12\nADD 1 11\n')
@@ -480,6 +489,7 @@ SCENARIOS = {
         segsm_ef,
         mecp_penalty_ethylene,
         cli_de_gsm,
+        cli_de_gsm_xtb,
         cli_se_gsm,
     )
 }

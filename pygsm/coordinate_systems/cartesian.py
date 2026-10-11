@@ -25,7 +25,6 @@ class CartesianCoordinates(InternalCoordinates):
             self.Prims.add(CartesianY(i, w=1.0))
             self.Prims.add(CartesianZ(i, w=1.0))
         #if 'constraints' in kwargs and kwargs['constraints'] is not None:
-        #    raise RuntimeError('Do not use constraints with Cartesian coordinates')
 
         self.Vecs = np.eye(3 * self.natoms)
 

@@ -12,8 +12,9 @@ from pygsm.coordinate_systems import DelocalizedInternalCoordinates, Distance, P
 from pygsm.growing_string_methods import DE_GSM, SE_Cross, SE_GSM
 from pygsm.molecule import Molecule
 from pygsm.potential_energy_surfaces import Penalty_PES
-from pygsm.utilities import elements, manage_xyz, nifty
-from pygsm.utilities.cli_utils import get_driving_coord_prim, plot
+from pygsm.utilities import elements, manage_xyz, output
+from pygsm.coordinate_systems.primitive_internals import get_driving_coord_prim
+from pygsm.utilities.cli_utils import plot
 from pygsm.utilities.manage_xyz import XYZ_WRITERS
 
 from .arguments import parse_arguments
@@ -72,12 +73,12 @@ def _build_topology_data(inpfileq: dict, geoms):
 
     hybrid_indices = _read_index_list(inpfileq['hybrid_coord_idx_file'])
     if hybrid_indices is not None:
-        nifty.printcool(' Using Hybrid COORDINATES :)')
+        output.printcool(' Using Hybrid COORDINATES :)')
         assert inpfileq['coordinate_type'] == 'TRIC', "hybrid indices won't work (currently) with other coordinate systems"
 
     prim_indices = _read_primitive_regions(inpfileq['prim_idx_file'])
     if prim_indices is not None:
-        nifty.printcool(' Defining primitive internal region :)')
+        output.printcool(' Defining primitive internal region :)')
         assert inpfileq['coordinate_type'] == 'TRIC', "won't work (currently) with other coordinate systems"
         print(prim_indices)
 
@@ -129,7 +130,7 @@ def _build_topology_data(inpfileq: dict, geoms):
 def _build_coordinate_object(inpfileq: dict, atoms, xyz1, xyz2, top1, hybrid_indices, driving_coord_prims):
     connect, addtr, addcart = _coordinate_flags(inpfileq['coordinate_type'])
 
-    nifty.printcool('Building Primitive Internal Coordinates')
+    output.printcool('Building Primitive Internal Coordinates')
     p1 = PrimitiveInternalCoordinates.from_options(
         xyz=xyz1,
         atoms=atoms,
@@ -144,7 +145,7 @@ def _build_coordinate_object(inpfileq: dict, atoms, xyz1, xyz2, top1, hybrid_ind
     print(' done making primitives p1')
 
     if inpfileq['gsm_type'] == 'DE_GSM':
-        nifty.printcool('Building Primitive Internal Coordinates 2')
+        output.printcool('Building Primitive Internal Coordinates 2')
         p2 = PrimitiveInternalCoordinates.from_options(
             xyz=xyz2,
             atoms=atoms,
@@ -157,7 +158,7 @@ def _build_coordinate_object(inpfileq: dict, atoms, xyz1, xyz2, top1, hybrid_ind
             p2.get_hybrid_indices(xyz2)
         p2.newMakePrimitives(xyz2)
         print(' done making primitives p2')
-        nifty.printcool('Forming Union of Primitives')
+        output.printcool('Forming Union of Primitives')
         p1.add_union_primitives(p2)
         print(f'check {len(p1.Internals)}')
     else:
@@ -168,7 +169,7 @@ def _build_coordinate_object(inpfileq: dict, atoms, xyz1, xyz2, top1, hybrid_ind
                 print(f'Adding driving coord prim {primitive} to Internals')
                 p1.append_prim_to_block(primitive)
 
-    nifty.printcool('Building Delocalized Internal Coordinates')
+    output.printcool('Building Delocalized Internal Coordinates')
     return DelocalizedInternalCoordinates.from_options(
         xyz=xyz1,
         atoms=atoms,
@@ -264,7 +265,7 @@ def main(argv: Sequence[str] | None = None):
     else:
         geoms = manage_xyz.read_xyzs(inpfileq['xyzfile'])
 
-    nifty.printcool(f"Build the {inpfileq['EST_Package']} level of theory (LOT) object")
+    output.printcool(f"Build the {inpfileq['EST_Package']} level of theory (LOT) object")
     lot = create_lot(inpfileq, geoms[0])
 
     if inpfileq['gsm_type'] == 'SE_Cross' and inpfileq['PES_type'] != 'Penalty_PES':
@@ -274,17 +275,17 @@ def main(argv: Sequence[str] | None = None):
         assert inpfileq['PES_type'] == 'Penalty_PES', 'Need penalty pes for optimizing MESX/MECI'
 
     _load_pes_side_inputs(inpfileq)
-    nifty.printcool(f"Building the {inpfileq['PES_type']} objects")
+    output.printcool(f"Building the {inpfileq['PES_type']} objects")
     pes = choose_pes(lot, inpfileq)
 
     form_hessian = inpfileq['optimizer'] == 'eigenvector_follow'
     frozen_indices = _read_index_list(inpfileq['frozen_coord_idx_file'])
 
-    nifty.printcool('Building the topology')
+    output.printcool('Building the topology')
     atoms, xyz1, xyz2, top1, hybrid_indices, driving_coordinates, driving_coord_prims = _build_topology_data(inpfileq, geoms)
     coord_obj1 = _build_coordinate_object(inpfileq, atoms, xyz1, xyz2, top1, hybrid_indices, driving_coord_prims)
 
-    nifty.printcool(f"Building the reactant object with {inpfileq['coordinate_type']}")
+    output.printcool(f"Building the reactant object with {inpfileq['coordinate_type']}")
     reactant = Molecule.from_options(
         geom=geoms[0],
         PES=pes,
@@ -295,7 +296,7 @@ def main(argv: Sequence[str] | None = None):
 
     product = None
     if inpfileq['gsm_type'] == 'DE_GSM':
-        nifty.printcool('Building the product object')
+        output.printcool('Building the product object')
         product = Molecule.copy_from_options(
             reactant,
             xyz=xyz2,
@@ -303,10 +304,10 @@ def main(argv: Sequence[str] | None = None):
             copy_wavefunction=False,
         )
 
-    nifty.printcool('Building the Optimizer object')
+    output.printcool('Building the Optimizer object')
     optimizer = choose_optimizer(inpfileq)
 
-    nifty.printcool('Building the GSM object')
+    output.printcool('Building the GSM object')
     gsm = _build_gsm(inpfileq, reactant, product, optimizer, driving_coordinates)
 
     if inpfileq['only_drive']:
@@ -320,12 +321,12 @@ def main(argv: Sequence[str] | None = None):
 
     if not inpfileq['reactant_geom_fixed'] and inpfileq['gsm_type'] != 'SE_Cross':
         path = os.path.join(os.getcwd(), f"scratch/{inpfileq['ID']:03}/0")
-        nifty.printcool('REACTANT GEOMETRY NOT FIXED!!! OPTIMIZING')
+        output.printcool('REACTANT GEOMETRY NOT FIXED!!! OPTIMIZING')
         _optimize_endpoint_if_needed(optimizer, reactant, reactant.energy, 100, path)
 
     if product is not None and not inpfileq['product_geom_fixed']:
         path = os.path.join(os.getcwd(), f"scratch/{inpfileq['ID']:03}/{inpfileq['num_nodes'] - 1}")
-        nifty.printcool('PRODUCT GEOMETRY NOT FIXED!!! OPTIMIZING')
+        output.printcool('PRODUCT GEOMETRY NOT FIXED!!! OPTIMIZING')
         _optimize_endpoint_if_needed(optimizer, product, reactant.energy, 100, path)
 
     if inpfileq['max_opt_steps'] is None:
@@ -384,7 +385,7 @@ def read_isomers_file(isomers_file):
                     driving_coordinate.append(int(entry))
         driving_coordinates.append(driving_coordinate)
 
-    nifty.printcool(f'driving coordinates {driving_coordinates}')
+    output.printcool(f'driving coordinates {driving_coordinates}')
     return driving_coordinates
 
 

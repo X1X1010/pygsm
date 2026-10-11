@@ -2,8 +2,7 @@
 import numpy as np
 
 # local application imports
-from ..coordinate_systems import rotate
-from ..utilities import elements, manage_xyz, options, units
+from ..utilities import elements, options, units
 ELEMENT_TABLE = elements.ElementData()
 
 
@@ -103,56 +102,6 @@ class PES(object):
     #def energy(self):
     #    if self.lot.Energies:
     #        # if E is property and a dictionary
-    #        return self.lot.Energies[(self.multiplicity,self.ad_idx)].value
-    #    else:
-    #        return 0.
-
-    def create_2dgrid(self,
-                      xyz,
-                      xvec,
-                      yvec,
-                      nx,
-                      ny,
-                      xmin=-1.,
-                      ymin=-1.,
-                      xmax=1.,
-                      ymax=1.
-                      ):
-        xyz = xyz.flatten()
-        # create the scalar values in the grid from 0 to mag
-        x = np.linspace(xmin, xmax, nx)
-        y = np.linspace(ymin, ymax, ny)
-        xv, yv = np.meshgrid(x, y)
-        # create the xyz coordinates and save as a tensor
-        xyz_grid = np.zeros((xv.shape[0], xv.shape[1], xvec.shape[0]))
-        rc = 0
-        for xrow, yrow in zip(xv, yv):
-            cc = 0
-            for xx, yy in zip(xrow, yrow):
-                xyz_grid[rc, cc, :] = xx*xvec + yy*yvec + xyz
-                cc += 1
-            rc += 1
-        return xyz_grid, xv, yv
-
-    def fill_energy_grid2d(self,
-                           xyz_grid
-                           ):
-
-        assert xyz_grid.shape[-1] == len(self.lot.geom)*3, "xyz nneds to be 3*natoms long"
-        assert xyz_grid.ndim == 3, " xyzgrid needs to be a tensor with 3 dimensions"
-
-        nx, ny = xyz_grid.shape[:1]
-        energies = np.zeros((nx, ny))
-        rc = 0
-        for mat in xyz_grid:
-            cc = 0
-            for row in mat:
-                xyz = np.reshape(row, (-1, 3))
-                energies[rc, cc] = self.lot.get_energy(xyz, self.multiplicity, self.ad_idx, runtype='energy')
-                cc += 1
-            rc += 1
-
-        return energies
 
     def get_energy(self, xyz):
         fdE = 0.
@@ -162,7 +111,6 @@ class PES(object):
                 diff = (xyz[i[0]] - xyz[i[1]])
                 d = np.linalg.norm(diff)*units.ANGSTROM_TO_AU  # AU
                 fdE += force*d*units.KCAL_MOL_PER_AU
-                # print(" Force energy: {} kcal/mol".format(fdE))
         kdE = 0.
         if self.RESTRAINTS is not None:
             for i in self.RESTRAINTS:
@@ -192,7 +140,6 @@ class PES(object):
                     n1_region.append(n*3+j)
             print('n1_region')
             print(n1_region)
-            # hess = np.zeros((len(coords[qm_region])*3,len(coords[qm_region])*3))
             hess = np.zeros((len(n1_region), len(n1_region)))
         print("hess shape", hess.shape)
 
@@ -207,7 +154,6 @@ class PES(object):
                 print("on hessian product ", n)
                 row = gen_row(n)
                 ans = self.get_finite_difference_hessian_product(coords, row)
-                # hess[n_actual] = np.squeeze(self.get_finite_difference_hessian_product(coords,row))
                 hess[n_actual] = np.squeeze(ans[n1_region])
                 n_actual += 1
         return hess
@@ -228,62 +174,6 @@ class PES(object):
         grad_bwd = self.get_gradient(bwd_coords)/units.ANGSTROM_TO_AU
 
         return (grad_fwd-grad_bwd)/(FD_STEP_LENGTH*2)
-
-    @staticmethod
-    def normal_modes(
-            geom,       # Optimized geometry in au
-            hess,       # Hessian matrix in au
-            masses,     # Masses in au
-    ):
-        """
-        Params:
-            geom ((natoms,4) np.ndarray) - atoms symbols and xyz coordinates
-            hess ((natoms*3,natoms*3) np.ndarray) - molecule hessian
-            masses ((natoms) np.ndarray) - masses
-        Returns:
-            w ((natoms*3 - 6) np.ndarray)  - normal frequencies
-            Q ((natoms*3, natoms*3 - 6) np.ndarray)  - normal modes
-        """
-
-        # masses repeated 3x for each atom (unravels)
-        m = np.ravel(np.outer(masses, [1.0]*3))
-
-        # mass-weight hessian
-        hess2 = hess / np.sqrt(np.outer(m, m))
-
-        # Find normal modes (project translation/rotations before)
-        # B = 3N,3N-6
-        B = rotate.vibrational_basis(geom, masses)
-        h, U3 = np.linalg.eigh(np.dot(B.T, np.dot(hess2, B)))
-        # U3 = (3N-6,3N)(3N,3N)(3N-6,3N) = 3N-6,3N
-        U = np.dot(B, U3)
-        # U = (3N,3N-6),(3N-6,3N)
-
-        # # TEST: Find normal modes (without projection translations/rotations)
-        # # RMP: Matches TC output for PYP - same differences before/after projection
-        # h2, U2 = np.linalg.eigh(hess2)
-        # h3 = h2[:6]
-        # for hval in h3:
-        #    print(hval)
-
-        # h2 = h2[6:]
-        # U2 = U2[:,6:]
-        # for hval, hval2 in zip(h,h2):
-        #    #wval = np.sqrt(hval) / units['au_per_cminv']
-        #    wval = np.sqrt(hval) * units.INV_CM_PER_AU
-        #    #wval2 = np.sqrt(hval2) / units['au_per_cminv']
-        #    wval2 = np.sqrt(hval2) *units.INV_CM_PER_AU
-        #    print('%10.6E %10.6E %11.3E' % (wval, wval2, np.abs(wval - wval2)))
-
-        # Normal frequencies
-        w = np.sqrt(h)
-        # Imaginary frequencies
-        w[h < 0.0] = -np.sqrt(-h[h < 0.0])
-
-        # Normal modes
-        Q = U / np.outer(np.sqrt(m), np.ones((U.shape[1],)))
-
-        return w, Q
 
     def get_gradient(self, xyz, frozen_atoms=None):
 
@@ -311,9 +201,3 @@ class PES(object):
 
         grad = np.reshape(grad, (-1, 1))
         return grad  # Ha/ang
-
-    def check_input(self, geom):
-        atoms = manage_xyz.get_atoms(self.geom)
-        elements = [ELEMENT_TABLE.from_symbol(atom) for atom in atoms]
-        atomic_num = [ele.atomic_num for ele in elements]
-        self.checked_input = True

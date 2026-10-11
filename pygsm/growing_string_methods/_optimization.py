@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import numpy as np
 
-from pygsm.utilities.nifty import printcool
+from pygsm.utilities.output import printcool
 
 
 def optimize_string(gsm, max_iter=30, nconstraints=1, opt_steps=1, rtype=2):

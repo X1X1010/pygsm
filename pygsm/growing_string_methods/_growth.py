@@ -5,7 +5,7 @@ from __future__ import annotations
 import os
 
 from pygsm.molecule import Molecule
-from pygsm.utilities.nifty import printcool
+from pygsm.utilities.output import printcool
 
 
 def grow_string(gsm, max_iters=30, max_opt_steps=3, nconstraints=1):

@@ -36,7 +36,6 @@ class conjugate_gradient(base_optimizer):
 
         # for cartesian these are the same
         x = np.copy(molecule.coordinates)
-        # xyz = np.copy(molecule.xyz)
 
         # number of coordinates
         if molecule.coord_obj.__class__.__name__ == 'CartesianCoordinates':
@@ -132,7 +131,6 @@ class conjugate_gradient(base_optimizer):
             print(f" dEstep={dEstep:5.4f}")
 
             # update molecule xyz
-            # xyz = molecule.update_xyz(x-xp)
             geoms.append(molecule.geometry)
             energies.append(molecule.energy-refE)
 
@@ -140,7 +138,6 @@ class conjugate_gradient(base_optimizer):
                 print(" Opt step: {} E: {:5.4f} gradrms: {:1.5f} ss: {:1.3f} DMAX: {:1.3f}".format(ostep+1, fx-refE, molecule.gradrms, step, self.options['DMAX']))
             self.buf.write(u' Opt step: {} E: {:5.4f} gradrms: {:1.5f} ss: {:1.3f} DMAX: {:1.3f}\n'.format(ostep+1, fx-refE, molecule.gradrms, step, self.options['DMAX']))
 
-            # gmax = np.max(g)/units.ANGSTROM_TO_AU/KCAL_MOL_PER_AU
             # print "current gradrms= %r au" % gradrms
             gmax = np.max(g)/units.ANGSTROM_TO_AU
             self.disp = np.max(x - xp)/units.ANGSTROM_TO_AU
@@ -154,14 +151,9 @@ class conjugate_gradient(base_optimizer):
                 break
 
             # check if finished
-            # if gradrms <= params.conv_grms  or \
-            #    (self.disp <= params.conv_disp and self.Ediff <= params.conv_Ediff) or \
             #    (gmax <= params.conv_gmax and abs(self.Ediff) <= params.conv_Ediff):
-            #    print('[INFO] converged')
-            #    print(gradrms)
             #    #print self.Ediff
             #    #print self.disp
-            #    break
 
             # update DLC  --> this changes q, g, Hint
             if not molecule.coord_obj.__class__.__name__ == 'CartesianCoordinates':

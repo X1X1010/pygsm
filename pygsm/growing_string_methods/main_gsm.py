@@ -3,10 +3,9 @@ import numpy as np
 import os
 
 from pygsm.molecule.molecule import Molecule
-from pygsm.utilities.nifty import printcool
+from pygsm.utilities.output import printcool
 from pygsm.utilities.manage_xyz import xyz_to_np
 from pygsm.utilities import units, block_matrix
-from pygsm.coordinate_systems import rotate
 from pygsm.optimizers import eigenvector_follow
 import multiprocessing as mp
 from itertools import chain
@@ -150,11 +149,6 @@ class MainGSM(GSM):
             print(nlist)
 
         for n in range(ncurrent):
-            # ictan0,_ = self.get_tangent(
-            #        node1=self.nodes[nlist[2*n]],
-            #        node2=self.nodes[nlist[2*n+1]],
-            #        driving_coords=self.driving_coords,
-            #        )
 
             if self.__class__.__name__ == "DE_GSM":  # or self.__class__.__name__=="SE_Cross":
                 print(f" getting tangent [{nlist[2*n]} ]from between {nlist[2*n]} {nlist[2*n+1]} pointing towards {nlist[2*n]}")
@@ -184,14 +178,7 @@ class MainGSM(GSM):
             ictan[nlist[2*n]] = ictan0/norm
 
             # NOTE regular GSM does something weird here
-            # Vecs = self.nodes[nlist[2*n]].update_coordinate_basis(constraints=self.ictan[nlist[2*n]])
-            # constraint = self.nodes[nlist[2*n]].constraints
-            # prim_constraint = block_matrix.dot(Vecs,constraint)
             # but this is not followed here anymore 7/1/2020
-            # dqmaga[nlist[2*n]] = np.dot(prim_constraint.T,ictan0)
-            # dqmaga[nlist[2*n]] = float(np.sqrt(abs(dqmaga[nlist[2*n]])))
-            # tmp_dqmaga = np.dot(prim_constraint.T,ictan0)
-            # tmp_dqmaga = np.sqrt(tmp_dqmaga)
 
             dqmaga[nlist[2*n]] = norm
 
@@ -225,7 +212,7 @@ class MainGSM(GSM):
         # checking sum gradrms is not good because if one node is converged a lot while others a re not this is bad
         print('In set stage')
         all_converged = all([self.nodes[n].gradrms < self.optimizer[n].conv_grms*1.1 for n in range(1, self.nnodes-1)])
-        all_converged_climb = all([self.nodes[n].gradrms < self.optimizer[n].conv_grms*2.5 for n in range(1, self.nnodes-1)])
+        all([self.nodes[n].gradrms < self.optimizer[n].conv_grms*2.5 for n in range(1, self.nnodes-1)])
         stage_changed = False
         print('set stage ts_cgradq')
         print(ts_cgradq)
@@ -310,10 +297,7 @@ class MainGSM(GSM):
             self.active[self.nR-1] = True
 
             # align center of mass  and rotation
-            # print("%i %i %i" %(iR,iP,iN))
 
-            # print(" Aligning")
-            # self.nodes[self.nR-1].xyz = self.com_rotate_move(iR,iP,iN)
 
     def add_GSM_nodeP(self, newnodes=1):
         '''
@@ -324,7 +308,6 @@ class MainGSM(GSM):
             raise ValueError("Adding too many nodes, cannot interpolate")
 
         for i in range(newnodes):
-            # self.nodes[-self.nP-1] = BaseClass.add_node(self.nnodes-self.nP,self.nnodes-self.nP-1,self.nnodes-self.nP)
             n1 = self.nnodes-self.nP
             n2 = self.nnodes-self.nP-1
             n3 = self.nR-1
@@ -350,10 +333,6 @@ class MainGSM(GSM):
             self.active[-self.nP] = True
 
             # align center of mass  and rotation
-            # print("%i %i %i" %(n1,n3,n2))
-            # print(" Aligning")
-            # self.nodes[-self.nP].xyz = self.com_rotate_move(n1,n3,n2)
-            # print(" getting energy for node %d: %5.4f" %(self.nnodes-self.nP,self.nodes[-self.nP].energy - self.nodes[0].V0))
         return
 
     def reparameterize(self, ic_reparam_steps=8, n0=0, nconstraints=1):
@@ -361,7 +340,6 @@ class MainGSM(GSM):
         Reparameterize the string
         '''
         if self.interp_method == 'DLC':
-            # print('reparameterizing')
             self.ic_reparam(nodes=self.nodes, energies=self.energies, climbing=(self.climb or self.find), ic_reparam_steps=ic_reparam_steps, NUM_CORE=self.mp_cores)
         return
 
@@ -371,7 +349,6 @@ class MainGSM(GSM):
         """
 
         printcool("Reparamerizing string nodes")
-        # close_dist_fix(0) #done here in GString line 3427.
         rpmove = np.zeros(self.nnodes)
         rpart = np.zeros(self.nnodes)
         disprms = 0.0
@@ -485,7 +462,6 @@ class MainGSM(GSM):
         print(f"  disprms: {disprms:1.3}")
 
         # TODO old GSM does this here
-        # Failed = check_array(self.nnodes,self.dqmaga)
         # If failed, do exit 1
 
     def modify_TS_Hess(self):
@@ -550,7 +526,6 @@ class MainGSM(GSM):
         # Hint before
         # with np.printoptions(threshold=np.inf):
         #    print self.newic.Hessian
-        # eig,tmph = np.linalg.eigh(self.newic.Hessian)
         # print "initial eigenvalues"
         # print eig
 
@@ -583,13 +558,7 @@ class MainGSM(GSM):
         elif self.find and n == tsnode and self.energies[tsnode] > self.energies[tsnode-1]*1.1 and self.energies[tsnode] > self.energies[tsnode+1]*1.1:  # Can also try self.climb but i hate climbing image
             exsteps = 2
             print(f" multiplying steps for node {n} by {exsteps}")
-        # elif not self.find and not self.climb and n==tsnode  and self.energies[tsnode]>self.energies[tsnode-1]*1.5 and self.energies[tsnode]>self.energies[tsnode+1]*1.5 and self.climber:
-        #    exsteps=2
-        #    print(" multiplying steps for node %i by %i" % (n,exsteps))
 
-        # elif not (self.find and self.climb) and self.energies[tsnode] > 1.75*self.energies[tsnode-1] and self.energies[tsnode] > 1.75*self.energies[tsnode+1] and self.done_growing and n==tsnode:  #or self.climb
-        #    exsteps=2
-        #    print(" multiplying steps for node %i by %i" % (n,exsteps))
         return exsteps*opt_steps
 
     def set_opt_type(self, n, quiet=False):
@@ -607,7 +576,6 @@ class MainGSM(GSM):
             print((f" setting node {n} opt_type to {opt_type}"))
 
         # if isinstance(self.optimizer[n],beales_cg) and opt_type!="BEALES_CG":
-        #    raise RuntimeError("This shouldn't happen")
 
         return opt_type
 
@@ -626,47 +594,6 @@ class MainGSM(GSM):
         else:
             print("******** Turning off climbing image and exact TS search **********")
         print("*********************************************************************")
-
-    def com_rotate_move(self, iR, iP, iN):
-        print(" aligning com and to Eckart Condition")
-
-        mfrac = 0.5
-        if self.nnodes - self.current_nnodes+1 != 1:
-            mfrac = 1./(self.nnodes - self.current_nnodes+1)
-
-        # if self.__class__.__name__ != "DE_GSM":
-        #    # no "product" structure exists, use initial structure
-        #    iP = 0
-
-        xyz0 = self.nodes[iR].xyz.copy()
-        xyz1 = self.nodes[iN].xyz.copy()
-        com0 = self.nodes[iR].center_of_mass
-        com1 = self.nodes[iN].center_of_mass
-        masses = self.nodes[iR].mass_amu
-
-        # rotate to be in maximal coincidence with 0
-        # assumes iP i.e. 2 is also in maximal coincidence
-        U = rotate.get_rot(xyz0, xyz1)
-        xyz1 = np.dot(xyz1, U)
-
-        # # align
-        # if self.nodes[iP] != None:
-        #    xyz2 = self.nodes[iP].xyz.copy()
-        #    com2 = self.nodes[iP].center_of_mass
-
-        #    if abs(iN-iR) > abs(iN-iP):
-        #        avg_com = mfrac*com2 + (1.-mfrac)*com0
-        #    else:
-        #        avg_com = mfrac*com0 + (1.-mfrac)*com2
-        #    dist = avg_com - com1  #final minus initial
-        # else:
-        #    dist = com0 - com1  #final minus initial
-
-        # print("aligning to com")
-        # print(dist)
-        # xyz1 += dist
-
-        return xyz1
 
     def find_peaks(self, rtype='opting'):
         '''
@@ -708,7 +635,6 @@ class MainGSM(GSM):
         print(" nnodes ", nnodes)
         print(" all uphill? ", allup)
         print(" dissociative? ", diss)
-        npeaks1 = 0
         npeaks2 = 0
         minnodes = []
         maxnodes = []
@@ -726,7 +652,7 @@ class MainGSM(GSM):
 
         print(" min nodes ", minnodes)
         print(" max nodes ", maxnodes)
-        npeaks1 = len(maxnodes)
+        len(maxnodes)
         # print "number of peaks is ",npeaks1
         ediff = 0.5
         PEAK4_EDIFF = 2.0
@@ -764,7 +690,6 @@ class MainGSM(GSM):
                 npeaks = 2
 
         # if rtype==3:
-        #    return nmax
         if allup is True and npeaks == 0:
             return -1
         if diss is True and npeaks == 0:
@@ -799,7 +724,6 @@ class MainGSM(GSM):
             self.endearly_counter = 0
             self.pot_min = self.get_intermediate(self.noise)
 
-        # print(" Number of imaginary frequencies %i" % self.optimizer[self.TSnode].nneg)
 
         # or (totalgrad<0.1 and self.nodes[self.TSnode].gradrms<2.5*TS_conv and self.dE_iter<0.02 and self.optimizer[self.TSnode].nneg <2)  #TODO extra crit here
 
@@ -875,7 +799,6 @@ class MainGSM(GSM):
 
         if nstructs != self.nnodes:
             print('need to interpolate')
-            # if self.interp_method=="DLC": TODO
             raise NotImplementedError
         else:
             geoms = input_geoms
@@ -897,8 +820,6 @@ class MainGSM(GSM):
             self.nodes[struct].newHess = 5
             # Turning this off
             # self.nodes[struct].gradrms = np.sqrt(np.dot(self.nodes[struct].gradient,self.nodes
-            # self.nodes[struct].gradrms=grmss[struct]
-            # self.nodes[struct].PES.dE = dE[struct]
         self.nnodes = self.nR = nstructs
 
         if start_climb_immediately:
@@ -906,7 +827,6 @@ class MainGSM(GSM):
             self.climb = True
         #ALEX CHANGE - rearranged reparameterize and restart_energies 'if' blocks
         if restart_energies:
-            # self.interpolate_orbitals()
             print(" V_profile: ", end=' ')
             energies = self.energies
             for n in range(self.nnodes):
@@ -1035,91 +955,3 @@ class MainGSM(GSM):
             self.climb = True
             self.nclimb = 1
             print(" Find bad, going back to climb")
-
-    def interpolate_orbitals(self):
-        '''
-        Interpolate orbitals
-        '''
-        print("Interpolating orbitals")
-        nnodes = len(self.nodes)
-        #nn = nnodes//2 + 1
-        nn = - (nnodes // -2)
-        couples = [(i, nnodes-i-1) for i in range(nn)]
-        first = True
-        options = {}
-        for i, j in couples:
-            if first:
-                # Calculate the energy of the i, j
-                print(f"Calculating initial energy for node: {i}")
-                self.nodes[i].energy
-                print(f"Calculating initial energy for node: {j}")
-                self.nodes[j].energy
-                first = False
-            elif j - i <= 1:
-                #even nnodes case
-                if i == j - 1:  
-                    self.nodes[i].PES.lot = type(self.nodes[i-1].PES.lot).copy(
-                        self.nodes[i-1].PES.lot, copy_wavefunction=True)
-                    self.nodes[i].PES.lot.node_id = i
-                    self.nodes[i].energy
-                    i += 1
-                if i == j:
-                    print(f"Checking if energies match for wavefunction guesses from either direction for node: {i}")
-
-                    options={'node_id':self.nodes[i].node_id}
-                    self.nodes[i].PES.lot = type(self.nodes[i-1].PES.lot).copy(
-                        self.nodes[i-1].PES.lot, options, copy_wavefunction=True)
-                    print("Getting forward energy")
-                    self.nodes[i].PES.lot.node_id = i
-                    energy_forward = self.nodes[i].energy
-                    print("Getting backward energy")
-                    options={'node_id':self.nodes[i+1].node_id}
-                    self.nodes[i].PES.lot = type(self.nodes[i+1].PES.lot).copy(
-                        self.nodes[i+1].PES.lot, options, copy_wavefunction=True)
-                    self.nodes[i].PES.lot.node_id = i
-                    self.nodes[i].PES.lot.hasRanForCurrentCoords = False
-                    energy_backward = self.nodes[i].energy
-                    print(f"Forward direction energy: {energy_forward}")
-                    print(f"Backward direction energy: {energy_backward}")
-                    if abs(energy_forward - energy_backward) < 0.1:
-                        print("Energies match")
-                    else:
-                        print("Energies do not match")
-                        if energy_backward < energy_forward:
-                            for k in range(i):
-                                options={'node_id':self.nodes[i+k-1].node_id}
-                                self.nodes[i-k-1].PES.lot = type(self.nodes[i-k].PES.lot).copy(
-                                    self.nodes[i-k].PES.lot, options, copy_wavefunction=True)
-                                self.nodes[i-k-1].PES.lot.node_id = i-k-1
-                                self.nodes[i-k -1].PES.lot.hasRanForCurrentCoords = False
-                                print(f"node_id {self.nodes[i+k].node_id}")
-                                print(f"Calculating new initial energy for node: {i-k-1}")
-                                print(f"New energy: {self.nodes[i-k-1].energy}")
-                        else:
-                            for k in range(i+1):
-                                #lower energy is in forward direction, so do node i using i-1's wavefunction
-                                options={'node_id':self.nodes[i+k].node_id}
-                                self.nodes[i+k].PES.lot = type(self.nodes[i+k-1].PES.lot).copy(
-                                    self.nodes[i+k-1].PES.lot, options, copy_wavefunction=True)
-                                self.nodes[i+k].PES.lot.node_id = i+k
-                                self.nodes[i+k].PES.lot.hasRanForCurrentCoords = False
-                                print(f"node_id {self.nodes[i+k].node_id}")
-                                print(f"Calculating new initial energy for node: {i+k}")
-                                print(f"New energy: {self.nodes[i+k].energy}")
-
-                     
-                    
-            else:
-                # Copy the orbital of i-1 to i
-                self.nodes[i].PES.lot = type(self.nodes[i-1].PES.lot).copy(
-                    self.nodes[i-1].PES.lot, options, copy_wavefunction=True)
-                self.nodes[i].PES.lot.node_id = i
-                print(f"Calculating initial energy for node: {i}")
-                self.nodes[i].energy
-                # Copy the orbital of j+1 to j
-                self.nodes[j].PES.lot = type(self.nodes[j+1].PES.lot).copy(
-                    self.nodes[j+1].PES.lot, options, copy_wavefunction=True)
-                self.nodes[j].PES.lot.node_id = j
-                print(f"Calculating initial energy for node: {j}")
-                self.nodes[j].energy
-        return

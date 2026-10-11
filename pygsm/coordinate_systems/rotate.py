@@ -1,9 +1,8 @@
-import sys
 
 import numpy as np
 from numpy.linalg import multi_dot
 
-from pygsm.utilities import nifty, manage_xyz, units
+from pygsm.utilities import output, manage_xyz, math_utils
 
 
 """
@@ -23,20 +22,8 @@ References
 
 #     """
 
-#     u,s,vh = np.linalg.svd(X, full_matrices=0)
-#     uh     = np.matrix(np.transpose(u))
-#     v      = np.matrix(np.transpose(vh))
-#     si     = s.copy()
 #     for i in range(s.shape[0]):
-#         # reg = s[i]**2 / (s[i]**2 + thresh**2)
-#         si[i] = s[i] / (s[i]**2 + thresh**2)
 #         # if abs(s[i]) > thresh:
-#         #     si[i] = 1./s[i]
-#         # else:
-#         #     si[i] = 0.0
-#     si     = np.matrix(np.diag(si))
-#     Xt     = v*si*uh
-#     return Xt
 
 
 def build_correlation(x, y):
@@ -214,36 +201,6 @@ def sorted_eigh(mat, b=None, asc=False):
     return L, Q
 
 
-def calc_rmsd(x, y):
-    """
-    Calculate the minimal RMSD between two structures x and y following
-    the algorithm in Reference 1.
-
-    Parameters
-    ----------
-    x : numpy.ndarray
-        Trial coordinates, dimensionality (number of atoms) x 3
-    y : numpy.ndarray
-        Target coordinates, dimensionalty must match trial coordinates
-
-    Returns
-    -------
-    numpy.ndarray
-        3x3 correlation matrix
-    """
-    x = x - np.mean(x, axis=0)
-    y = y - np.mean(y, axis=0)
-    N = x.shape[0]
-    L, Q = sorted_eigh(build_F(x, y))
-    idx = L.argsort()[::-1]
-    L = L[idx]
-    Q = Q[:, idx]
-
-    lmax = np.max(L)
-    rmsd = np.sqrt((np.sum(x**2) + np.sum(y**2) - 2*lmax)/N)
-    return rmsd
-
-
 def is_linear(x, y):
     """
     Returns True if molecule is linear
@@ -311,10 +268,6 @@ def get_rot(x, y):
     y = y - np.mean(y, axis=0)
     q = get_quat(x, y)
     U = form_rot(q)
-    # x = np.matrix(x)
-    # xr = np.array((U*x.T).T)
-    # xr = np.dot(U, x.T).T
-    # rmsd = np.sqrt(np.sum((xr-y)**2)/N)
     return U
 
 
@@ -350,7 +303,7 @@ def get_R_der(x, y):
     fdcheck = False
     if fdcheck:
         h = 1e-4
-        R0 = build_correlation(x, y)
+        build_correlation(x, y)
         for u in range(x.shape[0]):
             for w in range(3):
                 x[u, w] += h
@@ -359,7 +312,7 @@ def get_R_der(x, y):
                 RMinus = build_correlation(x, y)
                 x[u, w] += h
                 FDiffR = (RPlus-RMinus)/(2*h)
-                nifty.logger.info(u, w, np.max(np.abs(ADiffR[u, w]-FDiffR)))
+                output.logger.info(u, w, np.max(np.abs(ADiffR[u, w]-FDiffR)))
     return ADiffR
 
 
@@ -416,7 +369,7 @@ def get_F_der(x, y):
     fdcheck = False
     if fdcheck:
         h = 1e-4
-        F0 = build_F(x, y)
+        build_F(x, y)
         for u in range(x.shape[0]):
             for w in range(3):
                 x[u, w] += h
@@ -425,7 +378,7 @@ def get_F_der(x, y):
                 FMinus = build_F(x, y)
                 x[u, w] += h
                 FDiffF = (FPlus-FMinus)/(2*h)
-                nifty.logger.info(u, w, np.max(np.abs(dF[u, w]-FDiffF)))
+                output.logger.info(u, w, np.max(np.abs(dF[u, w]-FDiffF)))
     return dF
 
 
@@ -464,12 +417,10 @@ def get_q_der(x, y, second=False, fdcheck=False, use_loops=False):
     F = build_F(x, y)
     dF = get_F_der(x, y)
     mat = np.eye(4)*l - F
-    # pinv = np.matrix(np.linalg.pinv(np.eye(4)*l - F))
-    Minv = nifty.invert_svd(np.eye(4)*l - F, thresh=1e-6)
+    Minv = math_utils.invert_svd(np.eye(4)*l - F, thresh=1e-6)
     dq = np.zeros((x.shape[0], 3, 4), dtype=float)
     for u in range(x.shape[0]):
         for w in range(3):
-            # dquw = Minv*np.matrix(dF[u, w])*np.matrix(q).T
             dquw = multi_dot([Minv, dF[u, w], q.T])
             dq[u, w] = np.array(dquw).flatten()
 
@@ -493,7 +444,6 @@ def get_q_der(x, y, second=False, fdcheck=False, use_loops=False):
                             dq2[u, w, a, b] += multi_dot([dinv[u, w], dF[a, b], q])
                             dq2[u, w, a, b] += multi_dot([Minv, dF[a, b], dq[u, w]])
         else:
-            # t0 = time.time()
             # LPW 2019-03-09: Setting optimize=True gives a 15x speedup for trp-cage (200 atoms, 0.02 vs. 0.3 s)
             dl = np.einsum('p,uwpr,r->uw', q, dF, q, optimize=True)
             dM = np.einsum('uw,pr->uwpr', dl, np.eye(4), optimize=True) - dF
@@ -502,7 +452,6 @@ def get_q_der(x, y, second=False, fdcheck=False, use_loops=False):
             dinv += np.einsum('ps,uwts,vt,vr->uwpr', np.eye(4)-np.dot(Minv, mat), dM, Minv, Minv, optimize=True)
             dq2 = np.einsum('uwpr,abrs,s->uwabp', dinv, dF, q, optimize=True)
             dq2 += np.einsum('pr,abrs,uws->uwabp', Minv, dF, dq, optimize=True)
-            # print(time.time()-t0)
 
     if fdcheck:
         # If fdcheck = True, then return finite difference derivatives
@@ -567,8 +516,6 @@ def calc_fac_dfac(q0, second=False):
     # Ill-defined around q0=1.0
     qm1 = q0-1.0
     # if np.abs(q0) == 1.0:
-    #     fac = 2
-    #     dfac = -2/3
     if np.abs(qm1) < 1e-8:
         fac = 2 - 2*qm1/3
         dfac = -2/3
@@ -644,9 +591,8 @@ def get_expmap_der(x, y, second=False, fdcheck=False, use_loops=False):
         First four dimensions are (n_atoms, 3, n_atoms, 3), the variables being differentiated
         Fifth dimension is 3, the elements of the exponential map second derivatives with respect to atom u, dimension w, atom a, dimension b
     """
-    # t0 = time.time()
     q = get_quat(x, y)
-    v = get_expmap(x, y)
+    get_expmap(x, y)
     if second:
         fac, dfac, dfac2 = calc_fac_dfac(q[0], second=True)
     else:
@@ -675,7 +621,6 @@ def get_expmap_der(x, y, second=False, fdcheck=False, use_loops=False):
             FDiffV = (V0-VMinus)/h
             maxerr = np.max(np.abs(dvdq[p]-FDiffV))
             print(f"q {i:>3} : maxerr = {maxerr:.3e} {'X' if maxerr > 1e-6 else ''}\n")
-            # logger.info(i, dvdq[i], FDiffV, np.max(np.abs(dvdq[i]-FDiffV)))
         if second:
             h = 1e-5
             print("-=# Now checking second derivatives of exponential map w/r.t. quaternion #=-\n")
@@ -707,7 +652,6 @@ def get_expmap_der(x, y, second=False, fdcheck=False, use_loops=False):
                     maxerr = np.max(np.abs(dvdq2[p, r]-FDiffV2))
                     if maxerr > 1e-7:
                         print(f"q {p:>3} {r:>3} : maxerr = {maxerr:.3e} {'X' if maxerr > 1e-5 else ''}\n")
-                    # print("q %3i %3i : analytic %s numerical %s maxerr = %.3e %s" % (i, j, str(dvdq2[i, j]), str(FDiffV2), maxerr, 'X' if maxerr > 1e-4 else ''))
 
     # Dimensionality: Number of atoms, number of dimensions (3), number of elements in q (4)
     if second:
@@ -718,7 +662,7 @@ def get_expmap_der(x, y, second=False, fdcheck=False, use_loops=False):
     dvdx = np.zeros((x.shape[0], 3, 3), dtype=float)
     for u in range(x.shape[0]):
         for w in range(3):
-            dqdx_uw = dqdx[u, w]
+            dqdx[u, w]
             for p in range(4):
                 dvdx[u, w, :] += dvdq[p, :] * dqdx[u, w, p]
     if second:
@@ -745,7 +689,6 @@ def get_expmap_der(x, y, second=False, fdcheck=False, use_loops=False):
             dvdx2 = np.einsum('pabi,uwp->uwabi', dvdqx, dqdx, optimize=True)
             dvdx2 += np.einsum('pi,uwabp->uwabi', dvdq, dqdx2, optimize=True)
     # LPW 2019-03-09: Using einsum gives 166x speedup over for loops for trp-cage (200 atoms); 0.06 vs. 10.1 s
-    # print(time.time()-t0)
     if fdcheck:
         h = 1e-3
         print("-=# Now checking first derivatives of exponential map w/r.t. Cartesians #=-\n")
@@ -916,8 +859,4 @@ def calc_rot_vec_diff(v1_in, v2_in):
             revcount += 1
             break
     # if revcount != 0:
-    #     logger.info("calc_rot_vec_diff: %i multiples of 2*pi were used in calculating rotational difference\n" % revcount)
-    #     print("in : v1= % 8.4f % 8.4f % 8.4f v2= % 8.4f % 8.4f % 8.4f" % (v1_in[0], v1_in[1], v1_in[2], v2_in[0], v2_in[1], v2_in[2]))
-    #     print("out: v1= % 8.4f % 8.4f % 8.4f v2= % 8.4f % 8.4f % 8.4f" % (v1[0], v1[1], v1[2], v2[0], v2[1], v2[2]))
-        # print()
     return v1-v2

@@ -1,39 +1,19 @@
 # standard library imports
-from collections import namedtuple
 import os
-import shutil
+from collections import namedtuple
 
 # third party
 import numpy as np
 
 # local application imports
-from ..utilities import elements, manage_xyz, nifty, options, units
-from .file_options import File_Options
+from ..utilities import manage_xyz, options, units
 from ._lot_helpers import (
     energy_file_path,
     ensure_node_scratch_dir,
     infer_gradient_states,
-    initialize_job_data,
     node_scratch_dir,
     normalize_states,
 )
-
-ELEMENT_TABLE = elements.ElementData()
-
-# TODO take out all job-specific data -- encourage external files since those are most customizable
-# TODO fix tuple searches
-# TODO Make energies,grada dictionaries
-
-
-      
-
-def copy_file(path1, path2):
-    print(f" copying scr files\n cp -r {path1} {path2}")
-    if os.path.isdir(path1):
-        shutil.copytree(path1, path2, dirs_exist_ok=True)
-    else:
-        shutil.copy2(path1, path2)
-
 
 class LoTError(Exception):
     pass
@@ -135,35 +115,6 @@ class Lot(object):
         )
 
         opt.add_option(
-            key="lot_inp_file",
-            required=False,
-            value=None,
-            doc='file name storing LOT input section. Used for custom basis sets,\
-                     custom convergence criteria, etc. Will override nproc, basis and\
-                     functional. Do not specify charge or spin in this file. Charge \
-                     and spin should be specified in charge and states options.\
-                     for QChem, include $molecule line. For ORCA, do not include *xyz\
-                     line.'
-        )
-
-        opt.add_option(
-            key='job_data',
-            value={},
-            allowed_types=[dict],
-            doc='extra key-word arguments to define level of theory object. e.g.\
-                     TeraChem Cloud requires a TeraChem client and options dictionary.'
-        )
-
-        opt.add_option(
-            key='file_options',
-            value=None,
-            allowed_types=[File_Options],
-            doc='A specialized dictionary containing lot specific options from file\
-                        including checks on dependencies and clashes. Not all packages\
-                        require'
-        )
-
-        opt.add_option(
                 key='xTB_Hamiltonian',
                 value='GFN2-xTB',
                 required=False,
@@ -245,7 +196,6 @@ class Lot(object):
         elif self.options['fnm'] is not None:
             print(" initializing LOT from file")
             if not os.path.exists(self.options['fnm']):
-                # logger.error('Tried to create LOT object from a file that does not exist: %s\n' % self.options['fnm'])
                 raise IOError
             self.geom = manage_xyz.read_xyz(self.options['fnm'], scale=1.)
         else:
@@ -258,7 +208,6 @@ class Lot(object):
         self.nproc = self.options['nproc']
         self.charge = self.options['charge']
         self.node_id = self.options['node_id']
-        self.lot_inp_file = self.options['lot_inp_file']
         self.xTB_Hamiltonian = self.options['xTB_Hamiltonian']
         self.xTB_accuracy = self.options['xTB_accuracy']
         self.xTB_electronic_temperature = self.options['xTB_electronic_temperature']
@@ -267,16 +216,7 @@ class Lot(object):
 
         # Bools for running
         self.hasRanForCurrentCoords = False
-        self.has_nelectrons = False
 
-        # Read file options if they exist and not already set
-        if self.file_options is None:
-            self.file_options = File_Options(self.lot_inp_file)
-
-        # package  specific implementation
-        # TODO MOVE to specific package !!!
-        # tc cloud
-        self.options['job_data'] = initialize_job_data(self.options['job_data'])
         ensure_node_scratch_dir(self.scratch_root, self.ID, self.node_id)
 
     @classmethod
@@ -289,12 +229,10 @@ class Lot(object):
         '''
         A list of tuples with multiplicity, state and energy
         '''
-        # assert type(self._E) is dict,"E must be dictionary"
         return self._Energies
 
     @Energies.setter
     def Energies(self, value):
-        # assert type(value) is dict,"E must be dictionary"
         self._Energies = value
 
     @property
@@ -303,7 +241,6 @@ class Lot(object):
         A list of tuples with multiplicity, state and energy 
         '''
 
-        # assert type(self._) is dict,"grada must be dictionary"
         return self._Gradients
 
     @Gradients.setter
@@ -320,15 +257,6 @@ class Lot(object):
     @Couplings.setter
     def Couplings(self, value):
         self._Couplings = value
-
-    @property
-    def file_options(self):
-        return self.options['file_options']
-
-    @file_options.setter
-    def file_options(self, value):
-        assert type(value) == File_Options, "incorrect type for file options"
-        self.options['file_options'] = value
 
     @property
     def do_coupling(self):
@@ -378,23 +306,6 @@ class Lot(object):
     @classmethod
     def copy(cls, lot, options={}, copy_wavefunction=True):
         return cls(lot.options.copy().set_values(options))
-
-    def check_multiplicity(self, multiplicity):
-        if multiplicity > self.n_electrons + 1:
-            raise ValueError("Spin multiplicity too high.")
-            print(self.n_electrons)
-            print(multiplicity)
-            raise ValueError("Inconsistent charge/multiplicity.")
-
-    def get_nelec(self, geom, multiplicity):
-        atoms = manage_xyz.get_atoms(geom)
-        elements = [ELEMENT_TABLE.from_symbol(atom) for atom in atoms]
-        atomic_num = [ele.atomic_num for ele in elements]
-        self.n_electrons = sum(atomic_num) - self.charge
-        if self.n_electrons < 0:
-            raise ValueError("Molecule has fewer than 0 electrons!!!")
-        self.check_multiplicity(multiplicity)
-        return
 
     def get_energy(self, coords, multiplicity, state, runtype=None):
         if self._coords_changed(coords):
@@ -451,7 +362,6 @@ class Lot(object):
                 raise NotImplementedError
         else:
             return None
-        # return np.reshape(self.coup,(3*len(self.geom),1))*units.ANGSTROM_TO_AU
 
     def write_E_to_file(self):
         if not self.options['write_energy_file']:
@@ -476,45 +386,6 @@ class Lot(object):
             else:
                 self.run(geom, mult, ad_idx, 'energy')
 
-    #    self.E=[]
-    #    self.grada = []
-    #    singlets=self.search_tuple(self.states,1)
-    #    len_singlets=len(singlets)
-    #    if len_singlets is not 0:
-    #        self.run(geom,1)
-    #    triplets=self.search_tuple(self.states,3)
-    #    len_triplets=len(triplets)
-    #    if len_triplets is not 0:
-    #        self.run(geom,3)
-    #    doublets=self.search_tuple(self.states,2)
-    #    len_doublets=len(doublets)
-    #    if len_doublets is not 0:
-    #        self.run(geom,2)
-    #    quartets=self.search_tuple(self.states,4)
-    #    len_quartets=len(quartets)
-    #    if len_quartets is not 0:
-    #        self.run(geom,4)
-    #    pentets=self.search_tuple(self.states,5)
-    #    len_pentets=len(pentets)
-    #    if len_pentets is not 0:
-    #        self.run(geom,5)
-    #    hextets=self.search_tuple(self.states,6)
-    #    len_hextets=len(hextets)
-    #    if len_hextets is not 0:
-    #        self.run(geom,6)
-    #    septets=self.search_tuple(self.states,7)
-    #    len_septets=len(septets)
-    #    if len_septets is not 0:
-    #        self.run(geom,7)
-    #    self.hasRanForCurrentCoords=True
-
-    def search_PES_tuple(self, tups, multiplicity, state):
-        '''returns tuple in list of tuples that matches multiplicity and state'''
-        return [tup for tup in tups if multiplicity == tup[0] and state == tup[1]]
-
-    def search_tuple(self, tups, multiplicity):
-        return [tup for tup in tups if multiplicity == tup[0]]
-
     @property
     def node_scratch_dir(self):
         return node_scratch_dir(self.scratch_root, self.ID, self.node_id)
@@ -525,27 +396,3 @@ class Lot(object):
 
     def _coords_changed(self, coords):
         return self.hasRanForCurrentCoords is False or not np.array_equal(coords, self.currentCoords)
-
-
-    @classmethod
-    def rmsd(cls, geom1, geom2):
-        total = 0
-        flat_geom1 = np.array(geom1).flatten()
-        flat_geom2 = np.array(geom2).flatten()
-        for i in range(len(flat_geom1)):
-            total += (flat_geom1[i] - flat_geom2[i]) ** 2
-        return total
-
-    def pick_best_orb_from_lots(self, lots):
-        '''
-        The idea is that this would take a list of lots and pick the best one for a node
-        Untested!
-        '''
-        rmsds = []
-        xyz1 = manage_xyz.xyz_to_np(self.geom)
-        for lot in lots:
-            rmsds.append(lot.rmsd(xyz1, lot.self.currentCoords))
-        minnode = rmsds.index(min(rmsds))
-        self.lot = self.lot.copy(lots[minnode])
-
-        return

@@ -3,13 +3,6 @@ import numpy as np
 # Some vector calculus functions
 
 
-def unit_vector(a):
-    """
-    Vector function: Given a vector a, return the unit vector
-    """
-    return a / np.linalg.norm(a)
-
-
 def d_unit_vector(a, ndim=3):
     term1 = np.eye(ndim)/np.linalg.norm(a)
     term2 = np.outer(a, a)/(np.linalg.norm(a)**3)
@@ -64,55 +57,6 @@ def d_ncross(a, b):
     return answer
 
 
-def nudot(a, b):
-    r"""
-    Given two vectors a and b, return the dot product (\hat{a}).b.
-    """
-    ev = a / np.linalg.norm(a)
-    return np.dot(ev, b)
-
-
-def d_nudot(a, b):
-    r"""
-    Given two vectors a and b, return the gradient of
-    the norm of the dot product (\hat{a}).b w/r.t. a.
-    """
-    return np.dot(d_unit_vector(a), b)
-
-
-def ucross(a, b):
-    r"""
-    Given two vectors a and b, return the cross product (\hat{a})xb.
-    """
-    ev = a / np.linalg.norm(a)
-    return np.cross(ev, b)
-
-
-def d_ucross(a, b):
-    r"""
-    Given two vectors a and b, return the gradient of
-    the cross product (\hat{a})xb w/r.t. a.
-    """
-    ev = a / np.linalg.norm(a)
-    return np.dot(d_unit_vector(a), d_cross(ev, b))
-
-
-def nucross(a, b):
-    r"""
-    Given two vectors a and b, return the norm of the
-    cross product (\hat{a})xb.
-    """
-    ev = a / np.linalg.norm(a)
-    return np.linalg.norm(np.cross(ev, b))
-
-
-def d_nucross(a, b):
-    r"""
-    Given two vectors a and b, return the gradient of
-    the norm of the cross product (\hat{a})xb w/r.t. a.
-    """
-    ev = a / np.linalg.norm(a)
-    return np.dot(d_unit_vector(a), d_ncross(ev, b))
 # End vector calculus functions
 
 
@@ -157,10 +101,7 @@ def conjugate_orthogonalize(vecs, G, numCvecs=0):
 
     count = numCvecs
     for v in vecs[:, numCvecs:].T:
-        # w = v - np.sum( np.dot(v,b)*b  for b in basis.T)
         w = v - np.sum(ov(v, b)*b/ov(b, b) for b in basis[:, :count].T)
-        # A =np.linalg.multi_dot([w[:,np.newaxis].T,G,w[:,np.newaxis]])
-        # wnorm = np.sqrt(ov(w[:,np.newaxis],w[:,np.newaxis]))
         wnorm = np.sqrt(ov(w, w))
         if wnorm > 1e-5 and (abs(w) > 1e-6).any():
             try:
@@ -185,20 +126,16 @@ def orthogonalize(vecs, numCvecs=0):
     """
     """
 
-    # print("in orthogonalize")
     rows = vecs.shape[0]
     cols = vecs.shape[1]
     basis = np.zeros((rows, cols-numCvecs))
 
     # for i in range(numCvecs):  # orthogonalize with respect to these
-    #    basis[:,i]= vecs[:,i]
 
-    # count=numCvecs-1
     count = 0
     for v in vecs.T:
         w = v - basis @ (basis.T @ v)
         wnorm = np.linalg.norm(w)
-        # print("wnorm {} count {}".format(wnorm,count))
         if wnorm > 1e-3 and (abs(w) > 1e-6).any():
             try:
                 basis[:, count] = w/wnorm
@@ -206,12 +143,31 @@ def orthogonalize(vecs, numCvecs=0):
             except:
                 print("this vector should be vanishing, exiting")
                 print("norm=", wnorm)
-                # print(w)
                 exit(1)
     dots = np.matmul(basis.T, basis)
     if not (np.allclose(dots, np.eye(dots.shape[0], dtype=float), atol=1e-4)):
         print("np.dot(b.T,b)")
-        # print(dots)
         print(dots - np.eye(dots.shape[0], dtype=float))
         raise RuntimeError("error in orthonormality")
     return basis
+
+
+def invert_svd(X, thresh=1e-12):
+    """Pseudo-invert ``X`` by SVD; singular values below ``thresh`` are set to zero."""
+    u, s, vh = np.linalg.svd(X, full_matrices=0)
+    si = s.copy()
+    for i in range(s.shape[0]):
+        if abs(s[i]) > thresh:
+            si[i] = 1.0 / s[i]
+        else:
+            si[i] = 0.0
+    return np.linalg.multi_dot([np.transpose(vh), np.diag(si), np.transpose(u)])
+
+
+def cartesian_product2(arrays):
+    """Cartesian product of integer arrays as an ``(N, len(arrays))`` int32 array."""
+    la = len(arrays)
+    arr = np.empty([len(a) for a in arrays] + [la], dtype=np.int32)
+    for i, a in enumerate(np.ix_(*arrays)):
+        arr[..., i] = a
+    return arr.reshape(-1, la)

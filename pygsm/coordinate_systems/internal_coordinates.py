@@ -6,9 +6,8 @@ import time
 # third party
 from collections import OrderedDict
 import numpy as np
-from numpy.linalg import multi_dot
 
-from pygsm.utilities import elements, options, nifty, block_matrix
+from pygsm.utilities import elements, options, output, block_matrix
 
 ELEMENT_TABLE = elements.ElementData()
 
@@ -34,7 +33,6 @@ class InternalCoordinates(object):
         opt.add_option(
             key='atoms',
             required=True,
-            #allowed_types=[],
                 doc='atom element named tuples/dictionary must be of type list[elements].'
         )
 
@@ -141,7 +139,7 @@ class InternalCoordinates(object):
         global CacheWarning
         t0 = time.time()
         xhash = hash(xyz.tostring())
-        ht = time.time() - t0
+        time.time() - t0
         if xhash in self.stored_wilsonB:
             ans = self.stored_wilsonB[xhash]
             return ans
@@ -151,7 +149,7 @@ class InternalCoordinates(object):
             WilsonB.append(Der[i].flatten())
         self.stored_wilsonB[xhash] = np.array(WilsonB)
         if len(self.stored_wilsonB) > 1000 and not CacheWarning:
-            nifty.logger.warning("\x1b[91mWarning: more than 100 B-matrices stored, memory leaks likely\x1b[0m")
+            output.logger.warning("\x1b[91mWarning: more than 100 B-matrices stored, memory leaks likely\x1b[0m")
             CacheWarning = True
         ans = np.array(WilsonB)
         return ans
@@ -161,62 +159,18 @@ class InternalCoordinates(object):
         Given Cartesian coordinates xyz, return the G-matrix
         given by G = BuBt where u is an arbitrary matrix (default to identity)
         """
-        # t0 = time.time()
         Bmat = self.wilsonB(xyz)
-        # t1 = time.time()
 
         if u is None:
             BuBt = np.dot(Bmat, Bmat.T)
         else:
             BuBt = np.dot(Bmat, np.dot(u, Bmat.T))
-        # t2 = time.time()
-        # t10 = t1-t0
-        # t21 = t2-t1
-        # print("time to form B-matrix %.3f" % t10)
-        # print("time to mat-mult B %.3f" % t21)
         return BuBt
-
-    def GInverse_SVD(self, xyz):
-        xyz = xyz.reshape(-1, 3)
-        # Perform singular value decomposition
-        # nifty.click()
-        loops = 0
-        while True:
-            try:
-                G = self.GMatrix(xyz)
-                # time_G = nifty.click()
-                U, S, VT = np.linalg.svd(G)
-                # time_svd = nifty.click()
-            except np.linalg.LinAlgError:
-                nifty.logger.warning("\x1b[1;91m SVD fails, perturbing coordinates and trying again\x1b[0m")
-                xyz = xyz + 1e-2*np.random.random(xyz.shape)
-                loops += 1
-                if loops == 10:
-                    raise RuntimeError('SVD failed too many times')
-                continue
-            break
-        # print "Build G: %.3f SVD: %.3f" % (time_G, time_svd),
-        V = VT.T
-        UT = U.T
-        Sinv = np.zeros_like(S)
-        LargeVals = 0
-        for ival, value in enumerate(S):
-            # print "%.5e % .5e" % (ival,value)
-            if np.abs(value) > 1e-6:
-                LargeVals += 1
-                Sinv[ival] = 1/value
-        # print "%i atoms; %i/%i singular values are > 1e-6" % (xyz.shape[0], LargeVals, len(S))
-        Sinv = np.diag(Sinv)
-        Inv = multi_dot([V, Sinv, UT])
-        return Inv
 
     def GInverse_EIG(self, xyz):
         xyz = xyz.reshape(-1, 3)
-        # nifty.click()
         G = self.GMatrix(xyz)
-        # time_G = nifty.click()
         Gi = np.linalg.inv(G)
-        # time_inv = nifty.click()
         # print "G-time: %.3f Inv-time: %.3f" % (time_G, time_inv)
         return Gi
 
@@ -234,7 +188,7 @@ class InternalCoordinates(object):
                 PMDiff = self.calcDiff(x1, x2)
                 FiniteDifference[:, i, j] = PMDiff/(2*h)
         for i in range(Analytical.shape[0]):
-            nifty.logger.info(f"IC {i}/{Analytical.shape[0]} : {self.Internals[i]}")
+            output.logger.info(f"IC {i}/{Analytical.shape[0]} : {self.Internals[i]}")
             lines = [""]
             maxerr = 0.0
             for j in range(Analytical.shape[1]):
@@ -249,10 +203,10 @@ class InternalCoordinates(object):
                     if maxerr < np.abs(error):
                         maxerr = np.abs(error)
             if maxerr > 1e-5:
-                nifty.logger.info('\n'.join(lines))
+                output.logger.info('\n'.join(lines))
             else:
-                nifty.logger.info(f"Max Error = {maxerr:.5e}")
-        nifty.logger.info("Finite-difference Finished")
+                output.logger.info(f"Max Error = {maxerr:.5e}")
+        output.logger.info("Finite-difference Finished")
 
     def checkFiniteDifferenceHess(self, xyz):
         xyz = xyz.reshape(-1, 3)
@@ -260,7 +214,7 @@ class InternalCoordinates(object):
         FiniteDifference = np.zeros_like(Analytical)
         h = 1e-4
         verbose = False
-        nifty.logger.info("-=# Now checking second derivatives of internal coordinates w/r.t. Cartesians #=-\n")
+        output.logger.info("-=# Now checking second derivatives of internal coordinates w/r.t. Cartesians #=-\n")
         for j in range(xyz.shape[0]):
             for m in range(3):
                 for k in range(xyz.shape[0]):
@@ -280,8 +234,6 @@ class InternalCoordinates(object):
                         PMDiff1 = self.calcDiff(x1, x2)
                         PMDiff2 = self.calcDiff(x4, x3)
                         FiniteDifference[:, j, m, k, n] += (PMDiff1+PMDiff2)/(4*h**2)
-        #                 print('\r%i %i' % (j, k), end='')
-        # print()
         for i in range(Analytical.shape[0]):
             title = f"{f'IC {i+1}/{Analytical.shape[0]}':>20} : {str(self.Internals[i]):>20}"
             lines = [title]
@@ -323,24 +275,13 @@ class InternalCoordinates(object):
         Compute the internal coordinate Hessian. 
         Expects Cartesian coordinates to be provided in a.u.
         """
-        # xyz = xyz.flatten()
-        # self.calculate(xyz)
-        # Ginv = self.GInverse(xyz)
-        # Bmat = self.wilsonB(xyz)
-        # Gq = self.calcGrad(xyz, gradx)
-        # deriv2 = self.second_derivatives(xyz)
-        # Bmatp = deriv2.reshape(deriv2.shape[0], xyz.shape[0], xyz.shape[0])
-        # Hx_BptGq = hessx - np.einsum('pmn,p->mn', Bmatp, Gq)
-        # Hq = np.einsum('ps,sm,mn,nr,rq', Ginv, Bmat, Hx_BptGq, Bmat.T, Ginv, optimize=True)
-        # return Hq
 
-        q0 = self.calculate(xyz)
+        self.calculate(xyz)
         Ginv = self.GInverse(xyz)
         Ginv = block_matrix.full_matrix(Ginv)
         Bmat = self.wilsonB(xyz)
         Bmat = block_matrix.full_matrix(Bmat)
 
-        # np.einsum('pmn,p->mn',Bmatp,Gq)
         BptGq = self.calcCg(xyz,gradx)
         Hx_BptGq = hessx - BptGq 
 
@@ -356,9 +297,6 @@ class InternalCoordinates(object):
         return None
 
     def writeCache(self, xyz, dQ, newxyz):
-        # xyz = xyz.flatten()
-        # dQ = dQ.flatten()
-        # newxyz = newxyz.flatten()
         self.stored_xyz = xyz.copy()
         self.stored_dQ = dQ.copy()
         self.stored_newxyz = newxyz.copy()
@@ -383,16 +321,16 @@ class InternalCoordinates(object):
         def finish(microiter, rmsdt, ndqt, xyzsave, xyz_iter1):
             if ndqt > 1e-1:
                 if verbose:
-                    nifty.logger.info(f" Failed to obtain coordinates after {microiter} microiterations (rmsd = {rmsdt:.3e} |dQ| = {ndqt:.3e})\n")
+                    output.logger.info(f" Failed to obtain coordinates after {microiter} microiterations (rmsd = {rmsdt:.3e} |dQ| = {ndqt:.3e})\n")
                 self.bork = True
                 self.writeCache(xyz, dQ, xyz_iter1)
                 return xyzsave.reshape((-1, 3))
             elif ndqt > 1e-3:
                 if verbose:
-                    nifty.logger.info(f" Approximate coordinates obtained after {microiter} microiterations (rmsd = {rmsdt:.3e} |dQ| = {ndqt:.3e})\n")
+                    output.logger.info(f" Approximate coordinates obtained after {microiter} microiterations (rmsd = {rmsdt:.3e} |dQ| = {ndqt:.3e})\n")
             else:
                 if verbose:
-                    nifty.logger.info(f" Cartesian coordinates obtained after {microiter} microiterations (rmsd = {rmsdt:.3e} |dQ| = {ndqt:.3e})\n")
+                    output.logger.info(f" Cartesian coordinates obtained after {microiter} microiterations (rmsd = {rmsdt:.3e} |dQ| = {ndqt:.3e})\n")
             self.writeCache(xyz, dQ, xyzsave)
             return xyzsave.reshape((-1, 3))
 
@@ -420,13 +358,12 @@ class InternalCoordinates(object):
             if len(ndqs) > 0:
                 if ndq > ndqt:
                     if verbose:
-                        nifty.logger.info(f" Iter: {microiter} Err-dQ (Best) = {ndq:.5e} ({ndqt:.5e}) RMSD: {rmsd:.5e} Damp: {damp:.5e} (Bad)\n")
+                        output.logger.info(f" Iter: {microiter} Err-dQ (Best) = {ndq:.5e} ({ndqt:.5e}) RMSD: {rmsd:.5e} Damp: {damp:.5e} (Bad)\n")
                     damp /= 2
                     fail_counter += 1
-                    # xyz2 = xyz1.copy()
                 else:
                     if verbose:
-                        nifty.logger.info(f" Iter: {microiter} Err-dQ (Best) = {ndq:.5e} ({ndqt:.5e}) RMSD: {rmsd:.5e} Damp: {damp:.5e} (Good)\n")
+                        output.logger.info(f" Iter: {microiter} Err-dQ (Best) = {ndq:.5e} ({ndqt:.5e}) RMSD: {rmsd:.5e} Damp: {damp:.5e} (Good)\n")
                     fail_counter = 0
                     damp = min(damp*1.2, 1.0)
                     rmsdt = rmsd
@@ -434,7 +371,7 @@ class InternalCoordinates(object):
                     xyzsave = xyz2.copy()
             else:
                 if verbose:
-                    nifty.logger.info(f" Iter: {microiter} Err-dQ = {ndq:.5e} RMSD: {rmsd:.5e} Damp: {damp:.5e}\n")
+                    output.logger.info(f" Iter: {microiter} Err-dQ = {ndq:.5e} RMSD: {rmsd:.5e} Damp: {damp:.5e}\n")
                 rmsdt = rmsd
                 ndqt = ndq
             ndqs.append(ndq)

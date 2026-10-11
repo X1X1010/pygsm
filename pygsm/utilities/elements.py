@@ -429,24 +429,3 @@ class ElementData(object):
         if symbol not in self.symbol_lookup:
             raise ValueError(f"Element symbol {symbol} is not valid")
         return self.symbol_lookup[symbol]
-
-    @classmethod
-    def num_elements(cls):
-        """Return the total number of available elements"""
-        return len(cls.data)
-
-    @classmethod
-    def get_element_list(cls):
-        """Returns the list of symbols of all available elements"""
-        return [element.symbol for element in cls.data]
-
-
-if __name__ == '__main__':
-
-    from . import manage_xyz
-    filepath = "tests/fluoroethene.xyz"
-    geom = manage_xyz.read_xyz(filepath, scale=1)
-    E = ElementData()
-    # geom[0]
-    C = E.from_symbol(geom[0][0])
-    print(C.vdw_radius)

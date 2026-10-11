@@ -37,13 +37,6 @@ def infer_gradient_states(states, gradient_states, calc_grad):
     return gradient_states
 
 
-def initialize_job_data(job_data):
-    prepared = dict(job_data)
-    prepared['orbfile'] = prepared.get('orbfile', '')
-    prepared['lot'] = prepared.get('lot', None)
-    return prepared
-
-
 def node_scratch_dir(scratch_root, string_id, node_id):
     return os.path.join(scratch_root, f'{string_id:03}', str(node_id))
 

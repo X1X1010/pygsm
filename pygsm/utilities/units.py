@@ -5,7 +5,6 @@ Usage goes as
     y(bohr radii) = x(Angstrom)   * ANGSTROM_TO_AU
     x(Angstrom)   = y(bohr radii) / ANGSTROM_TO_AU
 """
-import re
 
 # Constants
 AVOGADROS_NUMBER = 6.022140857E+23          # (mol^{-1})
@@ -75,21 +74,3 @@ AMBERVELOCITY_TO_AU = AMBERLENGTH_TO_AU/AMBERTIME_TO_AU
 AMBERCHARGE_TO_AU = 1.0/18.2223
 
 # Print all unit conversions
-if __name__ == '__main__':
-    conversions = dict(locals())
-    for key, val in conversions.items():
-        if key[0] != '_':
-            print(f" Conversion: {key:>22}, Value: {val:11.11E}")
-
-
-units = {
-    'au_per_amu': 1.8228884855409500E+03,        # mass
-    'au_per_cminv': 1.0 / 219474.6305,             # ???
-    'au_per_ang': 1.0 / 0.5291772109217,         # length
-    'au_per_K': 1.0 / 3.1577464E5,             # temperature
-    'au_per_fs': 1.0 / 2.418884326505E-2,       # time
-}
-for k in list(units.keys()):
-    v = units[k]
-    mobj = re.match(r'(\S+)_per_(\S+)', k)
-    units[f'{mobj.group(2)}_per_{mobj.group(1)}'] = 1.0 / v

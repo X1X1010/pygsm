@@ -1,12 +1,11 @@
 import numpy as np
 
 try:
-    from . import units
+    pass
 except:
-    import units
+    pass
 
 import re
-#import openbabel as ob
 
 # => XYZ File Utility <= #
 
@@ -107,49 +106,6 @@ def read_molden_geoms(
     return geoms
 
 
-def read_molden_Energy(
-        filename,
-):
-    with open(filename) as f:
-        nlines = sum(1 for _ in f)
-    # print "number of lines is ", nlines
-    with open(filename) as f:
-        natoms = int(f.readlines()[2])
-
-    # print "number of atoms is ",natoms
-    nstructs = (nlines-6) / (natoms+5)  # this is for three blocks after GEOCON
-    nstructs = int(nstructs)
-
-    # print "number of structures in restart file is %i" % nstructs
-    coords = []
-    E = [0.]*nstructs
-    grmss = []
-    atomic_symbols = []
-    dE = []
-    with open(filename) as f:
-        f.readline()
-        f.readline()  # header lines
-        # get coords
-        for struct in range(nstructs):
-            tmpcoords = np.zeros((natoms, 3))
-            f.readline()  # natoms
-            f.readline()  # space
-            for a in range(natoms):
-                line = f.readline()
-                tmp = line.split()
-                tmpcoords[a, :] = [float(i) for i in tmp[1:]]
-                if struct == 0:
-                    atomic_symbols.append(tmp[0])
-        coords.append(tmpcoords)
-        # Get energies
-        f.readline()  # line
-        f.readline()  # energy
-        for struct in range(nstructs):
-            E[struct] = float(f.readline())
-
-    return E
-
-
 def write_molden_geoms(
         filename,
         geoms,
@@ -171,7 +127,6 @@ def write_molden_geoms(
         f.write("max-force\n")
         for grad in gradrms:
             f.write(f"{grad:.6f}\n")
-        # rint(" WARNING: Printing dE as max-step in molden output ")
         f.write("max-step\n")
         for dE in dEs:
             f.write(f"{dE:.6f}\n")
@@ -248,23 +203,6 @@ def write_std_multixyz(
             f.write(f'{E:.6f} kcal/mol\n')
             for atom in geom:
                 f.write(f'{atom[0]:<2} {atom[1]:14.6f} {atom[2]:14.6f} {atom[3]:14.6f}\n')
-
-
-def write_amber_xyz(
-        filename,
-        geom,
-):
-
-    count = 0
-    fh = open(filename, 'w')
-    fh.write("default name\n")
-    fh.write(f'  {len(geom)}\n')
-    for line in geom:
-        for elem in line[1:]:
-            fh.write(f" {float(elem):11.7f}")
-            count += 1
-        if count % 6 == 0:
-            fh.write("\n")
 
 
 def write_xyzs_w_comments(
@@ -363,32 +301,6 @@ def combine_atom_xyz(
             xyz[A, 2],
         ))
     return geom2
-
-
-def write_fms90(
-    filename,
-    geomx,
-    geomp=None,
-):
-    """ Write fms90 geometry file with position and velocities
-
-    Params:
-        filename (str) - name of fms90 geometry file to write
-        geomx ((natoms,4) np.ndarray) - system positions (atom symbol, x,y,z)
-        geomp ((natoms,4) np.ndarray) - system momenta
-            (atom symbol, px, py, pz)
-
-    """
-
-    fh = open(filename, 'w')
-    fh.write('UNITS=BOHR\n')
-    fh.write(f'{len(geomx)}\n')
-    for atom in geomx:
-        fh.write(f'{atom[0]:<2} {atom[1]:14.6f} {atom[2]:14.6f} {atom[3]:14.6f}\n')
-    if geomp:
-        fh.write('# momenta\n')
-        for atom in geomp:
-            fh.write(f'  {atom[1]:14.6f} {atom[2]:14.6f} {atom[3]:14.6f}\n')
 
 
 XYZ_WRITERS = {

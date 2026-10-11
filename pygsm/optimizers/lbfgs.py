@@ -64,7 +64,6 @@ class lbfgs(base_optimizer):
         # get coordinates
         x = np.copy(molecule.coordinates)
         xyz = np.copy(molecule.xyz)
-        # x_prim = molecule.primitive_internal_values
         num_coords = molecule.num_coordinates - nconstraints - molecule.num_frozen_atoms*3
 
         # Evaluate the function value and its gradient.
@@ -86,11 +85,6 @@ class lbfgs(base_optimizer):
         # Not checking convergence here anymore ...
         # if molecule.PES.__class__.__name__!="PES" and self.opt_cross:
         #    if molecule.gradrms < self.conv_grms and abs(dE)<1.0:
-        #        print(" converged")
-        #        return geoms,energies
-        # elif molecule.gradrms < self.conv_grms:
-        #    print(" converged")
-        #    return geoms,energies
 
         # # reset k in principle k does not have to reset but . . .
         # TRY Turning off Feb 2020
@@ -120,7 +114,6 @@ class lbfgs(base_optimizer):
                 self.lm[self.end].y_prim = g_prim - self.gp_prim
 
                 self.end = (self.end + 1) % maxcor
-                # j = self.end
                 bound = min(self.k, maxcor)
                 s_prim = np.array([self.lm[i].s_prim.flatten() for i in range(maxcor)])
                 y_prim = np.array([self.lm[i].y_prim.flatten() for i in range(maxcor)])
@@ -181,7 +174,6 @@ class lbfgs(base_optimizer):
             dEpre += constraint_energy
 
             # if abs(dEpre)<0.05:
-            #    dEpre = np.sign(dEpre)*0.05
             ratio = dEstep/dEpre
             print(f" dEstep={dEstep:5.4f}")
             print(f" dEpre={np.asarray(dEpre).item():5.4f}")
@@ -195,7 +187,6 @@ class lbfgs(base_optimizer):
                 molecule.xyz = self.xyzp.copy()
                 g = gp.copy()
                 fx = fxp
-                # fx = molecule.energy
                 ratio = 0.
                 dEstep = 0.
 

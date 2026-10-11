@@ -112,11 +112,9 @@ class eigenvector_follow(base_optimizer):
                         opt_type = 'CLIMB'
 
             actual_step = np.linalg.norm(dq)
-            # print(" actual_step= %1.2f"% actual_step)
             dq = dq/actual_step  # normalize
             if actual_step > self.DMAX:
                 step = self.DMAX
-                # print(" reducing step, new step = %1.2f" %step)
             else:
                 step = actual_step
 
@@ -127,13 +125,11 @@ class eigenvector_follow(base_optimizer):
             fxp = fx
             pgradrms = molecule.gradrms
             if not molecule.coord_obj.__class__.__name__ == 'CartesianCoordinates':
-                # xp_prim = self.x_prim.copy()
                 gp_prim = self.g_prim.copy()
 
             # => calculate constraint step <= #
             constraint_steps = self.get_constraint_steps(molecule, opt_type, g)
 
-            # print(" ### Starting  line search ###")
             ls = self.Linesearch(nconstraints, x, fx, g, dq, step, xp, constraint_steps, self.linesearch_parameters, molecule, verbose)
 
             # get values from linesearch
@@ -151,7 +147,6 @@ class eigenvector_follow(base_optimizer):
                 fx = fxp
                 ratio = 0.
                 molecule.newHess = 5
-                # return ls['status']
 
             if ls['step'] > self.DMAX:
                 if ls['step'] <= self.options['abs_max_step']:  # absolute max
@@ -172,12 +167,9 @@ class eigenvector_follow(base_optimizer):
             dEtemp = np.dot(self.Hessian, scaled_dq)
             dEpre = np.dot(np.transpose(scaled_dq), gc) + 0.5*np.dot(np.transpose(dEtemp), scaled_dq)
             dEpre *= units.KCAL_MOL_PER_AU
-            # print(constraint_steps.T)
             constraint_energy = np.dot(gp.T, constraint_steps)*units.KCAL_MOL_PER_AU
-            # print("constraint_energy: %1.4f" % constraint_energy)
             dEpre += constraint_energy
             # if abs(dEpre)<0.01:
-            #    dEpre = np.sign(dEpre)*0.01
 
             # project out the constraint
             gc = g.copy()
@@ -226,7 +218,6 @@ class eigenvector_follow(base_optimizer):
             gmax = float(np.max(np.absolute(gc)))
             disp = float(np.linalg.norm((xyz-xyzp).flatten()))
             xnorm = np.sqrt(np.dot(x.T, x))
-            # gnorm = np.sqrt(np.dot(g.T, g))
             if xnorm < 1.0:
                 xnorm = 1.0
 
@@ -277,27 +268,3 @@ class eigenvector_follow(base_optimizer):
         print(f" opt-summary {molecule.node_id}")
         print(self.buf.getvalue())
         return geoms, energies
-
-
-if __name__ == '__main__':
-    from ..coordinate_systems import Distance
-    from ..molecule import Molecule
-    from ..potential_energy_surfaces import PES
-    from ..level_of_theories.qchem import QChem
-
-    basis = "6-31G*"
-    nproc = 8
-
-    filepath = "examples/tests/bent_benzene.xyz"
-    lot = QChem.from_options(states=[(1, 0)], charge=0, basis=basis, functional='HF', nproc=nproc, fnm=filepath)
-    pes = PES.from_options(lot=lot, ad_idx=0, multiplicity=1)
-    M = Molecule.from_options(fnm=filepath, PES=pes, coordinate_type="DLC")
-    distance = Distance(5, 8)  # Not 1 based!!
-    print(distance)
-
-    ef = eigenvector_follow.from_options()  # Linesearch=NoLineSearch)
-    geoms = ef.optimize(molecule=M, refE=M.energy, opt_steps=5)
-    #geoms = ef.optimize(molecule=M,refE=M.energy,opt_steps=1)
-    print(M.primitive_internal_coordinates)
-
-    manage_xyz.write_xyzs('opt.xyz', geoms, scale=1.)

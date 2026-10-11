@@ -60,8 +60,6 @@ class block_matrix(object):
         norms = np.sqrt(
             (ov(constraints.T, constraints).sum(axis=0, keepdims=True)))
         constraints = constraints/norms
-        #print('constraints after renormalizing')
-        # print(constraints.T)
 
         # (c) need to save the magnitude of the constraints in each segment since they
         # will be renormalized for each block
@@ -79,7 +77,6 @@ class block_matrix(object):
             for count, constraint in enumerate(constraints.T):
 
                 # CRA 81219 what to do here? mag of real or g-space?
-                #mag = np.linalg.norm(constraint[sr:er])
                 mag = np.sqrt(np.linalg.multi_dot(
                     [constraint[sr:er], G[sr:er, sr:er], constraint[sr:er]]))
 
@@ -118,7 +115,6 @@ class block_matrix(object):
                 ans.append(conjugate_orthogonalize(nb, G[sr:er, sr:er], num_c))
             else:
                 ans.append(conjugate_orthogonalize(nb, G[sr:er, sr:er]))
-                # ans.append(ob)
             sc = ec
             sr = er
             count += 1
@@ -143,8 +139,6 @@ class block_matrix(object):
 
         # (b) renormalizing the constraints
         norms = np.sqrt((constraints*constraints).sum(axis=0, keepdims=True))
-        # print('norms')
-        # print(norms)
         constraints = constraints/norms
 
         # (c) need to save the magnitude of the constraints in each segment since they
@@ -182,12 +176,10 @@ class block_matrix(object):
 
         # NEW
         # orthogonalize each sub block
-        #print(" Beginning to orthogonalize each sub block")
         ans = []
         sc = 0
         count = 0
         for nb, ob in zip(newblocks, BM.matlist):
-            #print("On block %d" % count)
             size_c = ob.shape[1]
             ec = sc+size_c
             num_c = 0
@@ -196,18 +188,10 @@ class block_matrix(object):
                 # if (c[sc:ec]!=0.).any():
                 if any(c[sc:ec] != 0.):
                     num_c += 1
-                    #print('block %d mag %.4f' %(count,np.linalg.norm(c[sc:ec])))
-                    # print(c[sc:ec])
-                    #print('num_c=%d' %num_c)
                     flag = True
-            # print(flag)
             if flag:
-                #print(" orthogonalizing sublock {} with {} constraints".format(count,num_c))
-                # print(ob.shape)
-                # print(nb.shape)
                 try:
                     a = orthogonalize(nb, num_c)
-                    #print("result {}".format(a.shape))
                 except:
                     print(" what is happening")
                     print("nb")
@@ -217,9 +201,7 @@ class block_matrix(object):
                     print("ob")
                     print(ob)
                 ans.append(a)
-                # ans.append(orthogonalize(nb,num_c))
             else:
-                #print(" appending old block without constraints")
                 ans.append(ob)
             sc = ec
             count += 1
@@ -227,39 +209,17 @@ class block_matrix(object):
         return block_matrix(ans, cnorms)
 
         # (d) concatenating the block to each constraint if the constraint is non-zero
-        # sr=0
-        # newblocks=[]
         # for block in BM.matlist:
-        #    size_r=block.shape[0]
-        #    er=sr+size_r
-        #    flag=False
-        #    tmpc = []
         #    for constraint in constraints.T:
         #        #if (constraint[s:e]!=0.).all():
-        #        mag = np.linalg.norm(constraint[sr:er])
         #        if mag>0.:
-        #            tmpc.append(constraint[sr:er]/mag)
-        #            flag=True
         #    if flag==True:
-        #        tmpc = np.asarray(tmpc).T
         #        if len(tmpc)!=len(block):
-        #            #print(tmpc.shape)
-        #            #print(block.shape)
-        #            #print('start %i end %i' %(s,e))
         #            raise RuntimeError
-        #        newblocks.append(np.hstack((tmpc,block)))
-        #    else:
-        #        newblocks.append(block)
-        #    sr=er
 
-        # print('cnorms')
-        # print(cnorms[np.nonzero(cnorms)[0]])
-        # return block_matrix(newblocks,cnorms)
 
     @staticmethod
     def qr(BM):  # only return the Q part
-        #print("before qr")
-        # print(BM)
         ans = []
         for A in BM.matlist:
             Q, R = np.linalg.qr(A)
@@ -268,43 +228,14 @@ class block_matrix(object):
             if len(indep) > A.shape[1]:
                 print(" the basis dimensions are too large.")
                 raise RuntimeError
-            #tmp = np.dot(Q,R)
-            # print(tmp.shape)
-            #print("r,q shape")
-            # print(R.shape)
-            # pvec1d(R[-1,:])
-            # ans.append(Q[:,:BM.shape[1]-BM.cnorms.shape[1]])
-            # m=A.shape[1]
-            # print(R)
             # for i in range(BM.cnorms.shape[1]):
             #    if np.linalg.norm(R[-1,:])<1.e-3:
-            #        m-=1
-            # ans.append(Q[:,:m])
         return block_matrix(ans, BM.cnorms)
-        # return block_matrix( [ np.linalg.qr(A)[0] for A in BM.matlist ], BM.cnorms)
 
     @staticmethod
     def diagonal(BM):
         la = [np.diagonal(A) for A in BM.matlist]
         return np.concatenate(la)
-
-    @staticmethod
-    def gram_schmidt(BM):
-        ans = []
-        sc = 0
-        for i, block in enumerate(BM.matlist):
-            size_c = block.shape[1]
-            ec = sc+size_c
-            num_c = 0
-            for c in BM.cnorms.T:
-                if any(c[sc:ec] != 0.):
-                    num_c += 1
-                    print(f'block {i} mag {np.linalg.norm(c[sc:ec]):.4f}')
-                    print(c[sc:ec])
-                    print(f'num_c={num_c}')
-            ans.append(orthogonalize(block, num_c))
-            sc = ec
-        return block_matrix(ans, BM.cnorms)
 
     @staticmethod
     def eigh(BM):
@@ -433,8 +364,6 @@ class block_matrix(object):
 
         elif isinstance(right, np.ndarray) and right.shape[1] > 1:
             #
-            # [ A | 0 ] [ C ] = [ AC ]
-            # [ 0 | B ] [ D ]   [ BD ]
             sc = 0
             tmp_ans = []
             for A in left.matlist:
@@ -445,95 +374,3 @@ class block_matrix(object):
             return dot_product
         else:
             raise NotImplementedError
-
-
-# if __name__=="__main__":
-
-#A = [np.array([[1,2],[3,4]]), np.array([[5,6],[7,8]])]
-#B = [np.array([[1,2],[3,4]]), np.array([[5,6],[7,8]])]
-#Ab = bm(A)
-#Bb = bm(B)
-#
-# print("A")
-# print(Ab)
-#
-# print("B")
-# print(Bb)
-#
-# test 1
-#print("test 1 adding block matrices")
-#Cb = Ab+Bb
-# print(Cb)
-#
-#print("test 2 adding block matrix and float")
-#Db = Ab+2
-# print(Db)
-#
-#print("test 3 reversing order of addition")
-#Eb = 2+Ab
-# print(Eb)
-#
-#print("test 4 block multiplication")
-#Fb = Ab*Bb
-# print(Fb)
-#
-#print("test 5 block multiplication by scalar")
-#Gb = Ab*2
-# print(Gb)
-#
-#print("test 6 reverse block mult by scalar")
-#Hb = 2*Ab
-# print(Hb)
-#
-#print("test 7 total len")
-# print(len(Hb))
-#
-#print("test 8 shape")
-# print(Hb.shape)
-#
-#print("test dot product with block matrix")
-#Ib = bm.dot(Ab,Bb)
-# print(Ib)
-#
-#print("test dot product with np vector")
-#Jb = bm.dot(Ab,np.array([1,2,3,4]))
-# print(Jb)
-#
-#print("Test dot product with np 2d vector shape= (x,1)")
-#a = np.array([[1,2,3,4]]).T
-#Kb = bm.dot(Ab,a)
-# print(Kb)
-#
-#print("test dot product with non-block array")
-#fullmat = np.random.randint(5,size=(4,4))
-#print(" full mat to mult")
-# print(fullmat)
-#A = [np.array([[1,2,3],[4,5,6]]), np.array([[7,8,9],[10,11,12]])]
-#Ab = bm(A)
-#print(" Ab")
-# print(bm.full_matrix(Ab))
-# print('result')
-#Mb = np.dot(fullmat,bm.full_matrix(Ab))
-# print(Mb)
-#Lb = bm.dot(fullmat,Ab)
-#print('result of dot product with full mat')
-# print(Lb)
-#print(Lb == Mb)
-#
-#print("test dot product with non-block array")
-#print(" full mat to mult")
-# print(fullmat)
-#print(" Ab")
-# print(bm.full_matrix(Ab))
-# print('result')
-#A = [ np.array([[1,2],[3,4],[5,6]]),np.array([[7,8],[9,10],[11,12]])]
-#Ab = bm(A)
-# print(Ab.shape)
-# print(fullmat.shape)
-#Mb = np.dot(bm.full_matrix(Ab),fullmat)
-# print(Mb)
-#Lb = bm.dot(Ab,fullmat)
-#print('result of dot product with full mat')
-# print(Lb)
-#print(Lb == Mb)
-#

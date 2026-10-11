@@ -55,12 +55,6 @@ class beales_cg(base_optimizer):
 
         # if np.all(s0==0.):
         # #if np.all(s0_prim==0.) or s0_prim==None:
-        #    print(" already at TS")
-        #    nconstraints=1
-        #    s0_prim = 0.*gp_prim
-        #    g = g - np.dot(g.T,molecule.constraints)*molecule.constraints
-        # else:
-        #    s0_prim = block_matrix.dot(molecule.coord_basis,s0)
 
         molecule.gradrms = np.sqrt(np.dot(g.T, g)/n)
         g_prim = block_matrix.dot(molecule.coord_basis, g)
@@ -192,13 +186,7 @@ class beales_cg(base_optimizer):
                 print(" Opt step: {} E: {:5.4f} gradrms: {:1.5f} ss: {:1.3f} DMAX: {:1.3f}".format(ostep+1, fx-refE, molecule.gradrms, step, self.options['DMAX']))
             self.buf.write(u' Opt step: {} E: {:5.4f} gradrms: {:1.5f} ss: {:1.3f} DMAX: {:1.3f}\n'.format(ostep+1, fx-refE, molecule.gradrms, step, self.options['DMAX']))
 
-            # gmax = np.max(g)/ANGSTROM_TO_AU/units.KCAL_MOL_PER_AU
             # print "current gradrms= %r au" % gradrms
-            # gmax = np.max(g)/units.ANGSTROM_TO_AU
-            # self.disp = np.max(x - xp)/units.ANGSTROM_TO_AU
-            # self.Ediff = fx -fxp / units.KCAL_MOL_PER_AU
-            # print(" maximum displacement component %1.2f (au)" % self.disp)
-            # print(" maximum gradient component %1.2f (au)" % gmax)
 
             # check for convergence TODO
             molecule.gradrms = np.sqrt(np.dot(g.T, g)/n)
@@ -228,8 +216,6 @@ class beales_cg(base_optimizer):
                     #if opt_type=="ICTAN":
                     constraints = self.get_constraint_vectors(molecule, opt_type, ictan)
                     molecule.update_coordinate_basis(constraints=constraints)
-                    #else:
-                    #    molecule.update_coordinate_basis()
                     x = np.copy(molecule.coordinates)
                     fx = molecule.energy
                     dE = molecule.difference_energy

@@ -3,12 +3,12 @@ import itertools
 import numpy as np
 
 
-from pygsm.utilities import nifty
+from pygsm.utilities import output, math_utils
 
 try:
     import networkx as nx
 except ImportError:
-    nifty.logger.warning("NetworkX cannot be imported (topology tools won't work).  Most functionality should still work though.")
+    output.logger.warning("NetworkX cannot be imported (topology tools won't work).  Most functionality should still work though.")
 
 
 #===========================#
@@ -25,10 +25,7 @@ class MyG(nx.Graph):
     # def __eq__(self, other):
     #     # This defines whether two MyG objects are "equal" to one another.
     #     if not self.Alive:
-    #         return False
     #     if not other.Alive:
-    #         return False
-    #     return nx.is_isomorphic(self, other, node_match=nodematch)
 
     def __hash__(self):
         """ The hash function is something we can use to discard two things that are obviously not equal.  Here we neglect the hash. """
@@ -37,10 +34,6 @@ class MyG(nx.Graph):
     def L(self):
         """ Return a list of the sorted atom numbers in this graph. """
         return sorted(list(self.nodes()))
-
-    def AStr(self):
-        """ Return a string of atoms, which serves as a rudimentary 'fingerprint' : '99,100,103,151' . """
-        return ','.join([f'{i}' for i in self.L()])
 
     def e(self):
         """ Return an array of the elements.  For instance ['H' 'C' 'C' 'H']. """
@@ -106,9 +99,6 @@ def AtomContact(xyz, pairs, box=None, displace=False):
     xyzsel1 = xyzpbc[sel1]
     xyzsel2 = xyzpbc[sel2]
 
-    # print("sel1, sel2")
-    # print(sel1)
-    # print(sel2)
     # Calculate xyz displacement
     dxyz = xyzsel2-xyzsel1
     # Apply minimum image convention to displacements
@@ -158,7 +148,7 @@ class Topology():
 
         # can do an assert for xyz here CRA TODO
         if natoms > 100000:
-            nifty.logger.warning(f"Warning: Large number of atoms ({natoms}), topology building may take a long time")
+            output.logger.warning(f"Warning: Large number of atoms ({natoms}), topology building may take a long time")
 
         # Get hybrid indices
         hybrid_indices = hybrid_indices
@@ -171,8 +161,6 @@ class Topology():
             for i in range(len(atoms)):
                 if i not in hybrid_indices:
                     primitive_indices.append(i)
-            # print("non-cartesian indices")
-            # print(primitive_indices)
 
             # get the hybrid start and stop indices
             new = True
@@ -188,13 +176,11 @@ class Topology():
                         hybrid_idx_start_stop.append((start, end))
 
         if not bondlistfile:
-            nifty.printcool(" building bonds")
+            output.printcool(" building bonds")
             bonds = Topology.build_bonds(xyz, atoms, primitive_indices, prim_idx_start_stop)
-            # print(" done")
             assert bondlistfile is None
         else:
             # bondlistfile:
-            # prim_idx_start_stop = kwargs.get('prim_idx_start_stop',None)
             try:
                 bonds = Topology.read_bonds_from_file(bondlistfile)  # ,prim_idx_start_stop)
             except:
@@ -204,7 +190,6 @@ class Topology():
             print(" adding extra bonds")
             for bond in add_bond:
                 bonds.append(bond)
-            # print(bonds)
 
         # Create a NetworkX graph object to hold the bonds.
         G = MyG()
@@ -219,7 +204,6 @@ class Topology():
             G.add_edge(i, j)
 
         # The Topology is simply the NetworkX graph object.
-        # topology = G
         fragments = [G.subgraph(c).copy() for c in nx.connected_components(G)]
         for g in fragments:
             g.__class__ = MyG
@@ -281,7 +265,7 @@ class Topology():
                 neighbor_atoms = assignments[tuple(neighbor_index)]
                 if not neighbor_atoms:
                     continue
-                atom_pairs = nifty.cartesian_product2([atoms_in_cell, neighbor_atoms])
+                atom_pairs = math_utils.cartesian_product2([atoms_in_cell, neighbor_atoms])
                 if len(atom_pairs) > 0:
                     pair_blocks.append(atom_pairs[atom_pairs[:, 0] > atom_pairs[:, 1]])
 
@@ -330,7 +314,6 @@ class Topology():
         mindist = 1.0  # Any two atoms that are closer than this distance are bonded.
         # Create an atom-wise list of covalent radii.
         # Molecule object can have its own set of radii that overrides the global ones
-        # R = np.array([top_settings['radii'].get(i.symbol, i.covalent_radius) for i in atoms])
         R = np.array([atom.covalent_radius for atom in atoms])
         # Create a list of 2-tuples corresponding to combinations of atomic indices using a grid algorithm.
         mins = np.min(xyz, axis=0)
@@ -347,7 +330,7 @@ class Topology():
             ymax = boxes[sn].b
             zmax = boxes[sn].c
             if any([i != 90.0 for i in [boxes[sn].alpha, boxes[sn].beta, boxes[sn].gamma]]):
-                nifty.logger.warning("Warning: Topology building will not work with broken molecules in nonorthogonal cells.")
+                output.logger.warning("Warning: Topology building will not work with broken molecules in nonorthogonal cells.")
                 toppbc = False
         else:
             xmin = mins[0]
@@ -386,11 +369,8 @@ class Topology():
             # This is much faster than using itertools.combinations.
             # TODO 9/2019 build-bonds only for non-cartesian indices
             # the original version
-            # AtomIterator = np.ascontiguousarray(np.vstack((np.fromiter(itertools.chain(*[[i]*(natoms-i-1) for i in range(natoms)]),dtype=np.int32), np.fromiter(itertools.chain(*[list(range(i+1,natoms)) for i in range(natoms)]),dtype=np.int32))).T)
 
-            # first_o =np.fromiter(itertools.chain(*[[i]*(natoms-i-1) for i in range(natoms)]),dtype=np.int32)
 
-            # print("prim indices")
             # need the primitive start and stop indices
 
             if prim_idx_start_stop is None:
@@ -409,7 +389,6 @@ class Topology():
         # if hasattr( 'boxes') and toppbc:
         if toppbc:
             raise NotImplementedError
-            # dxij = AtomContact(xyz, AtomIterator, box=np.array([boxes[sn].a, boxes[sn].b, boxes[sn].c]))
         else:
             dxij = AtomContact(xyz, AtomIterator)
 
@@ -418,7 +397,6 @@ class Topology():
 
         # Create a list of atoms that each atom is bonded to.
         atom_bonds = [[] for i in range(natoms)]
-        # atom_bonds = [[] for i in primitive_indices]
 
         bond_bool = dxij < BondThresh
         for i, a in enumerate(bond_bool):
@@ -437,7 +415,6 @@ class Topology():
                     continue
                 # Do not add a bond between resids if fragment is set to True.
                 # if top_settings['fragment'] and 'resid' in Data.keys() and resid[i] != resid[j]:
-                #    continue
                 elif i < j:
                     bondlist.append((i, j))
                 else:
@@ -445,8 +422,6 @@ class Topology():
         bondlist = sorted(list(set(bondlist)))
         bonds = sorted(list(set(bondlist)))
 
-        # print('bond list')
-        # print(bondlist)
 
         return bonds
 
@@ -469,72 +444,6 @@ class Topology():
 
         return sorted_bonds
 
-    def distance_displacement(xyz, self):
-        """ Obtain distance matrix and displacement vectors between all pairs of atoms. """
-        AtomIterator = np.ascontiguousarray(np.vstack((np.fromiter(itertools.chain(*[[i]*(self.natoms-i-1) for i in range(self.natoms)]), dtype=np.int32),
-                                            np.fromiter(itertools.chain(*[list(range(i+1, self.natoms)) for i in range(self.natoms)]), dtype=np.int32))).T)
-        drij = []
-        dxij = []
-        # if hasattr(self, 'boxes') and pbc:
-        #     drij_i, dxij_i = AtomContact(xyz, AtomIterator, box=np.array([self.boxes[sn].a, self.boxes[sn].b, self.boxes[sn].c]), displace=True)
-        # else:
-        drij_i, dxij_i = AtomContact(xyz, AtomIterator, box=None, displace=True)
-        drij.append(drij_i)
-        dxij.append(dxij_i)
-        return AtomIterator, drij, dxij
-
-    # these aren't used
-    def find_angles(self):
-        """ Return a list of 3-tuples corresponding to all of the
-        angles in the system.  Verified for lysine and tryptophan
-        dipeptide when comparing to TINKER's analyze program. """
-
-        if not hasattr(self, 'topology'):
-            print("Need to have built a topology to find angles\n")
-            raise RuntimeError
-
-        angidx = []
-        # Iterate over separate molecules
-        for mol in self.fragments:
-            # Iterate over atoms in the molecule
-            for a2 in list(mol.nodes()):
-                # Find all bonded neighbors to this atom
-                friends = sorted(list(nx.neighbors(mol, a2)))
-                if len(friends) < 2:
-                    continue
-                # Double loop over bonded neighbors
-                for i, a1 in enumerate(friends):
-                    for a3 in friends[i+1:]:
-                        # Add bonded atoms in the correct order
-                        angidx.append((a1, a2, a3))
-        return angidx
-
-    # these aren't used
-    def find_dihedrals(self):
-        """ Return a list of 4-tuples corresponding to all of the
-        dihedral angles in the system.  Verified for alanine and
-        tryptophan dipeptide when comparing to TINKER's analyze
-        program. """
-
-        if not hasattr(self, 'topology'):
-            print("Need to have built a topology to find dihedrals\n")
-            raise RuntimeError
-
-        dihidx = []
-        # Iterate over separate molecules
-        for mol in self.fragments:
-            # Iterate over bonds in the molecule
-            for edge in list(mol.edges()):
-                # Determine correct ordering of atoms (middle atoms are ordered by convention)
-                a2 = edge[0] if edge[0] < edge[1] else edge[1]
-                a3 = edge[1] if edge[0] < edge[1] else edge[0]
-                for a1 in sorted(list(nx.neighbors(mol, a2))):
-                    if a1 != a3:
-                        for a4 in sorted(list(nx.neighbors(mol, a3))):
-                            if a4 != a2 and len({a1, a2, a3, a4}) == 4:
-                                dihidx.append((a1, a2, a3, a4))
-        return dihidx
-
     @staticmethod
     def distance_matrix(xyz, pbc=True):
         """ Obtain distance matrix between all pairs of atoms. """
@@ -543,7 +452,5 @@ class Topology():
                                             np.fromiter(itertools.chain(*[list(range(i+1, natoms)) for i in range(natoms)]), dtype=np.int32))).T)
         drij = []
         # if hasattr(self, 'boxes') and pbc:
-        #    drij.append(AtomContact(xyz,AtomIterator,box=np.array([self.boxes[sn].a, self.boxes[sn].b, self.boxes[sn].c])))
-        # else:
         drij.append(AtomContact(xyz, AtomIterator))
         return AtomIterator, drij

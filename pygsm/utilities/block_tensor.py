@@ -1,8 +1,5 @@
 import numpy as np
 from scipy.linalg import block_diag
-from .nifty import printcool,pvec1d
-import sys
-from .math_utils import orthogonalize,conjugate_orthogonalize
 
 
 class block_tensor(object):
@@ -145,8 +142,6 @@ class block_tensor(object):
 
         elif isinstance(right,np.ndarray) and right.ndim==2:
             #           
-            # [ A | 0 ] [ C ] = [ AC ]
-            # [ 0 | B ] [ D ]   [ BD ]
             sc=0
             tmp_ans=[]
             for A in left.matlist:
@@ -157,95 +152,3 @@ class block_tensor(object):
             return dot_product
         else: 
             raise NotImplementedError
-
-
-#if __name__=="__main__":
-
-#A = [np.array([[1,2],[3,4]]), np.array([[5,6],[7,8]])]
-#B = [np.array([[1,2],[3,4]]), np.array([[5,6],[7,8]])]
-#Ab = bm(A)
-#Bb = bm(B)
-#
-#print("A")
-#print(Ab)
-#
-#print("B")
-#print(Bb)
-#
-## test 1
-#print("test 1 adding block matrices")
-#Cb = Ab+Bb
-#print(Cb)
-#
-#print("test 2 adding block matrix and float")
-#Db = Ab+2
-#print(Db)
-#
-#print("test 3 reversing order of addition")
-#Eb = 2+Ab
-#print(Eb)
-#
-#print("test 4 block multiplication")
-#Fb = Ab*Bb
-#print(Fb)
-#
-#print("test 5 block multiplication by scalar")
-#Gb = Ab*2
-#print(Gb)
-#
-#print("test 6 reverse block mult by scalar")
-#Hb = 2*Ab
-#print(Hb)
-#
-#print("test 7 total len")
-#print(len(Hb))
-#
-#print("test 8 shape")
-#print(Hb.shape)
-#
-#print("test dot product with block matrix")
-#Ib = bm.dot(Ab,Bb)
-#print(Ib)
-#
-#print("test dot product with np vector")
-#Jb = bm.dot(Ab,np.array([1,2,3,4]))
-#print(Jb)
-#
-#print("Test dot product with np 2d vector shape= (x,1)")
-#a = np.array([[1,2,3,4]]).T
-#Kb = bm.dot(Ab,a)
-#print(Kb)
-#
-#print("test dot product with non-block array")
-#fullmat = np.random.randint(5,size=(4,4))
-#print(" full mat to mult")
-#print(fullmat)
-#A = [np.array([[1,2,3],[4,5,6]]), np.array([[7,8,9],[10,11,12]])]
-#Ab = bm(A)
-#print(" Ab")
-#print(bm.full_matrix(Ab))
-#print('result')
-#Mb = np.dot(fullmat,bm.full_matrix(Ab))
-#print(Mb)
-#Lb = bm.dot(fullmat,Ab)
-#print('result of dot product with full mat')
-#print(Lb)
-#print(Lb == Mb)
-#
-#print("test dot product with non-block array")
-#print(" full mat to mult")
-#print(fullmat)
-#print(" Ab")
-#print(bm.full_matrix(Ab))
-#print('result')
-#A = [ np.array([[1,2],[3,4],[5,6]]),np.array([[7,8],[9,10],[11,12]])]
-#Ab = bm(A)
-#print(Ab.shape)
-#print(fullmat.shape)
-#Mb = np.dot(bm.full_matrix(Ab),fullmat)
-#print(Mb)
-#Lb = bm.dot(Ab,fullmat)
-#print('result of dot product with full mat')
-#print(Lb)
-#print(Lb == Mb)
-#

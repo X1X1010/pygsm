@@ -1,6 +1,6 @@
 import numpy as np
 
-from pygsm.utilities import nifty, math_utils
+from pygsm.utilities import output, math_utils
 from .rotate import get_expmap, get_expmap_der, is_linear, calc_rot_vec_diff
 
 
@@ -70,7 +70,7 @@ class CartesianX(PrimitiveCoordinate):
             return False
         eq = self.a == other.a
         if eq and self.w != other.w:
-            nifty.logger.warning(f"Warning: CartesianX same atoms, different weights ({self.w:.4f} {other.w:.4f})")
+            output.logger.warning(f"Warning: CartesianX same atoms, different weights ({self.w:.4f} {other.w:.4f})")
         return eq
 
     def __ne__(self, other):
@@ -108,7 +108,6 @@ class CartesianY(PrimitiveCoordinate):
         self.isPeriodic = False
 
     def __repr__(self):
-        # return "Cartesian-Y %i : Weight %.3f" % (self.a+1, self.w)
         return "Cartesian-Y %s" % (self.a+1)
 
     @property
@@ -120,7 +119,7 @@ class CartesianY(PrimitiveCoordinate):
             return False
         eq = self.a == other.a
         if eq and self.w != other.w:
-            nifty.logger.warning(f"Warning: CartesianY same atoms, different weights ({self.w:.4f} {other.w:.4f})")
+            output.logger.warning(f"Warning: CartesianY same atoms, different weights ({self.w:.4f} {other.w:.4f})")
         return eq
 
     def __ne__(self, other):
@@ -143,9 +142,6 @@ class CartesianY(PrimitiveCoordinate):
         return derivatives
 
     #def second_derivative(self, xyz):
-    #    xyz = xyz.reshape(-1,3)
-    #    deriv2 = np.zeros((xyz.shape[0], xyz.shape[1], xyz.shape[0], xyz.shape[1]))
-    #    return deriv2
     def second_derivative(self, xyz, start_idx=0):
         xyz = xyz.reshape(-1, 3)
         deriv2 = np.zeros((xyz.shape[0], xyz.shape[1], xyz.shape[0], xyz.shape[1]))
@@ -162,7 +158,6 @@ class CartesianZ(PrimitiveCoordinate):
         self.isPeriodic = False
 
     def __repr__(self):
-        # return "Cartesian-Z %i : Weight %.3f" % (self.a+1, self.w)
         return "Cartesian-Z %s" % (self.a+1)
 
     @property
@@ -174,7 +169,7 @@ class CartesianZ(PrimitiveCoordinate):
             return False
         eq = self.a == other.a
         if eq and self.w != other.w:
-            nifty.logger.warning(f"Warning: CartesianZ same atoms, different weights ({self.w:.4f} {other.w:.4f})")
+            output.logger.warning(f"Warning: CartesianZ same atoms, different weights ({self.w:.4f} {other.w:.4f})")
         return eq
 
     def __ne__(self, other):
@@ -197,9 +192,6 @@ class CartesianZ(PrimitiveCoordinate):
         return derivatives
 
     #def second_derivative(self, xyz):
-    #    xyz = xyz.reshape(-1,3)
-    #    deriv2 = np.zeros((xyz.shape[0], xyz.shape[1], xyz.shape[0], xyz.shape[1]))
-    #    return deriv2
     def second_derivative(self, xyz, start_idx=0):
         xyz = xyz.reshape(-1, 3)
         deriv2 = np.zeros((xyz.shape[0], xyz.shape[1], xyz.shape[0], xyz.shape[1]))
@@ -217,8 +209,7 @@ class TranslationX(PrimitiveCoordinate):
         self.isPeriodic = False
 
     def __repr__(self):
-        # return "Translation-X %s : Weights %s" % (' '.join([str(i+1) for i in self.a]), ' '.join(['%.2e' % i for i in self.w]))
-        return f"Translation-X {nifty.commadash(self.a)}"
+        return f"Translation-X {output.commadash(self.a)}"
 
     @property
     def atoms(self):
@@ -229,7 +220,7 @@ class TranslationX(PrimitiveCoordinate):
             return False
         eq = set(self.a) == set(other.a)
         if eq and np.sum((self.w-other.w)**2) > 1e-6:
-            nifty.logger.warning("Warning: TranslationX same atoms, different weights")
+            output.logger.warning("Warning: TranslationX same atoms, different weights")
             eq = False
         return eq
 
@@ -278,8 +269,7 @@ class TranslationY(PrimitiveCoordinate):
         self.isPeriodic = False
 
     def __repr__(self):
-        # return "Translation-Y %s : Weights %s" % (' '.join([str(i+1) for i in self.a]), ' '.join(['%.2e' % i for i in self.w]))
-        return f"Translation-Y {nifty.commadash(self.a)}"
+        return f"Translation-Y {output.commadash(self.a)}"
 
     @property
     def atoms(self):
@@ -290,7 +280,7 @@ class TranslationY(PrimitiveCoordinate):
             return False
         eq = set(self.a) == set(other.a)
         if eq and np.sum((self.w-other.w)**2) > 1e-6:
-            nifty.logger.warning("Warning: TranslationY same atoms, different weights")
+            output.logger.warning("Warning: TranslationY same atoms, different weights")
             eq = False
         return eq
 
@@ -339,8 +329,7 @@ class TranslationZ(PrimitiveCoordinate):
         self.isPeriodic = False
 
     def __repr__(self):
-        # return "Translation-Z %s : Weights %s" % (' '.join([str(i+1) for i in self.a]), ' '.join(['%.2e' % i for i in self.w]))
-        return f"Translation-Z {nifty.commadash(self.a)}"
+        return f"Translation-Z {output.commadash(self.a)}"
 
     @property
     def atoms(self):
@@ -351,7 +340,7 @@ class TranslationZ(PrimitiveCoordinate):
             return False
         eq = set(self.a) == set(other.a)
         if eq and np.sum((self.w-other.w)**2) > 1e-6:
-            nifty.logger.warning("Warning: TranslationZ same atoms, different weights")
+            output.logger.warning("Warning: TranslationZ same atoms, different weights")
             eq = False
         return eq
 
@@ -434,11 +423,11 @@ class Rotator(object):
             return False
         eq = set(self.a) == set(other.a)
         if eq and np.sum((self.x0-other.x0)**2) > 1e-6:
-            nifty.logger.warning("Warning: Rotator same atoms, different reference positions")
+            output.logger.warning("Warning: Rotator same atoms, different reference positions")
         return eq
 
     def __repr__(self):
-        return f"Rotator {nifty.commadash(self.a)}"
+        return f"Rotator {output.commadash(self.a)}"
 
     def __ne__(self, other):
         return not self.__eq__(other)
@@ -481,7 +470,6 @@ class Rotator(object):
                 # Calculate reference axis (if needed)
                 if self.e0 is None:
                     self.calc_e0()
-                #log.debug(vx)
                 ev = vx / np.linalg.norm(vx)
                 # Measure alignment of molecular axis with reference axis
                 self.stored_dot2 = np.dot(ev, self.e0)**2
@@ -577,20 +565,9 @@ class Rotator(object):
             # Derivative of dummy atom position w/r.t. molecular axis vector
             dexdum = (dxdum*nxdum - np.outer(dnxdum, xdum))/nxdum**2
             # Here we may compute finite difference derivatives to check
-            # h = 1e-6
-            # fdxdum = np.zeros((3, 3), dtype=float)
             # for i in range(3):
-            #     vx[i] += h
-            #     dPlus = np.cross(vx, self.e0)
-            #     dPlus /= np.linalg.norm(dPlus)
-            #     vx[i] -= 2*h
-            #     dMinus = np.cross(vx, self.e0)
-            #     dMinus /= np.linalg.norm(dMinus)
-            #     vx[i] += h
-            #     fdxdum[i] = (dPlus-dMinus)/(2*h)
             # if np.linalg.norm(dexdum - fdxdum) > 1e-6:
             #     print dexdum - fdxdum
-            #     raise Exception()
             # Apply terms from chain rule
             deriv_raw[0] -= np.dot(dexdum, deriv_raw[-1])
             for i in range(len(relative_a)):
@@ -606,63 +583,21 @@ class Rotator(object):
         return derivatives
 
     #def second_derivative(self, xyz):
-    #    xyz = xyz.reshape(-1, 3)
     #    if np.max(np.abs(xyz-self.stored_deriv2xyz)) < 1e-12:
-    #        return self.stored_deriv2
-    #    else:
-    #        xsel = xyz[self.a, :]
-    #        ysel = self.x0[self.a, :]
-    #        xmean = np.mean(xsel,axis=0)
-    #        ymean = np.mean(ysel,axis=0)
     #        if not self.linear and is_linear(xsel, ysel):
     #            # print "Setting linear flag for", self
-    #            self.linear = True
     #        if self.linear:
-    #            vx = xsel[-1]-xsel[0]
-    #            vy = ysel[-1]-ysel[0]
-    #            if self.e0 is None: self.calc_e0()
-    #            xdum = np.cross(vx, self.e0)
-    #            ydum = np.cross(vy, self.e0)
-    #            exdum = xdum / np.linalg.norm(xdum)
-    #            eydum = ydum / np.linalg.norm(ydum)
-    #            xsel = np.vstack((xsel, exdum+xmean))
-    #            ysel = np.vstack((ysel, eydum+ymean))
 
-    #        deriv_raw, deriv2_raw = get_expmap_der(xsel, ysel, second=True)
     #        if self.linear:
     #            # Chain rule is applied to get terms from dummy atom derivatives
     #            def dexdum_(vx_):
-    #                xdum_ = np.cross(vx_, self.e0)
-    #                nxdum_ = np.linalg.norm(xdum_)
-    #                dxdum_ = math_utils.d_cross(vx_, self.e0)
-    #                dnxdum_ = math_utils.d_ncross(vx_, self.e0)
-    #                dexdum_ = (dxdum_*nxdum_ - np.outer(dnxdum_,xdum_))/nxdum_**2
-    #                return dexdum_.copy()
 
     #            # First indices: elements of vx that are being differentiated w/r.t.
     #            # Last index: elements of exdum itself
-    #            dexdum = dexdum_(vx)
-    #            dexdum2 = np.zeros((3, 3, 3), dtype=float)
-    #            h = 1.0e-3
     #            for i in range(3):
-    #                vx[i] += h
-    #                dPlus = dexdum_(vx)
-    #                vx[i] -= 2*h
-    #                dMinus = dexdum_(vx)
-    #                vx[i] += h
-    #                dexdum2[i] = (dPlus-dMinus)/(2*h)
     #            # Build arrays that contain derivative of dummy atom position
     #            # w/r.t. real atom positions
-    #            ddum1 = np.zeros((len(self.a), 3, 3), dtype=float)
-    #            ddum1[0] = -dexdum
-    #            ddum1[-1] = dexdum
     #            for i in range(len(self.a)):
-    #                ddum1[i] += np.eye(3)/len(self.a)
-    #            ddum2 = np.zeros((len(self.a), 3, len(self.a), 3, 3), dtype=float)
-    #            ddum2[ 0, : , 0, :] =  dexdum2
-    #            ddum2[-1, : , 0, :] = -dexdum2
-    #            ddum2[ 0, :, -1, :] = -dexdum2
-    #            ddum2[-1, :, -1, :] =  dexdum2
     #            # =====
 
     #            # Do not delete - reference codes using loops for chain rule terms
@@ -672,24 +607,12 @@ class Rotator(object):
     #            #             for n in range(3):       # Loop over xyz of atom 2
     #            #                 for i in range(3):   # Loop over elements of exponential map
     #            #                     for p in range(3): # Loop over xyz of dummy atom
-    #            #                         deriv2_raw[j, m, k, n, i] += deriv2_raw[j, m, -1, p, i] * ddum1[k, n, p]
-    #            #                         deriv2_raw[j, m, k, n, i] += deriv2_raw[-1, p, k, n, i] * ddum1[j, m, p]
-    #            #                         deriv2_raw[j, m, k, n, i] += deriv_raw[-1, p, i] * ddum2[j, m, k, n, p]
     #            #                         for q in range(3):
-    #            #                             deriv2_raw[j, m, k, n, i] += deriv2_raw[-1, p, -1, q, i] * ddum1[j, m, p] * ddum1[k, n, q]
     #            # =====
 
-    #            deriv2_raw[:-1, :, :-1, :] += np.einsum('jmpi,knp->jmkni', deriv2_raw[:-1, :, -1, :, :], ddum1, optimize=True)
-    #            deriv2_raw[:-1, :, :-1, :] += np.einsum('pkni,jmp->jmkni', deriv2_raw[-1, :, :-1, :, :], ddum1, optimize=True)
-    #            deriv2_raw[:-1, :, :-1, :] += np.einsum('pi,jmknp->jmkni', deriv_raw[-1, :, :], ddum2, optimize=True)
-    #            deriv2_raw[:-1, :, :-1, :] += np.einsum('pqi,jmp,knq->jmkni', deriv2_raw[-1, :, -1, :, :], ddum1, ddum1, optimize=True)
-    #            deriv2_raw = deriv2_raw[:-1, :, :-1, :, :]
-    #        second_derivatives = np.zeros((xyz.shape[0], 3, xyz.shape[0], 3, 3), dtype=float)
 
     #        for i, a in enumerate(self.a):
     #            for j, b in enumerate(self.a):
-    #                second_derivatives[a, :, b, :, :] = deriv2_raw[i, :, j, :, :]
-    #        return second_derivatives
 
     def second_derivative(self, xyz, start_idx=0):
         xyz = xyz.reshape(-1, 3)
@@ -697,8 +620,6 @@ class Rotator(object):
 
         # Does not work with BM
         #if np.max(np.abs(xyz-self.stored_deriv2xyz[relative_a])) < 1e-12:
-        #    return self.stored_deriv2[relative_a]
-        #else:
         ##
 
         xsel = xyz[relative_a, :]
@@ -747,14 +668,12 @@ class Rotator(object):
                 dexdum2[i] = (dPlus-dMinus)/(2*h)
             # Build arrays that contain derivative of dummy atom position
             # w/r.t. real atom positions
-            #ddum1 = np.zeros((len(self.a), 3, 3), dtype=float)
             ddum1 = np.zeros((len(relative_a), 3, 3), dtype=float)
             ddum1[0] = -dexdum
             ddum1[-1] = dexdum
             #for i in range(len(self.a)):
             for i in range(len(relative_a)):
                 ddum1[i] += np.eye(3)/len(self.a)
-            #ddum2 = np.zeros((len(self.a), 3, len(self.a), 3, 3), dtype=float)
             ddum2 = np.zeros((len(relative_a), 3, len(relative_a), 3, 3), dtype=float)
             ddum2[0, :, 0, :] = dexdum2
             ddum2[-1, :, 0, :] = -dexdum2
@@ -769,11 +688,7 @@ class Rotator(object):
             #             for n in range(3):       # Loop over xyz of atom 2
             #                 for i in range(3):   # Loop over elements of exponential map
             #                     for p in range(3): # Loop over xyz of dummy atom
-            #                         deriv2_raw[j, m, k, n, i] += deriv2_raw[j, m, -1, p, i] * ddum1[k, n, p]
-            #                         deriv2_raw[j, m, k, n, i] += deriv2_raw[-1, p, k, n, i] * ddum1[j, m, p]
-            #                         deriv2_raw[j, m, k, n, i] += deriv_raw[-1, p, i] * ddum2[j, m, k, n, p]
             #                         for q in range(3):
-            #                             deriv2_raw[j, m, k, n, i] += deriv2_raw[-1, p, -1, q, i] * ddum1[j, m, p] * ddum1[k, n, q]
             # =====
 
             deriv2_raw[:-1, :, :-1, :] += np.einsum('jmpi,knp->jmkni', deriv2_raw[:-1, :, -1, :, :], ddum1, optimize=True)
@@ -805,8 +720,7 @@ class RotationA(PrimitiveCoordinate):
         self.isPeriodic = False
 
     def __repr__(self):
-        # return "Rotation-A %s : Weight %.3f" % (' '.join([str(i+1) for i in self.a]), self.w)
-        return f"Rotation-A {nifty.commadash(self.a)}"
+        return f"Rotation-A {output.commadash(self.a)}"
 
     @property
     def atoms(self):
@@ -856,8 +770,7 @@ class RotationB(PrimitiveCoordinate):
         self.isPeriodic = False
 
     def __repr__(self):
-        # return "Rotation-B %s : Weight %.3f" % (' '.join([str(i+1) for i in self.a]), self.w)
-        return f"Rotation-B {nifty.commadash(self.a)}"
+        return f"Rotation-B {output.commadash(self.a)}"
 
     @property
     def atoms(self):
@@ -907,8 +820,7 @@ class RotationC(PrimitiveCoordinate):
         self.isPeriodic = False
 
     def __repr__(self):
-        # return "Rotation-C %s : Weight %.3f" % (' '.join([str(i+1) for i in self.a]), self.w)
-        return f"Rotation-C {nifty.commadash(self.a)}"
+        return f"Rotation-C {output.commadash(self.a)}"
 
     @property
     def atoms(self):
@@ -995,8 +907,6 @@ class Distance(PrimitiveCoordinate):
     def second_derivative(self, xyz, start_idx=0):
         xyz = xyz.reshape(-1, 3)
         deriv2 = np.zeros((xyz.shape[0], xyz.shape[1], xyz.shape[0], xyz.shape[1]))
-        # m = self.a
-        # n = self.b
         m = self.a-start_idx
         n = self.b-start_idx
         norm = np.linalg.norm(xyz[m] - xyz[n])
@@ -1077,8 +987,8 @@ class Angle(PrimitiveCoordinate):
         # vector from last atom to central atom
         vector2 = xyz[c] - xyz[b]
         # norm of the two vectors
-        norm1 = np.sqrt(np.sum(vector1**2))
-        norm2 = np.sqrt(np.sum(vector2**2))
+        np.sqrt(np.sum(vector1**2))
+        np.sqrt(np.sum(vector2**2))
         crs = np.cross(vector1, vector2)
         crs /= np.linalg.norm(crs)
         return crs
@@ -1119,9 +1029,6 @@ class Angle(PrimitiveCoordinate):
     def second_derivative(self, xyz, start_idx):
         xyz = xyz.reshape(-1, 3)
         deriv2 = np.zeros((xyz.shape[0], xyz.shape[1], xyz.shape[0], xyz.shape[1]))
-        #m = self.a
-        #o = self.b
-        #n = self.c
         m = self.a-start_idx
         o = self.b-start_idx
         n = self.c-start_idx
@@ -1184,11 +1091,10 @@ class LinearAngle(PrimitiveCoordinate):
 
         if start_idx is not None:
             a = self.a-start_idx
-            b = self.b-start_idx
+            self.b-start_idx
             c = self.c-start_idx
         else:
             a = self.a
-            b = self.b
             c = self.c
         # Unit vector pointing from a to c.
         v = xyz[c] - xyz[a]
@@ -1262,16 +1168,8 @@ class LinearAngle(PrimitiveCoordinate):
         c = self.c-start_idx
         derivatives = np.zeros_like(xyz)
         # # Finite difference derivatives
-        # # fderivatives = np.zeros_like(xyz)
-        # # h = 1e-6
         # # for u in range(xyz.shape[0]):
         # #     for v in range(3):
-        # #         xyz[u, v] += h
-        # #         vPlus = self.value(xyz)
-        # #         xyz[u, v] -= 2*h
-        # #         vMinus = self.value(xyz)
-        # #         xyz[u, v] += h
-        # #         fderivatives[u, v] = (vPlus-vMinus)/(2*h)
         # Unit vector pointing from a to c.
         v = xyz[c] - xyz[a]
         ev = v / np.linalg.norm(v)
@@ -1307,14 +1205,10 @@ class LinearAngle(PrimitiveCoordinate):
         # Finite difference derivatives
         # if np.linalg.norm(derivatives - fderivatives) > 1e-6:
         #     print np.linalg.norm(derivatives - fderivatives)
-        #     raise Exception()
         return derivatives
 
     def second_derivative(self, xyz, start_idx):
         xyz = xyz.reshape(-1, 3)
-        # a = self.a
-        # b = self.b
-        # c = self.c
         a = self.a-start_idx
         b = self.b-start_idx
         c = self.c-start_idx
@@ -1331,123 +1225,6 @@ class LinearAngle(PrimitiveCoordinate):
                 fderiv = (FPlus-FMinus)/(2*h)
                 deriv2[ii, j, :, :] = fderiv
         return deriv2
-
-
-class MultiAngle(PrimitiveCoordinate):
-    __slots__ = ['a', 'b', 'c', 'isAngular', 'isPeriodic']
-
-    def __init__(self, a, b, c):
-        if type(a) is int:
-            a = (a,)
-        if type(c) is int:
-            c = (c,)
-        self.a = tuple(a)
-        self.b = b
-        self.c = tuple(c)
-        self.isAngular = True
-        self.isPeriodic = False
-        if len({a, b, c}) != 3:
-            raise RuntimeError('a, b, and c must be different')
-
-    def __repr__(self):
-        stra = ("("+','.join(["%s" % (i+1) for i in self.a])+")") if len(self.a) > 1 else "%s" % (self.a[0]+1)
-        strc = ("("+','.join(["%s" % (i+1) for i in self.c])+")") if len(self.c) > 1 else "%s" % (self.c[0]+1)
-        return "{}Angle {}-{}-{}".format("Multi" if (len(self.a) > 1 or len(self.c) > 1) else "", stra, self.b+1, strc)
-
-    def __eq__(self, other):
-        if type(self) is not type(other):
-            return False
-        if self.b == other.b:
-            if set(self.a) == set(other.a):
-                if set(self.c) == set(other.c):
-                    return True
-            if set(self.a) == set(other.c):
-                if set(self.c) == set(other.a):
-                    return True
-        return False
-
-    def __ne__(self, other):
-        return not self.__eq__(other)
-
-    def value(self, xyz):
-        xyz = xyz.reshape(-1, 3)
-        a = np.array(self.a)
-        b = self.b
-        c = np.array(self.c)
-        xyza = np.mean(xyz[a], axis=0)
-        xyzc = np.mean(xyz[c], axis=0)
-        # vector from first atom to central atom
-        vector1 = xyza - xyz[b]
-        # vector from last atom to central atom
-        vector2 = xyzc - xyz[b]
-        # norm of the two vectors
-        norm1 = np.sqrt(np.sum(vector1**2))
-        norm2 = np.sqrt(np.sum(vector2**2))
-        dot = np.dot(vector1, vector2)
-        # Catch the edge case that very rarely this number is -1.
-        if dot / (norm1 * norm2) <= -1.0:
-            if (np.abs(dot / (norm1 * norm2)) + 1.0) < -1e-6:
-                raise RuntimeError('Encountered invalid value in angle')
-            return np.pi
-        return np.arccos(dot / (norm1 * norm2))
-
-    def normal_vector(self, xyz):
-        xyz = xyz.reshape(-1, 3)
-        a = np.array(self.a)
-        b = self.b
-        c = np.array(self.c)
-        xyza = np.mean(xyz[a], axis=0)
-        xyzc = np.mean(xyz[c], axis=0)
-        # vector from first atom to central atom
-        vector1 = xyza - xyz[b]
-        # vector from last atom to central atom
-        vector2 = xyzc - xyz[b]
-        # norm of the two vectors
-        # norm1 = np.sqrt(np.sum(vector1**2))
-        # norm2 = np.sqrt(np.sum(vector2**2))
-        crs = np.cross(vector1, vector2)
-        crs /= np.linalg.norm(crs)
-        return crs
-
-    def derivative(self, xyz):
-        xyz = xyz.reshape(-1, 3)
-        derivatives = np.zeros_like(xyz)
-        m = np.array(self.a)
-        o = self.b
-        n = np.array(self.c)
-        xyzm = np.mean(xyz[m], axis=0)
-        xyzn = np.mean(xyz[n], axis=0)
-        # Unit displacement vectors
-        u_prime = (xyzm - xyz[o])
-        u_norm = np.linalg.norm(u_prime)
-        v_prime = (xyzn - xyz[o])
-        v_norm = np.linalg.norm(v_prime)
-        u = u_prime / u_norm
-        v = v_prime / v_norm
-        VECTOR1 = np.array([1, -1, 1]) / np.sqrt(3)
-        VECTOR2 = np.array([-1, 1, 1]) / np.sqrt(3)
-        if np.linalg.norm(u + v) < 1e-10 or np.linalg.norm(u - v) < 1e-10:
-            # if they're parallel
-            if ((np.linalg.norm(u + VECTOR1) < 1e-10) or
-                    (np.linalg.norm(u - VECTOR2) < 1e-10)):
-                # and they're parallel o [1, -1, 1]
-                w_prime = np.cross(u, VECTOR2)
-            else:
-                w_prime = np.cross(u, VECTOR1)
-        else:
-            w_prime = np.cross(u, v)
-        w = w_prime / np.linalg.norm(w_prime)
-        term1 = np.cross(u, w) / u_norm
-        term2 = np.cross(w, v) / v_norm
-        for i in m:
-            derivatives[i, :] = term1/len(m)
-        for i in n:
-            derivatives[i, :] = term2/len(n)
-        derivatives[o, :] = -(term1 + term2)
-        return derivatives
-
-    def second_derivative(self, xyz, start_idx):
-        raise NotImplementedError(f"Second derivatives have not been implemented for IC type {self.__name__}")
 
 
 class Dihedral(PrimitiveCoordinate):
@@ -1533,10 +1310,6 @@ class Dihedral(PrimitiveCoordinate):
         else:
             term2 = np.cross(v, w) / (v_norm * (1 - np.dot(v, w)**2))
             term4 = np.cross(v, w) * np.dot(v, w) / (w_norm * (1 - np.dot(v, w)**2))
-        # term1 = np.cross(u, w) / (u_norm * (1 - np.dot(u, w)**2))
-        # term2 = np.cross(v, w) / (v_norm * (1 - np.dot(v, w)**2))
-        # term3 = np.cross(u, w) * np.dot(u, w) / (w_norm * (1 - np.dot(u, w)**2))
-        # term4 = np.cross(v, w) * np.dot(v, w) / (w_norm * (1 - np.dot(v, w)**2))
         derivatives[m, :] = term1
         derivatives[n, :] = -term2
         derivatives[o, :] = -term1 + term3 - term4
@@ -1546,10 +1319,6 @@ class Dihedral(PrimitiveCoordinate):
     def second_derivative(self, xyz, start_idx):
         xyz = xyz.reshape(-1, 3)
         deriv2 = np.zeros((xyz.shape[0], xyz.shape[1], xyz.shape[0], xyz.shape[1]))
-        #m = self.a
-        #o = self.b
-        #p = self.c
-        #n = self.d
         m = self.a-start_idx
         o = self.b-start_idx
         p = self.c-start_idx
@@ -1602,7 +1371,6 @@ class Dihedral(PrimitiveCoordinate):
 
         def zeta(a_, m_, n_):
             return (int(a_ == m_) - int(a_ == n_))
-        # deriv2_terms = [np.zeros_like(deriv2) for i in range(9)]
         # Accumulate the second derivative
         for a in [m, n, o, p]:
             for b in [m, n, o, p]:
@@ -1616,113 +1384,6 @@ class Dihedral(PrimitiveCoordinate):
                     deriv2[a, :, b, :] += ((zeta(a, m, o)*zeta(b, p, o) + zeta(a, p, o)*zeta(b, o, m))*term7 +
                                            (zeta(a, n, o)*zeta(b, p, o) + zeta(a, p, o)*zeta(b, o, n))*term8)
         return deriv2
-
-
-class MultiDihedral(PrimitiveCoordinate):
-    __slots__ = ['a', 'b', 'c', 'd', 'isAngular', 'isPeriodic']
-
-    def __init__(self, a, b, c, d):
-        if type(a) is int:
-            a = (a, )
-        if type(d) is int:
-            d = (d, )
-        self.a = tuple(a)
-        self.b = b
-        self.c = c
-        self.d = tuple(d)
-        self.isAngular = True
-        self.isPeriodic = True
-        if len({a, b, c, d}) != 4:
-            raise RuntimeError('a, b, c and d must be different')
-
-    def __repr__(self):
-        stra = ("("+','.join(["%s" % (i+1) for i in self.a])+")") if len(self.a) > 1 else "%s" % (self.a[0]+1)
-        strd = ("("+','.join(["%s" % (i+1) for i in self.d])+")") if len(self.d) > 1 else "%s" % (self.d[0]+1)
-        return "{}Dihedral {}-{}-{}-{}".format("Multi" if (len(self.a) > 1 or len(self.d) > 1) else "", stra, self.b+1, self.c+1, strd)
-
-    def __eq__(self, other):
-        if type(self) is not type(other):
-            return False
-        if set(self.a) == set(other.a):
-            if self.b == other.b:
-                if self.c == other.c:
-                    if set(self.d) == set(other.d):
-                        return True
-        if set(self.a) == set(other.d):
-            if self.b == other.c:
-                if self.c == other.b:
-                    if set(self.d) == set(other.a):
-                        return True
-        return False
-
-    def __ne__(self, other):
-        return not self.__eq__(other)
-
-    def value(self, xyz):
-        xyz = xyz.reshape(-1, 3)
-        a = np.array(self.a)
-        b = self.b
-        c = self.c
-        d = np.array(self.d)
-        xyza = np.mean(xyz[a], axis=0)
-        xyzd = np.mean(xyz[d], axis=0)
-
-        vec1 = xyz[b] - xyza
-        vec2 = xyz[c] - xyz[b]
-        vec3 = xyzd - xyz[c]
-        cross1 = np.cross(vec2, vec3)
-        cross2 = np.cross(vec1, vec2)
-        arg1 = np.sum(np.multiply(vec1, cross1)) * \
-            np.sqrt(np.sum(vec2**2))
-        arg2 = np.sum(np.multiply(cross1, cross2))
-        answer = np.arctan2(arg1, arg2)
-        return answer
-
-    def derivative(self, xyz):
-        xyz = xyz.reshape(-1, 3)
-        derivatives = np.zeros_like(xyz)
-        m = np.array(self.a)
-        o = self.b
-        p = self.c
-        n = np.array(self.d)
-        xyzm = np.mean(xyz[m], axis=0)
-        xyzn = np.mean(xyz[n], axis=0)
-
-        u_prime = (xyzm - xyz[o])
-        w_prime = (xyz[p] - xyz[o])
-        v_prime = (xyzn - xyz[p])
-        u_norm = np.linalg.norm(u_prime)
-        w_norm = np.linalg.norm(w_prime)
-        v_norm = np.linalg.norm(v_prime)
-        u = u_prime / u_norm
-        w = w_prime / w_norm
-        v = v_prime / v_norm
-        if (1 - np.dot(u, w)**2) < 1e-6:
-            term1 = np.cross(u, w) * 0
-            term3 = np.cross(u, w) * 0
-        else:
-            term1 = np.cross(u, w) / (u_norm * (1 - np.dot(u, w)**2))
-            term3 = np.cross(u, w) * np.dot(u, w) / (w_norm * (1 - np.dot(u, w)**2))
-        if (1 - np.dot(v, w)**2) < 1e-6:
-            term2 = np.cross(v, w) * 0
-            term4 = np.cross(v, w) * 0
-        else:
-            term2 = np.cross(v, w) / (v_norm * (1 - np.dot(v, w)**2))
-            term4 = np.cross(v, w) * np.dot(v, w) / (w_norm * (1 - np.dot(v, w)**2))
-        # term1 = np.cross(u, w) / (u_norm * (1 - np.dot(u, w)**2))
-        # term2 = np.cross(v, w) / (v_norm * (1 - np.dot(v, w)**2))
-        # term3 = np.cross(u, w) * np.dot(u, w) / (w_norm * (1 - np.dot(u, w)**2))
-        # term4 = np.cross(v, w) * np.dot(v, w) / (w_norm * (1 - np.dot(v, w)**2))
-        for i in self.a:
-            derivatives[i, :] = term1/len(self.a)
-        for i in self.d:
-            derivatives[i, :] = -term2/len(self.d)
-        derivatives[o, :] = -term1 + term3 - term4
-        derivatives[p, :] = term2 - term3 + term4
-        return derivatives
-
-    def second_derivative(self, xyz, start_idx=0):
-        raise NotImplementedError(f"Second derivatives have not been implemented for IC type {self.__name__}")
 
 
 class OutOfPlane(PrimitiveCoordinate):
@@ -1751,17 +1412,15 @@ class OutOfPlane(PrimitiveCoordinate):
         if self.a == other.a:
             if {self.b, self.c, self.d} == {other.b, other.c, other.d}:
                 if [self.b, self.c, self.d] != [other.b, other.c, other.d]:
-                    nifty.logger.warning("Warning: OutOfPlane atoms are the same, ordering is different")
+                    output.logger.warning("Warning: OutOfPlane atoms are the same, ordering is different")
                 return True
         #     if self.b == other.b:
         #         if self.c == other.c:
         #             if self.d == other.d:
-        #                 return True
         # if self.a == other.d:
         #     if self.b == other.c:
         #         if self.c == other.b:
         #             if self.d == other.a:
-        #                 return True
         return False
 
     def __ne__(self, other):
@@ -1812,10 +1471,6 @@ class OutOfPlane(PrimitiveCoordinate):
         else:
             term2 = np.cross(v, w) / (v_norm * (1 - np.dot(v, w)**2))
             term4 = np.cross(v, w) * np.dot(v, w) / (w_norm * (1 - np.dot(v, w)**2))
-        # term1 = np.cross(u, w) / (u_norm * (1 - np.dot(u, w)**2))
-        # term2 = np.cross(v, w) / (v_norm * (1 - np.dot(v, w)**2))
-        # term3 = np.cross(u, w) * np.dot(u, w) / (w_norm * (1 - np.dot(u, w)**2))
-        # term4 = np.cross(v, w) * np.dot(v, w) / (w_norm * (1 - np.dot(v, w)**2))
         derivatives[m, :] = term1
         derivatives[n, :] = -term2
         derivatives[o, :] = -term1 + term3 - term4
@@ -1824,10 +1479,6 @@ class OutOfPlane(PrimitiveCoordinate):
 
     def second_derivative(self, xyz, start_idx=0):
         xyz = xyz.reshape(-1, 3)
-        #a = self.a
-        #b = self.b
-        #c = self.c
-        #d = self.d
         a = self.a-start_idx
         b = self.b-start_idx
         c = self.c-start_idx
@@ -1846,17 +1497,3 @@ class OutOfPlane(PrimitiveCoordinate):
                 deriv2[ii, j, :, :] = fderiv
         return deriv2
 
-
-def logArray(mat, precision=3, fmt="f"):
-    fmt = f"% .{precision}{fmt}"
-    if len(mat.shape) == 1:
-        for i in range(mat.shape[0]):
-            nifty.logger.info(fmt % mat[i]),
-        print()
-    elif len(mat.shape) == 2:
-        for i in range(mat.shape[0]):
-            for j in range(mat.shape[1]):
-                nifty.logger.info(fmt % mat[i, j]),
-            print()
-    else:
-        raise RuntimeError("One or two dimensional arrays only")

@@ -4,7 +4,7 @@ import os
 from ..potential_energy_surfaces import Avg_PES, PES
 from .se_gsm import SE_GSM
 from ..molecule import Molecule
-from ..utilities import nifty
+from ..utilities import output
 # standard library imports
 
 
@@ -16,9 +16,9 @@ class SE_Cross(SE_GSM):
         """
         assert rtype in [0, 1], "rtype not defined"
         if rtype == 0:
-            nifty.printcool("Doing SE-MECI search")
+            output.printcool("Doing SE-MECI search")
         else:
-            nifty.printcool("Doing SE-MESX search")
+            output.printcool("Doing SE-MESX search")
 
         self.nodes[0].gradrms = 0.
         self.nodes[0].V0 = self.nodes[0].energy
@@ -114,7 +114,6 @@ class SE_Cross(SE_GSM):
             path = os.path.join(os.getcwd(), f'scratch/{self.ID:03d}/{self.nR}')
             self.optimizer[self.nR].opt_cross = True
             self.optimizer[self.nR].conv_grms = self.options['CONV_TOL']
-            # self.optimizer[self.nR].conv_gmax = self.options['CONV_gmax']
             self.optimizer[self.nR].conv_Ediff = self.options['CONV_Ediff']
             self.optimizer[self.nR].conv_dE = self.options['CONV_dE']
             self.optimizer[self.nR].optimize(
@@ -172,21 +171,15 @@ class SE_Cross(SE_GSM):
 
     def check_if_grown(self):
         isDone = False
-        # epsilon = 1.5
         pes1dE = self.nodes[self.nR-1].PES.dE
         pes2dE = self.nodes[self.nR-2].PES.dE
         condition1 = (abs(self.nodes[self.nR-1].bdist) <= (1-self.BDIST_RATIO)*abs(self.nodes[0].bdist) and (abs(pes1dE) > abs(pes2dE)))
-        # condition2 = ((self.nodes[self.nR-1].bdist+0.1 > self.nodes[self.nR-2].bdist) and (1-self.BDIST_RATIO)*abs(self.nodes[0].bdist))
         if condition1:
             print(" Condition 1 satisfied")
             print(f" bdist current {abs(self.nodes[self.nR-1].bdist):1.3f}")
             print(" bdist target %1.3f" % (abs(self.nodes[0].bdist)*(1-self.BDIST_RATIO)))
             print(" Growth-phase over")
             isDone = True
-        # elif condition2:
-        #    print(" Condition 2 satisfied")
-        #    print(" Growth-phase over")
-        #    isDone = True
         return isDone
 
     def restart_string(self, xyzfile='restart.xyz'):

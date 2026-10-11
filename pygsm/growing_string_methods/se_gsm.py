@@ -4,10 +4,10 @@ from __future__ import print_function
 # local application imports
 import os
 import sys
-from ..coordinate_systems import Angle, Dihedral, Distance, OutOfPlane
+from ..coordinate_systems import Distance
 from .main_gsm import MainGSM
 from ..molecule import Molecule
-from ..utilities import nifty
+from ..utilities import output
 # standard library imports
 
 # third party
@@ -45,53 +45,6 @@ class SE_GSM(MainGSM):
         self.nodes[0].V0 = self.nodes[0].energy
         #TODO should be actual gradient
         self.nodes[0].gradrms = 0.
-
-    def isomer_init(self):
-        '''
-        The purpose of this function is to add to the primitives the driving coordinate prims if
-        they dont exist.
-        This is depracated because it's better to build the topology properly before initializing
-        GSM. See main.py
-        '''
-
-        # TODO ANGLE, TORSION or OOP between fragments will not work if using TRIC with BLOCK LA
-        changed_top = False
-
-        # TODO first check if there is any add/break then rebuild topology and makePrimitives
-
-        for i in self.driving_coords:
-            if "ADD" in i or "BREAK" in i:
-                # order
-                if i[1] < i[2]:
-                    bond = Distance(i[1]-1, i[2]-1)
-                else:
-                    bond = Distance(i[2]-1, i[1]-1)
-                self.nodes[0].coord_obj.Prims.add(bond, verbose=True)
-                changed_top = True
-            if "ANGLE" in i:
-                if i[1] < i[3]:
-                    angle = Angle(i[1]-1, i[2]-1, i[3]-1)
-                else:
-                    angle = Angle(i[3]-1, i[2]-1, i[1]-1)
-                self.nodes[0].coord_obj.Prims.add(angle, verbose=True)
-            if "TORSION" in i:
-                if i[1] < i[4]:
-                    torsion = Dihedral(i[1]-1, i[2]-1, i[3]-1, i[4]-1)
-                else:
-                    torsion = Dihedral(i[4]-1, i[3]-1, i[2]-1, i[1]-1)
-                self.nodes[0].coord_obj.Prims.add(torsion, verbose=True)
-            if "OOP" in i:
-                if i[1] < i[4]:
-                    oop = OutOfPlane(i[1]-1, i[2]-1, i[3]-1, i[4]-1)
-                else:
-                    oop = OutOfPlane(i[4]-1, i[3]-1, i[2]-1, i[1]-1)
-                self.nodes[0].coord_obj.Prims.add(oop, verbose=True)
-
-        self.nodes[0].coord_obj.Prims.clearCache()
-        if changed_top:
-            self.nodes[0].coord_obj.Prims.rebuild_topology_from_prim_bonds(self.nodes[0].xyz)
-        self.nodes[0].coord_obj.Prims.reorderPrimitives()
-        self.nodes[0].update_coordinate_basis()
 
     def go_gsm(self, max_iters=50, opt_steps=10, rtype=2):
         """
@@ -210,8 +163,6 @@ class SE_GSM(MainGSM):
                 opt_type=opt_type,
                 path=path,
             )
-        # print(" Aligning")
-        # self.nodes[self.nR-1].xyz = self.com_rotate_move(self.nR-2,self.nR,self.nR-1)
         return
 
     def grow_nodes(self):
@@ -244,7 +195,6 @@ class SE_GSM(MainGSM):
         print(f" conv_tol of node {nR} is {self.optimizer[nR].conv_grms:.4f}")
 
     def set_active(self, nR, nP=None):
-        # print(" Here is active:",self.active)
         print((f" setting active node to {nR} "))
 
         for i in range(self.nnodes):
@@ -253,7 +203,6 @@ class SE_GSM(MainGSM):
 
         self.set_frontier_convergence(nR)
         self.active[nR] = True
-        # print(" Here is new active:",self.active)
 
     def make_tan_list(self):
         ncurrent, nlist = self.make_difference_node_list()
@@ -290,7 +239,6 @@ class SE_GSM(MainGSM):
         THRESH1 = 5.
         THRESH2 = 3.
         THRESH3 = -1.
-        # THRESHB = 0.05
         CTHRESH = 0.005
         OTHRESH = -0.015
         emax = -100.
@@ -374,7 +322,7 @@ class SE_GSM(MainGSM):
                 print(" The highest energy node is the last")
                 print(" not continuing with TS optimization.")
                 self.tscontinue = False
-            nifty.printcool("Over the hill")
+            output.printcool("Over the hill")
             isDone = True
         elif fp == -1 and self.energies[self.nR-1] > 200. and self.nodes[self.nR-1].gradrms > self.options['CONV_TOL']*5:
             print("growth_iters over: all uphill and high energy")
@@ -497,31 +445,16 @@ class SE_GSM(MainGSM):
         if rtype == 1:
             if (nadded+nbroken) >= (nadds+nbreaks):
                 isrxn = True
-                # isrxn=nadded+nbroken
         else:
             isrxn = True
-            # isrxn=nadded+nbroken
         print(f" check_for_reaction_g isrxn: {isrxn!r} nadd+nbrk: {nadds+nbreaks}")
         return isrxn
 
         # # => Convergence Criteria
-        # dE_iter = abs(self.emaxp - self.emax)
-        # TS_conv = self.options['CONV_TOL']
         # if self.find and self.optimizer[self.TSnode].nneg>1:
-        #    print(" reducing TS convergence because nneg>1")
-        #    TS_conv = self.options['CONV_TOL']/2.
-        # self.optimizer[self.TSnode].conv_grms = TS_conv
 
         # if (rtype == 2 and self.find ):
         #    if self.nodes[self.TSnode].gradrms< TS_conv:
-        #        self.tscontinue=False
-        #        isDone=True
-        #        #print(" Number of imaginary frequencies %i" % self.optimizer[self.TSnode].nneg)
-        #        return isDone
         #    if totalgrad<0.1 and self.nodes[self.TSnode].gradrms<2.5*TS_conv and dE_iter < 0.02:
-        #        self.tscontinue=False
-        #        isDone=True
-        #        #print(" Number of imaginary frequencies %i" % self.optimizer[self.TSnode].nneg)
         # if rtype==1 and self.climb:
         #    if self.nodes[self.TSnode].gradrms<TS_conv and ts_cgradq < self.options['CONV_TOL']:
-        #        isDone=True

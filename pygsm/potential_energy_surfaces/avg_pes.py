@@ -2,7 +2,7 @@
 import numpy as np
 
 # local application imports
-from ..utilities import manage_xyz, nifty, units
+from ..utilities import units
 from .pes import PES
 
 
@@ -77,7 +77,6 @@ class Avg_PES(PES):
             return (dotg - doth)/(dotg + doth)
 
         # get vectors
-        # energy = self.get_energy(xyz)
         dgrad = 0.5*self.get_dgrad(xyz)
         dvec = self.get_coupling(xyz)
         sab = self.get_average_gradient(xyz)
@@ -95,11 +94,8 @@ class Avg_PES(PES):
 
         norm_nac = np.linalg.norm(nac)
         norm_dg = np.linalg.norm(dgrad)
-        # print(" norm x %2.5f" % norm_dg)
-        # print(" norm y %2.5f" % norm_nac)
 
         pitch = calc_pitch(dgrad, nac)
-        # print(" pitch %1.6f" % pitch)
         asymmetry = calc_asymmetry(dgrad, nac)
         if asymmetry < 0.:
             # swap nac and dgrad
@@ -153,100 +149,3 @@ class Avg_PES(PES):
                 'theta_s': theta_s,
                 'sab_x': sab_x,
                 'sab_y': sab_y}
-
-    def critical_points_bp(self, xyz, radius=0.2, num_slices=40):
-
-        # get data
-        data = self.symmetric_orthogonalization(xyz)
-        theta_s = data['theta_s']
-        asymmetry = data['asymmetry']
-        pitch = data['pitch']
-        x = data['x']
-        y = data['y']
-        sigma = data['sigma']
-
-        # discretize branching plane and find critical points
-        # theta = np.linspace(0,2*np.pi,num_slices)
-        theta = [i*2*np.pi/num_slices for i in range(num_slices)]
-
-        EA = []
-        EB = []
-        for n in range(num_slices):
-            factorA = sigma*np.cos(theta[n] - theta_s) + np.sqrt(1.+asymmetry*np.cos(2*theta[n]))
-            factorB = sigma*np.cos(theta[n] - theta_s) - np.sqrt(1.+asymmetry*np.cos(2*theta[n]))
-            EA.append(float(pitch*radius*factorA))  # energy +
-            EB.append(float(pitch*radius*factorB))  # energy +
-
-        EA = np.asarray(EA)
-        EB = np.asarray(EB)
-        np.savetxt('model_EA.txt', EA)
-        np.savetxt('model_EB.txt', EB)
-        # for n in range(num_slices):
-        #    print(" EA[%2i] = %2.8f" %(n,EA[n]))
-        # for n in range(num_slices):
-        #    print(" EB[%2i] = %2.8f" %(n,EB[n]))
-
-        # plot(EA,theta)
-
-        # determine minima
-        print(EB)
-        theta_min = []
-        for i in range(1, num_slices-1):
-            if EB[i] < EB[i-1] and EB[i+1] > EB[i]:
-                theta_min.append(i)
-        # check endpoints
-        if EB[0] < EB[-1] and EB[1] > EB[0]:
-            print("Min at 0")
-            theta_min.append(0)
-        if EB[-1] < EB[-2] and EB[0] > EB[-1]:
-            print("Min at -1")
-            theta_min.append(num_slices-1)
-
-        # determine maxima
-        theta_max = []
-        for i in range(1, num_slices-1):
-            if EB[i] > EB[i-1] and EB[i+1] < EB[i]:
-                theta_max.append(i)
-        # check endpoints
-        if EB[0] > EB[-1] and EB[1] < EB[0]:
-            print(" Max at 0")
-            theta_max.append(0)
-        if EB[-1] > EB[-2] and EB[0] < EB[-1]:
-            print(" Max at 39")
-            theta_max.append(num_slices-1)
-
-        print("mins")
-        print(theta_min)
-        print("max")
-        print(theta_max)
-        # geometries of max and min
-        mxyz = []
-        theta_list = theta_min+theta_max
-        for n in theta_list:
-            mxyz.append(xyz + radius*np.cos(theta[n])*x + radius*np.cos(theta[n])*y)
-
-        return mxyz
-
-    def fill_energy_grid2d(self,
-                           xyz_grid
-                           ):
-
-        assert xyz_grid.shape[-1] == len(self.lot.geom)*3, "xyz nneds to be 3*natoms long"
-        assert xyz_grid.ndim == 3, " xyzgrid needs to be a tensor with 3 dimensions"
-
-        E1 = np.zeros((xyz_grid.shape[0], xyz_grid.shape[1]))
-        E2 = np.zeros((xyz_grid.shape[0], xyz_grid.shape[1]))
-
-        rc = 0
-        for mat in xyz_grid:
-            cc = 0
-            for row in mat:
-                xyz = np.reshape(row, (-1, 3))
-                # E1[rc,cc] = self.PES1.get_energy(xyz)
-                # E2[rc,cc] = self.PES2.get_energy(xyz)
-                E1[rc, cc] = self.lot.get_energy(xyz, self.PES1.multiplicity, self.PES1.ad_idx, runtype='energy')
-                E2[rc, cc] = self.lot.get_energy(xyz, self.PES2.multiplicity, self.PES2.ad_idx, runtype='energy')
-                cc += 1
-            rc += 1
-
-        return E1, E2

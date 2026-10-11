@@ -42,7 +42,7 @@ def force_positive_definite(H):
 # TODO Add primitive constraint e.g. a list of internal coordinates to be left basically frozen throughout optimization
 class base_optimizer(object):
     ''' some common functions that the children can use (ef, cg, hybrid ef/cg, etc).
-    e.g. walk_up, dgrad_step, what else?
+    e.g. dgrad_step.
     '''
 
     @staticmethod
@@ -280,8 +280,6 @@ class base_optimizer(object):
     def check_inputs(self, molecule, opt_type, ictan):
         if opt_type in ['MECI', 'SEAM', 'TS-SEAM']:
             assert molecule.PES.lot.do_coupling is True, "Turn do_coupling on."
-        # elif opt_type not in ['MECI','SEAM','TS-SEAM']:
-        #    assert molecule.PES.lot.do_coupling==False,"Turn do_coupling off."
         if opt_type in ["UCONSTRAINED"]:
             assert ictan is None
         if opt_type in ['ICTAN', 'CLIMB', 'TS', 'SEAM', 'TS-SEAM', 'BEALES_CG'] and ictan.any() is None:
@@ -291,23 +289,15 @@ class base_optimizer(object):
 
     # def converged(self,g,nconstraints):
     #    # check if finished
-    #    gradrms = np.sqrt(np.dot(g[nconstraints:].T,g[nconstraints:])/n)
     #    #print "current gradrms= %r au" % gradrms
     #    #print "gnorm =",gnorm
     #
-    #    gmax = np.max(g[nconstraints:])/ANGSTROM_TO_AU
     #    #print "maximum gradient component (au)", gmax
 
     #    if gradrms <self.conv_grms:
-    #        print('[INFO] converged')
-    #        return True
 
-    #    #if gradrms <= self.conv_grms  or \
-    #    #    (self.disp <= self.conv_disp and self.Ediff <= self.conv_Ediff) or \
     #    #    (gmax <= self.conv_gmax and self.Ediff <= self.conv_Ediff):
     #    #    print '[INFO] converged'
-    #    #    return True
-    #    return False
 
     def set_lambda1(self, opt_type, eigen, maxoln=None):
         if opt_type == 'TS':
@@ -330,7 +320,6 @@ class base_optimizer(object):
         return lambda1
 
     def get_constraint_vectors(self, molecule, opt_type, ictan=None):
-        # nconstraints = self.get_nconstraints(opt_type)
 
         if opt_type == "UNCONSTRAINED":
             constraints = None
@@ -350,7 +339,6 @@ class base_optimizer(object):
         return constraints
 
     def get_constraint_steps(self, molecule, opt_type, g):
-        # nconstraints = self.get_nconstraints(opt_type)
         n = len(g)
         # TODO Raise Error for CartesianCoordinates
 
@@ -361,11 +349,9 @@ class base_optimizer(object):
         # => ictan climb
         if opt_type == "CLIMB":
             gts = np.dot(g.T, molecule.constraints[:, 0])
-            # stepsize=np.linalg.norm(constraint_steps)
             max_step = 0.05/self.SCALE_CLIMB
             if gts > np.abs(max_step):
                 gts = np.sign(gts)*max_step
-                # constraint_steps = constraint_steps*max_step/stepsize
             print(f" gts {gts.item():.4f}")
             constraint_steps = gts*molecule.constraints[:, 0]
             constraint_steps = constraint_steps[:, np.newaxis]
@@ -385,7 +371,6 @@ class base_optimizer(object):
             max_step = 0.05/self.SCALE_CLIMB
             if gts > np.abs(max_step):
                 gts = np.sign(gts)*max_step
-                # constraint_steps = constraint_steps*max_step/stepsize
             print(f" gts {gts.item():.4f}")
             constraint_steps = gts*molecule.constraints[:, 0]
             constraint_steps = constraint_steps[:, np.newaxis]
@@ -412,22 +397,6 @@ class base_optimizer(object):
 
         return dq
 
-    def walk_up(self, g, n):
-        """ walk up the n'th DLC"""
-        # assert isinstance(g[n],float), "gradq[n] is not float!"
-        # if self.print_level>0:
-        #    print(' gts: {:1.4f}'.format(self.gradq[n,0]))
-        # self.buf.write(' gts: {:1.4f}'.format(self.gradq[n,0]))
-        SCALEW = 1.0
-        SCALE = self.options['SCALEQN']
-        dq = g[n, 0]/SCALE
-        # dq = np.dot(g.T,molecule.constraints)*molecule.constraints
-
-        print(f" walking up the {n} coordinate = {dq:1.4f}")
-        if abs(dq) > self.options['MAXAD']/SCALEW:
-            dq = np.sign(dq)*self.options['MAXAD']/SCALE
-        return dq
-
     def step_controller(self, step, ratio, gradrms, pgradrms, dEpre, opt_type, dE_iter):
         # => step controller controls DMAX/DMIN <= #
 
@@ -446,8 +415,6 @@ class base_optimizer(object):
             elif ratio > 0.85 and ratio < 1.3:
 
                 # if step>self.DMAX and gradrms<(pgradrms*1.35):
-                #    print(" increasing DMAX")
-                #    self.DMAX *= 1.1
                 if gradrms > (pgradrms + 0.0005):
                     print(' decreasing DMAX, gradrms increased')
                     self.DMAX -= self.DMAX/10.
@@ -487,7 +454,6 @@ class base_optimizer(object):
 
         if self.DMAX < self.DMIN:
             self.DMAX = self.DMIN
-        # print(" DMAX %1.2f" % self.DMAX)
 
     def eigenvector_step(self, molecule, g):
 
@@ -537,8 +503,6 @@ class base_optimizer(object):
         for c in molecule.constraints.T:
             dq -= np.dot(c[:, np.newaxis].T, dq)*c[:, np.newaxis]
 
-        # print("check overlap")
-        # print(np.dot(dq.T,molecule.constraints))
         if self.options['print_level'] > 1:
             print(" dq ", dq.T)
         return np.reshape(dq, (-1, 1))
@@ -646,8 +610,6 @@ class base_optimizer(object):
             if mode == 'BOFILL':
                 change = self.update_bofill(molecule)
                 molecule.update_Hessian(change)
-        # else:
-        #    self.Hessian += change
         molecule.newHess -= 1
 
         return change
@@ -691,7 +653,6 @@ class base_optimizer(object):
     def update_bofill(self, molecule):
         print(" in update bofill")
 
-        # return self.update_TS_BFGS(molecule)
 
         G = np.copy(molecule.Hessian)  # nicd,nicd
         Gdx = np.dot(G, self.dx)  # (nicd,nicd)(nicd,1) = (nicd,1)
@@ -716,27 +677,4 @@ class base_optimizer(object):
         phi = 1. - dxtE*dxtE/(dxtdx*EtE)
 
         change = (1.-phi)*Gms + phi*Gpsb
-        return change
-
-    def update_TS_BFGS(self, molecule):
-        G = np.copy(molecule.Hessian)  # nicd,nicd
-        dk = self.dx
-        yk = self.dg
-
-        jk = yk - np.dot(G, dk)
-        B = force_positive_definite(G)
-
-        # Scalar 1: dk^T |Bk| dk
-        s1 = np.linalg.multi_dot([dk.T, B, dk])
-        # Scalar 2: (yk^T dk)^2 + (dk^T |Bk| dk)^2
-        s2 = np.dot(yk.T, dk)**2 + s1**2
-
-        # Vector quantities
-        v2 = np.dot(yk.T, dk)*yk + s1*np.dot(B, dk)
-        uk = v2/s2
-        Ek = np.dot(jk, uk.T) + np.dot(uk, jk.T) + np.dot(jk.T, dk) * np.dot(uk, uk.T)
-
-        return Ek
-
-    def update_constraint_bfgsp(self):
         return change

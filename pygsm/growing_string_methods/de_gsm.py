@@ -1,4 +1,4 @@
-from pygsm.utilities import nifty
+from pygsm.utilities import output
 from .main_gsm import MainGSM
 
 
@@ -33,12 +33,10 @@ class DE_GSM(MainGSM):
 
             # Grow String
             self.grow_string(max_iters=max_iters, max_opt_steps=opt_steps)
-            nifty.printcool("Done Growing the String!!!")
+            output.printcool("Done Growing the String!!!")
             self.done_growing = True
 
-            # nifty.printcool("initial ic_reparam")
             self.reparameterize()
-            # self.xyz_writer('grown_string_{:03}.xyz'.format(self.ID), self.geometries, self.energies, self.gradrmss, self.dEs)
 
         if self.tscontinue:
             self.optimize_string(max_iter=max_iters, opt_steps=opt_steps, rtype=rtype)
@@ -61,7 +59,6 @@ class DE_GSM(MainGSM):
                 self.add_GSM_nodeP()
 
     def set_active(self, nR, nP):
-        # print(" Here is active:",self.active)
         if nR != nP and self.growth_direction == 0:
             print((f" setting active nodes to {nR} and {nP}"))
         elif self.growth_direction == 1:
@@ -84,7 +81,6 @@ class DE_GSM(MainGSM):
             self.active[nP] = False
         if self.growth_direction == 2:
             self.active[nR] = False
-        # print(" Here is new active:",self.active)
 
     def check_if_grown(self):
         '''
@@ -150,14 +146,10 @@ class DE_GSM(MainGSM):
             nlist[2*ncurrent+1] = self.nR - 2  # for isMAP_SE
 
         # TODO is this actually used?
-        # if self.nR == 0: nlist[2*ncurrent] += 1
-        # if self.nP == 0: nlist[2*ncurrent+1] -= 1
         ncurrent += 1
         nlist[2*ncurrent] = self.nnodes - self.nP
         nlist[2*ncurrent+1] = self.nR-1
         # #TODO is this actually used?
-        # if self.nR == 0: nlist[2*ncurrent+1] += 1
-        # if self.nP == 0: nlist[2*ncurrent] -= 1
         ncurrent += 1
 
         return ncurrent, nlist
@@ -173,5 +165,3 @@ class DE_GSM(MainGSM):
             print(f" relative E {0.0:4.3f}, {self.nodes[-1].energy-self.nodes[0].energy:4.3f}")
         else:
             print(f" Energy of end points are {self.nodes[0].energy:4.3f} ")
-            # self.nodes[-1].energy = self.nodes[0].energy
-            # self.nodes[-1].gradrms = 0.

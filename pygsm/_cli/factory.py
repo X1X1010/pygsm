@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import importlib
 import json
 
 from pygsm.level_of_theories.ase import ASELoT
@@ -17,30 +16,25 @@ def create_lot(inpfileq: dict, geom):
         for multiplicity, state in zip(inpfileq['multiplicity'], inpfileq['adiabatic_index'])
     ]
     do_coupling = inpfileq['PES_type'] == 'Avg_PES'
-    coupling_states = inpfileq['states'] if do_coupling else []
-
     lot_options = dict(
         ID=inpfileq['ID'],
-        lot_inp_file=inpfileq['lot_inp_file'],
         states=inpfileq['states'],
         gradient_states=inpfileq['states'],
-        coupling_states=coupling_states,
+        coupling_states=inpfileq['states'] if do_coupling else [],
         geom=geom,
         nproc=inpfileq['nproc'],
         charge=inpfileq['charge'],
         do_coupling=do_coupling,
     )
 
-    lot_name = inpfileq['EST_Package']
-    if lot_name.lower() == 'ase':
+    if inpfileq['EST_Package'] == 'ase':
         ase_kwargs = json.loads(inpfileq['ase_kwargs'] or '{}')
         return ASELoT.from_calculator_string(
             calculator_import=inpfileq['ase_class'],
-            calculator_kwargs=dict(ase_kwargs),
+            calculator_kwargs=ase_kwargs,
             **lot_options,
         )
-
-    if lot_name == 'xTB_lot':
+    if inpfileq['EST_Package'] == 'xTB':
         return xTB_lot.from_options(
             xTB_Hamiltonian=inpfileq['xTB_Hamiltonian'],
             xTB_accuracy=inpfileq['xTB_accuracy'],
@@ -48,10 +42,7 @@ def create_lot(inpfileq: dict, geom):
             solvent=inpfileq['solvent'],
             **lot_options,
         )
-
-    est_package = importlib.import_module(f"pygsm.level_of_theories.{lot_name.lower()}")
-    lot_class = getattr(est_package, lot_name)
-    return lot_class.from_options(**lot_options)
+    raise NotImplementedError(f"Unsupported level of theory package `{inpfileq['EST_Package']}`")
 
 
 def choose_pes(lot, inpfileq: dict):

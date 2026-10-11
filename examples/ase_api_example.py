@@ -14,47 +14,38 @@ from pygsm.coordinate_systems import DelocalizedInternalCoordinates
 from pygsm.level_of_theories.ase import ASELoT
 from pygsm.optimizers import eigenvector_follow
 from pygsm.potential_energy_surfaces import PES
-from pygsm.utilities import elements, manage_xyz, nifty
+from pygsm.utilities import elements, manage_xyz, output
 from pygsm.molecule import Molecule
 
 
 def main(geom):
-    nifty.printcool(" Building the LOT")
+    output.printcool(" Building the LOT")
     lot = ASELoT.from_options(MorsePotential(), geom=geom)
 
-    nifty.printcool(" Building the PES")
+    output.printcool(" Building the PES")
     pes = PES.from_options(
         lot=lot,
         ad_idx=0,
         multiplicity=1,
     )
 
-    nifty.printcool("Building the topology")
+    output.printcool("Building the topology")
     atom_symbols = manage_xyz.get_atoms(geom)
     ELEMENT_TABLE = elements.ElementData()
     atoms = [ELEMENT_TABLE.from_symbol(atom) for atom in atom_symbols]
     xyz = manage_xyz.xyz_to_np(geom)
-    # top = Topology.build_topology(
     #     xyz,
     #     atoms,
-    # )
 
-    # nifty.printcool("Building Primitive Internal Coordinates")
-    # p1 = PrimitiveInternalCoordinates.from_options(
-    #     xyz=xyz,
-    #     atoms=atoms,
-    #     addtr=False,  # Add TRIC
-    #     topology=top,
-    # )
 
-    nifty.printcool("Building Delocalized Internal Coordinates")
+    output.printcool("Building Delocalized Internal Coordinates")
     coord_obj1 = DelocalizedInternalCoordinates.from_options(
         xyz=xyz,
         atoms=atoms,
         addtr=False,  # Add TRIC
     )
 
-    nifty.printcool("Building Molecule")
+    output.printcool("Building Molecule")
     reactant = Molecule.from_options(
         geom=geom,
         PES=pes,
@@ -62,11 +53,11 @@ def main(geom):
         Form_Hessian=True,
     )
 
-    nifty.printcool("Creating optimizer")
+    output.printcool("Creating optimizer")
     optimizer = eigenvector_follow.from_options(Linesearch='backtrack', OPTTHRESH=0.0005, DMAX=0.5, abs_max_step=0.5,
                                                 conv_Ediff=0.5)
 
-    nifty.printcool("initial energy is {:5.4f} kcal/mol".format(reactant.energy))
+    output.printcool("initial energy is {:5.4f} kcal/mol".format(reactant.energy))
     geoms, energies = optimizer.optimize(
         molecule=reactant,
         refE=reactant.energy,
@@ -74,7 +65,7 @@ def main(geom):
         verbose=True,
     )
 
-    nifty.printcool("Final energy is {:5.4f}".format(reactant.energy))
+    output.printcool("Final energy is {:5.4f}".format(reactant.energy))
     manage_xyz.write_xyz('minimized.xyz', geoms[-1], energies[-1], scale=1.)
 
 

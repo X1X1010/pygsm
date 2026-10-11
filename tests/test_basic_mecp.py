@@ -2,7 +2,7 @@ from pathlib import Path
 
 import pytest
 
-pytest.importorskip("xtb")
+pytest.importorskip("tblite")
 
 from pygsm.coordinate_systems.delocalized_coordinates import (
     DelocalizedInternalCoordinates,
@@ -14,7 +14,7 @@ from pygsm.molecule.molecule import Molecule
 from pygsm.optimizers import eigenvector_follow
 from pygsm.potential_energy_surfaces.penalty_pes import Penalty_PES
 from pygsm.potential_energy_surfaces.pes import PES
-from pygsm.utilities import elements, manage_xyz, nifty
+from pygsm.utilities import elements, manage_xyz, output
 
 
 def test_basic_penalty_opt():
@@ -52,7 +52,7 @@ def test_basic_penalty_opt():
 
     pes = Penalty_PES(PES1=pes1, PES2=pes2, lot=lot1)
 
-    nifty.printcool('Building the topology')
+    output.printcool('Building the topology')
     atom_symbols = manage_xyz.get_atoms(geom)
     ELEMENT_TABLE = elements.ElementData()
     atoms = [ELEMENT_TABLE.from_symbol(atom) for atom in atom_symbols]
@@ -63,7 +63,7 @@ def test_basic_penalty_opt():
         bondlistfile=None,
     )
 
-    nifty.printcool('Building Primitive Internal Coordinates')
+    output.printcool('Building Primitive Internal Coordinates')
     connect = False
     addtr = True
     addcart = False
@@ -76,7 +76,7 @@ def test_basic_penalty_opt():
         topology=top1,
     )
 
-    nifty.printcool('Building Delocalized Internal Coordinates')
+    output.printcool('Building Delocalized Internal Coordinates')
     coord_obj1 = DelocalizedInternalCoordinates.from_options(
         xyz=xyz1,
         atoms=atoms,
@@ -86,7 +86,7 @@ def test_basic_penalty_opt():
         primitives=p1,
     )
 
-    nifty.printcool('Building the molecule')
+    output.printcool('Building the molecule')
 
     Form_Hessian = True
     initial = Molecule.from_options(
@@ -117,5 +117,6 @@ def test_basic_penalty_opt():
     )
 
     print(f'{energies = }')
-    assert energies[-1] == pytest.approx(-1.1495296961093118)
+    # tblite GFN2-xTB reference (xtb-python gave -1.1495296961093118)
+    assert energies[-1] == pytest.approx(-1.1495308976482193)
     print('Finished!')

@@ -1,7 +1,6 @@
 """Class structures of important chemical concepts
 This class is the combination of Martinez group and Lee Ping's molecule class.
 """
-import os
 from time import time
 
 import numpy as np
@@ -96,7 +95,6 @@ class Molecule(object):
             key='coord_obj',
             required=False,
             value=None,
-            #allowed_types=[DelocalizedInternalCoordinates,CartesianCoordinates],
                 doc='A coordinate object.'
         )
 
@@ -117,7 +115,6 @@ class Molecule(object):
         opt.add_option(
             key='PES',
             required=True,
-            #allowed_types=[PES,Avg_PES,Penalty_PES,potential_energy_surfaces.pes.PES,potential_energy_surfaces.Penalty_PES,potential_energy_surfaces.Avg_PES],
                 doc='potential energy surface object to evaulate energies, gradients, etc. Pes is defined by charge, state, multiplicity,etc. '
 
         )
@@ -212,11 +209,7 @@ class Molecule(object):
 
         t1 = time()
         print(" Time to get coords= %.3f" % (t1 - t0))
-        #resid=[]
         #for a in ob.OBMolAtomIter(mol.OBMol):
-        #    res = a.GetResidue()
-        #    resid.append(res.GetName())
-        #self.resid = resid
 
         # Perform all the sanity checks and cache some useful attributes
 
@@ -243,15 +236,6 @@ class Molecule(object):
         else:
             print(" Disabling this feature, Molecule cannot create coordinate system")
             raise NotImplementedError
-        #elif self.Data['coordinate_type'] == "Cartesian":
-        #    self.coord_obj = CartesianCoordinates.from_options(xyz=self.xyz,atoms=self.atoms)
-        #elif self.Data['coordinate_type'] == "DLC":
-        #    print(" building coordinate object")
-        #    self.coord_obj = DelocalizedInternalCoordinates.from_options(xyz=self.xyz,atoms=self.atoms,connect=True,extra_kwargs =self.Data['top_settings'])
-        #elif self.Data['coordinate_type'] == "HDLC":
-        #    self.coord_obj = DelocalizedInternalCoordinates.from_options(xyz=self.xyz,atoms=self.atoms,addcart=True,extra_kwargs =self.Data['top_settings'])
-        #elif self.Data['coordinate_type'] == "TRIC":
-        #    self.coord_obj = DelocalizedInternalCoordinates.from_options(xyz=self.xyz,atoms=self.atoms,addtr=True,extra_kwargs =self.Data['top_settings'])
         self.Data['coord_obj'] = self.coord_obj
 
         t2 = time()
@@ -269,8 +253,6 @@ class Molecule(object):
             else:
                 self.form_Hessian()
 
-        #logger.info("Molecule %s constructed.", repr(self))
-        #logger.debug("Molecule %s constructed.", repr(self))
         print(" molecule constructed")
 
     def _initialize_runtime_state(self):
@@ -293,28 +275,6 @@ class Molecule(object):
         """ add method for molecule objects. Concatenates"""
         raise NotImplementedError
 
-    def reorder(self, new_order):
-        """Reorder atoms in the molecule"""
-        #TODO doesn't work probably CRA 3/2019
-        self.atoms = [self.atoms[i] for i in new_order]
-        self.xyz = self.xyz[list(new_order)]
-
-    def reorder_according_to(self, other):
-        """
-
-        Reorder atoms according to some other Molecule object.  This
-        happens when we run a program like pdb2gmx or pdbxyz and it
-        scrambles our atom ordering, forcing us to reorder the atoms
-        for all frames in the current Molecule object.
-
-        Directions:
-        (1) Load up the scrambled file as a new Molecule object.
-        (2) Call this function: Original_Molecule.reorder_according_to(scrambled)
-        (3) Save Original_Molecule to a new file name.
-
-        """
-        raise NotImplementedError
-
     def center(self, center_mass=False):
         """ Move geometric center to the origin. """
         if center_mass:
@@ -332,10 +292,6 @@ class Molecule(object):
         return np.array([ele.mass_amu for ele in self.atoms])
 
     @property
-    def mass_amu_triples(self):
-        return np.array([[ele.mass_amu, ele.mass_amu, ele.mass_amu] for ele in self.atoms])
-
-    @property
     def atomic_num(self):
         return [ele.atomic_num for ele in self.atoms]
 
@@ -343,11 +299,6 @@ class Molecule(object):
     def total_mass_au(self):
         """Returns the total mass of the molecule"""
         return np.sum(self.atomic_mass)
-
-    @property
-    def total_mass_amu(self):
-        """Returns the total mass of the molecule"""
-        return np.sum(self.mass_amu)
 
     @property
     def natoms(self):
@@ -359,19 +310,6 @@ class Molecule(object):
         M = self.total_mass_au
         atomic_masses = self.atomic_mass
         return np.sum([self.xyz[i, :]*atomic_masses[i]/M for i in range(self.natoms)], axis=0)
-
-    @property
-    def mass_weighted_cartesians(self):
-        M = self.total_mass_au
-        return np.asarray([self.xyz[i, :]*self.atomic_mass[i]/M for i in range(self.natoms)])
-
-    @property
-    def radius_of_gyration(self):
-        com = self.center_of_mass
-        M = self.total_mass_au
-        xyz1 = self.xyz.copy()
-        xyz1 -= com
-        return np.sum(self.atomic_mass[i]*np.dot(x, x) for i, x in enumerate(xyz1))/M
 
     @property
     def geometry(self):
@@ -399,11 +337,6 @@ class Molecule(object):
 
     # for PES seams
     @property
-    def avg_gradient(self):
-        gradx = self.PES.get_avg_gradient(self.xyz, frozen_atoms=self.frozen_atoms)
-        return self.coord_obj.calcGrad(self.xyz, gradx)  # CartesianCoordinate just returns gradx
-
-    @property
     def derivative_coupling(self):
         dvecx = self.PES.get_coupling(self.xyz, frozen_atoms=self.frozen_atoms)
         return self.coord_obj.calcGrad(self.xyz, dvecx)
@@ -417,10 +350,6 @@ class Molecule(object):
     def difference_energy(self):
         self.energy
         return self.PES.dE
-
-    @property
-    def exactHessian(self):
-        raise NotImplementedError
 
     @property
     def Primitive_Hessian(self):
@@ -491,19 +420,6 @@ class Molecule(object):
             self.xyz = self.coord_obj.newCartesian(self.xyz, dq, frozen_atoms=self.frozen_atoms, verbose=verbose)
         return self.xyz
 
-    def update_and_move(self, tan, deltadq, verbose=True):
-        self.update_coordinate_basis(tan)
-        dq = deltadq*self.constraint[:, 0]
-        self.update_xyz(dq, verbose=verbose)
-
-    def update_MW_xyz(self, mass, dq, verbose=True):
-        self.xyz = self.coord_obj.massweighted_newCartesian(self.xyz, dq, mass, verbose)
-        return self.xyz
-
-    @property
-    def finiteDifferenceHessian(self):
-        return self.PES.get_finite_difference_hessian(self.xyz)
-
     @property
     def primitive_internal_coordinates(self):
         return self.coord_obj.Prims.Internals
@@ -511,14 +427,6 @@ class Molecule(object):
     @property
     def num_primitives(self):
         return len(self.primitive_internal_coordinates)
-
-    @property
-    def num_bonds(self):
-        count = 0
-        for ic in self.coord_obj.Prims.Internals:
-            if type(ic) == "Distance":
-                count += 1
-        return count
 
     @property
     def primitive_internal_values(self):
@@ -537,7 +445,6 @@ class Molecule(object):
         if self.coord_obj.__class__.__name__ == 'CartesianCoordinates':
             return
         # if constraints is not None:
-        #     assert constraints.shape[0] == self.coord_basis.shape[0], '{} does not equal {} dimensions'.format(constraints.shape[0],self.coord_basis.shape[0])
 
         print(" updating coord basis")
         self.coord_obj.clearCache()
@@ -552,26 +459,8 @@ class Molecule(object):
     def coordinates(self):
         return np.reshape(self.coord_obj.calculate(self.xyz), (-1, 1))
 
-    def mult_bm(self, left, right):
-        return block_matrix.dot(left, right)
 
-    @property
-    def prim_CMatrix(self):
-        return self.coord_obj.Prims.second_derivatives(self.xyz)
-        #Der = self.coord_obj.Prims.second_derivatives(self.xyz)
-        #return Der.reshape(Der.shape[0],3*self.xyz.shape[0],3*self.xyz.shape[0])
-
-    @property
-    def CMatrix(self):
-        return self.coord_obj.second_derivatives(self.xyz)
-        # Der = self.coord_obj.second_derivatives(self.xyz)
-        # return Der.reshape(Der.shape[0],3*self.xyz.shape[0],3*self.xyz.shape[0])
-        # return Der
-
-        # Answer = []
         # for i in range(Der.shape[0]):
-        #    Answer.append(Der[i].flatten())
-        # return np.array(Answer)
 
     @property
     def BMatrix(self):

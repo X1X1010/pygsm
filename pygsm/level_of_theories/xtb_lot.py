@@ -1,80 +1,55 @@
-# standard library imports
+"""GFN-xTB level of theory through the tblite Python API.
+
+https://github.com/tblite/tblite
+"""
+
 from __future__ import annotations
 
-# third party
 import numpy as np
 
-# local application imports
 from ..utilities import elements, manage_xyz, units
 from .base_lot import LoTError, Lot
 
+# Boltzmann constant in Hartree/K, used to convert the electronic temperature.
+KB_HARTREE_PER_KELVIN = 3.166811563455546e-06
 
-def _require_xtb():
+
+def _require_tblite():
     try:
-        from xtb.interface import Calculator
-        from xtb.utils import get_method, get_solvent
+        from tblite.interface import Calculator
     except ModuleNotFoundError as error:
-        raise LoTError("xTB backend requires the optional dependency `xtb-python`.") from error
-    return Calculator, get_method, get_solvent
+        raise LoTError('xTB backend requires the optional dependency `tblite`. Install with `pip install pygsm[xtb]`.') from error
+    return Calculator
 
 
 class xTB_lot(Lot):
+    """GFN1/GFN2-xTB ground states, one calculation per requested spin multiplicity.
+
+    Only adiabatic index 0 is available for each multiplicity, which is enough
+    for ground-state strings and for minimum-energy crossing points between
+    spin states (``Penalty_PES``).
+    """
+
     def __init__(self, options):
-        super(xTB_lot, self).__init__(options)
+        super().__init__(options)
+        table = elements.ElementData()
+        self.numbers = np.asarray([table.from_symbol(a).atomic_num for a in manage_xyz.get_atoms(self.geom)])
 
-        numbers = []
-        E = elements.ElementData()
-        for a in manage_xyz.get_atoms(self.geom):
-            elem = E.from_symbol(a)
-            numbers.append(elem.atomic_num)
-        self.numbers = np.asarray(numbers)
+    def run(self, geom, multiplicity, state, runtype='gradient'):
+        if state != 0:
+            raise LoTError(f'xTB only provides the ground state of each multiplicity, got state {(multiplicity, state)}')
+        Calculator = _require_tblite()
 
-    def run(self, geom, multiplicity, state, verbose=False):
-        Calculator, get_method, get_solvent = _require_xtb()
-
-        # print('running!')
-        # sys.stdout.flush()
-        coords = manage_xyz.xyz_to_np(geom)
-
-        # convert to bohr
-        positions = coords * units.ANGSTROM_TO_AU
-        calc = Calculator(get_method(self.xTB_Hamiltonian), self.numbers, positions, charge=self.charge)
-
-        calc.set_accuracy(self.xTB_accuracy)
-        calc.set_electronic_temperature(self.xTB_electronic_temperature)
-
+        positions = manage_xyz.xyz_to_np(geom) * units.ANGSTROM_TO_AU
+        calc = Calculator(self.xTB_Hamiltonian, self.numbers, positions, charge=self.charge, uhf=multiplicity - 1)
+        calc.set('verbosity', 0)
+        calc.set('accuracy', self.xTB_accuracy)
+        calc.set('temperature', self.xTB_electronic_temperature * KB_HARTREE_PER_KELVIN)
         if self.solvent is not None:
-            calc.set_solvent(get_solvent(self.solvent))
+            calc.add('alpb-solvation', self.solvent)
+        res = calc.singlepoint()
 
-        calc.set_output(f'lot_jobs_{self.node_id}.txt')
-        res = calc.singlepoint()  # energy printed is only the electronic part
-        calc.release_output()
-
-        # energy in hartree
-        self._Energies[(multiplicity, state)] = self.Energy(res.get_energy(), 'Hartree')
-
-        # grad in Hatree/Bohr
-        self._Gradients[(multiplicity, state)] = self.Gradient(res.get_gradient(), 'Hartree/Bohr')
-
-        # write E to scratch
+        self._Energies[(multiplicity, state)] = self.Energy(res.get('energy'), 'Hartree')
+        self._Gradients[(multiplicity, state)] = self.Gradient(res.get('gradient'), 'Hartree/Bohr')
         self.write_E_to_file()
-
         return res
-
-
-if __name__ == "__main__":
-
-    geom = manage_xyz.read_xyz('../../data/ethylene.xyz')
-    # geoms=manage_xyz.read_xyzs('../../data/diels_alder.xyz')
-    # geom = geoms[0]
-    # geom=manage_xyz.read_xyz('xtbopt.xyz')
-    xyz = manage_xyz.xyz_to_np(geom)
-    # xyz *= units.ANGSTROM_TO_AU
-
-    lot = xTB_lot.from_options(states=[(1, 0)], gradient_states=[(1, 0)], geom=geom, node_id=0)
-
-    E = lot.get_energy(xyz, 1, 0)
-    print(E)
-
-    g = lot.get_gradient(xyz, 1, 0)
-    print(g)

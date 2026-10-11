@@ -7,7 +7,7 @@ import os
 import textwrap
 from collections.abc import Sequence
 
-from pygsm.utilities import nifty
+from pygsm.utilities import output
 
 
 def _build_parser() -> argparse.ArgumentParser:
@@ -18,7 +18,7 @@ def _build_parser() -> argparse.ArgumentParser:
             '''\
             Example of use:
             --------------------------------
-            gsm -mode DE_GSM -xyzfile yourfile.xyz -package QChem -lot_inp_file qstart -ID 1
+            gsm -mode DE_GSM -xyzfile reaction.xyz -package xTB -ID 1
             '''
         ),
     )
@@ -35,29 +35,10 @@ def _build_parser() -> argparse.ArgumentParser:
     parser.add_argument('-only_drive', action='store_true', help='')
     parser.add_argument(
         '-package',
-        default='QChem',
+        default='xTB',
         type=str,
-        help='Electronic structure theory package (default: %(default)s)',
-        choices=[
-            'QChem',
-            'Orca',
-            'Molpro',
-            'PyTC',
-            'TeraChemCloud',
-            'OpenMM',
-            'DFTB',
-            'TeraChem',
-            'BAGEL',
-            'xTB_lot',
-            'ase',
-        ],
-    )
-    parser.add_argument(
-        '-lot_inp_file',
-        type=str,
-        default=None,
-        help='external file to specify calculation e.g. qstart,gstart,etc. Highly package specific.',
-        required=False,
+        help='Level of theory: GFN-xTB via tblite, or any ASE calculator (see --ase-class) (default: %(default)s)',
+        choices=['xTB', 'ase'],
     )
     parser.add_argument('-ID', default=0, type=int, help='string identification number (default: %(default)s)', required=False)
     parser.add_argument(
@@ -92,7 +73,7 @@ def _build_parser() -> argparse.ArgumentParser:
     )
     parser.add_argument('-opt_print_level', type=int, default=1, help='Printout for optimization. 2 prints everything in opt.', required=False)
     parser.add_argument('-gsm_print_level', type=int, default=1, help='Printout for gsm. 1 prints ?', required=False)
-    parser.add_argument('-xTB_Hamiltonian', type=str, default='GFN2-xTB', help='xTB hamiltonian', choices=['GFN2-xTB', 'GFN1-xTB'], required=False)
+    parser.add_argument('-xTB_Hamiltonian', type=str, default='GFN2-xTB', help='xTB hamiltonian', choices=['GFN2-xTB', 'GFN1-xTB', 'IPEA1-xTB'], required=False)
     parser.add_argument('-xTB_accuracy', type=float, default=1.0, help='xTB accuracy', required=False)
     parser.add_argument('-xTB_electronic_temperature', type=float, default=300.0, help='xTB electronic temperature', required=False)
     parser.add_argument('-xyz_output_format', type=str, default='molden', help='Format of the produced XYZ files', required=False)
@@ -212,7 +193,6 @@ def parse_arguments(verbose: bool = True, argv: Sequence[str] | None = None):
 
     nproc = _resolve_nproc(args.nproc, verbose=verbose)
     inpfileq = {
-        'lot_inp_file': args.lot_inp_file,
         'xyzfile': args.xyzfile,
         'EST_Package': args.package,
         'reactant_geom_fixed': args.reactant_geom_fixed,
@@ -273,7 +253,7 @@ def parse_arguments(verbose: bool = True, argv: Sequence[str] | None = None):
     }
 
     if verbose:
-        nifty.printcool_dictionary(inpfileq, title='Parsed GSM Keys : Values')
+        output.printcool_dictionary(inpfileq, title='Parsed GSM Keys : Values')
 
     if inpfileq['PES_type'] != 'PES':
         assert len(inpfileq['adiabatic_index']) > 1, 'need more states'
