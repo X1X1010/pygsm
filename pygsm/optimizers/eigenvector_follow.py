@@ -35,7 +35,7 @@ class eigenvector_follow(base_optimizer):
 
         # print " refE %5.4f" % refE
         print(" initial E %5.4f" % (molecule.energy - refE))
-        print(" CONV_TOL %1.5f" % self.conv_grms)
+        print(f" CONV_TOL {self.conv_grms:1.5f}")
         geoms = []
         energies = []
         geoms.append(molecule.geometry)
@@ -88,7 +88,7 @@ class eigenvector_follow(base_optimizer):
 
         # ====>  Do opt steps <======= #
         for ostep in range(opt_steps):
-            print(" On opt step {} for node {}".format(ostep+1, molecule.node_id))
+            print(f" On opt step {ostep+1} for node {molecule.node_id}")
 
             # update Hess
             if update_hess:
@@ -165,7 +165,7 @@ class eigenvector_follow(base_optimizer):
                     self.DMAX = ls['step']
                 elif ls['step'] <= self.DMIN:
                     self.DMAX = self.DMIN
-                    print(" Decreasing DMAX to {}".format(self.DMIN))
+                    print(f" Decreasing DMAX to {self.DMIN}")
 
             # calculate predicted value from Hessian, gp is previous constrained gradient
             scaled_dq = dq*step
@@ -186,7 +186,7 @@ class eigenvector_follow(base_optimizer):
 
             # control step size
             dEstep = fx - fxp
-            print(" dEstep=%5.4f" % dEstep)
+            print(f" dEstep={dEstep:5.4f}")
             ratio = dEstep/dEpre
             molecule.gradrms = np.sqrt(np.dot(gc.T, gc)/n)
             if ls['status'] != -2:
@@ -197,7 +197,7 @@ class eigenvector_follow(base_optimizer):
             if ostep % xyzframerate == 0:
                 geoms.append(molecule.geometry)
                 energies.append(molecule.energy-refE)
-                manage_xyz.write_xyzs_w_comments('{}/opt_{}.xyz'.format(path, molecule.node_id), geoms, energies, scale=1.)
+                manage_xyz.write_xyzs_w_comments(f'{path}/opt_{molecule.node_id}.xyz', geoms, energies, scale=1.)
 
             # save variables for update Hessian!
             if not molecule.coord_obj.__class__.__name__ == 'CartesianCoordinates':
@@ -222,7 +222,7 @@ class eigenvector_follow(base_optimizer):
             fx = molecule.energy
             dE = molecule.difference_energy
             if dE < 1000.:
-                print(" difference energy is %5.4f" % dE)
+                print(f" difference energy is {dE:5.4f}")
             gmax = float(np.max(np.absolute(gc)))
             disp = float(np.linalg.norm((xyz-xyzp).flatten()))
             xnorm = np.sqrt(np.dot(x.T, x))
@@ -236,7 +236,7 @@ class eigenvector_follow(base_optimizer):
             if self.opt_cross and abs(dE) < self.conv_dE and molecule.gradrms < self.conv_grms and abs(gmax) < self.conv_gmax and abs(dEstep) < self.conv_Ediff and abs(disp) < self.conv_disp:
                 if opt_type == "TS-SEAM":
                     gts = np.dot(g.T, molecule.constraints[:, 0])
-                    print(" gts %1.4f" % gts)
+                    print(f" gts {gts:1.4f}")
                     if abs(gts) < self.conv_grms*5:
                         self.converged = True
                 else:
@@ -257,7 +257,7 @@ class eigenvector_follow(base_optimizer):
                 if ostep % xyzframerate != 0:
                     geoms.append(molecule.geometry)
                     energies.append(molecule.energy-refE)
-                    manage_xyz.write_xyzs_w_comments('{}/opt_{}.xyz'.format(path, molecule.node_id), geoms, energies, scale=1.)
+                    manage_xyz.write_xyzs_w_comments(f'{path}/opt_{molecule.node_id}.xyz', geoms, energies, scale=1.)
                 break
 
             # update DLC  --> this changes q, g, Hint
@@ -274,7 +274,7 @@ class eigenvector_follow(base_optimizer):
             print()
             sys.stdout.flush()
 
-        print(" opt-summary {}".format(molecule.node_id))
+        print(f" opt-summary {molecule.node_id}")
         print(self.buf.getvalue())
         return geoms, energies
 

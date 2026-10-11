@@ -21,7 +21,7 @@ def optimize_string(gsm, max_iter=30, nconstraints=1, opt_steps=1, rtype=2):
     opt_iteration = 0
 
     while opt_iteration < max_iter:
-        printcool('Starting opt iter %i' % opt_iteration)
+        printcool(f'Starting opt iter {opt_iteration}')
         if gsm.climb and not gsm.find:
             print(' CLIMBING')
         elif gsm.find:
@@ -62,11 +62,11 @@ def optimize_string(gsm, max_iter=30, nconstraints=1, opt_steps=1, rtype=2):
                 np.dot(gsm.nodes[gsm.TSnode].gradient.T, gsm.nodes[gsm.TSnode].constraints[:, 0])
                 * gsm.nodes[gsm.TSnode].constraints[:, 0]
             )
-            print(' ts_cgradq %5.4f' % ts_cgradq)
+            print(f' ts_cgradq {ts_cgradq:5.4f}')
 
         ts_gradrms = gsm.nodes[gsm.TSnode].gradrms
         gsm.dE_iter = abs(gsm.emax - gsm.emaxp)
-        print(' dE_iter ={:2.2f}'.format(gsm.dE_iter))
+        print(f' dE_iter ={gsm.dE_iter:2.2f}')
 
         totalgrad, gradrms, sum_gradrms = gsm.calc_optimization_metrics(gsm.nodes)
 
@@ -120,18 +120,12 @@ def optimize_string(gsm, max_iter=30, nconstraints=1, opt_steps=1, rtype=2):
                 gsm.hess_counter += 1
         print(f'{stage_changed=}: {gsm.climb=} {gsm.find=}')
 
-        filename = 'scratch/opt_iters_{:03}_{:03}.xyz'.format(gsm.ID, opt_iteration)
+        filename = f'scratch/opt_iters_{gsm.ID:03}_{opt_iteration:03}.xyz'
         gsm.xyz_writer(filename, gsm.geometries, gsm.energies, gsm.gradrmss, gsm.dEs)
 
-        print(' End early counter {}'.format(gsm.endearly_counter))
+        print(f' End early counter {gsm.endearly_counter}')
         print(
-            'opt_iter: {:2} totalgrad: {:4.3} gradrms: {:5.4} max E({}) {:5.4}\n'.format(
-                opt_iteration,
-                float(totalgrad),
-                float(gradrms),
-                gsm.TSnode,
-                float(gsm.emax),
-            )
+            f'opt_iter: {opt_iteration:2} totalgrad: {float(totalgrad):4.3} gradrms: {float(gradrms):5.4} max E({gsm.TSnode}) {float(gsm.emax):5.4}\n'
         )
         opt_iteration += 1
 

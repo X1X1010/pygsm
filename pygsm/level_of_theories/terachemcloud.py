@@ -67,7 +67,7 @@ class TeraChemCloud(Lot):
             grad_options['castarget'] = ad_idx
             if self.orbfile:
                 grad_options['guess'] = self.orbfile
-                print(" orbfile is %s" % self.orbfile)
+                print(f" orbfile is {self.orbfile}")
             else:
                 print(" generating orbs from guess")
             job_id = self.TC.submit(coords, grad_options)

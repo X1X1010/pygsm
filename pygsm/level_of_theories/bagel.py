@@ -17,8 +17,8 @@ class BAGEL(Lot):
     def __init__(self, options):
         super(BAGEL, self).__init__(options)
 
-        print(" making folder scratch/{}".format(self.node_id))
-        os.system('mkdir -p scratch/{}'.format(self.node_id))
+        print(f" making folder scratch/{self.node_id}")
+        os.system(f'mkdir -p scratch/{self.node_id}')
 
         # regular options
         self.file_options.set_active('basis', '6-31g', str, '')
@@ -65,7 +65,7 @@ class BAGEL(Lot):
         for key in keys_to_del:
             self.file_options.deactivate(key)
 
-        guess_file = 'scratch/{}/orbs'.format(self.node_id)
+        guess_file = f'scratch/{self.node_id}/orbs'
         self.file_options.set_active('load_ref', guess_file, str, doc='guess',
                                      depend=(os.path.isfile(guess_file+'.archive')), msg='ref does not exist or not needed, deactivating for now...')
 
@@ -82,24 +82,24 @@ class BAGEL(Lot):
 
         # Get node id for new struct
         node_id = options.get('node_id', 1)
-        print(" making folder scratch/{}".format(node_id))
-        os.system('mkdir -p scratch/{}'.format(node_id))
+        print(f" making folder scratch/{node_id}")
+        os.system(f'mkdir -p scratch/{node_id}')
 
         file_options = File_Options.copy(lot.file_options)
         options['file_options'] = file_options
 
         if node_id != lot.node_id and copy_wavefunction:
-            old_path = 'scratch/{}/orbs.archive'.format(lot.node_id)
-            new_path = 'scratch/{}/orbs.archive'.format(node_id)
+            old_path = f'scratch/{lot.node_id}/orbs.archive'
+            new_path = f'scratch/{node_id}/orbs.archive'
             cmd = 'cp -r ' + old_path + ' ' + new_path
-            print(" copying scr files\n {}".format(cmd))
+            print(f" copying scr files\n {cmd}")
             os.system(cmd)
             os.system('wait')
         return cls(lot.options.copy().set_values(options))
 
     def write_input(self, geom, runtype='gradient'):
         # filenames
-        inpfilename = 'scratch/{}/bagel.json'.format(self.node_id)
+        inpfilename = f'scratch/{self.node_id}/bagel.json'
         inpfile = open(inpfilename, 'w')
 
         # Header
@@ -110,43 +110,33 @@ class BAGEL(Lot):
                        ' "title" : "molecule",\n'))
 
         # basis set
-        inpfile.write(' "basis" : "{}",\n'.format(self.basis))
-        inpfile.write(' "df_basis" : "{}",\n'.format(self.df_basis))
+        inpfile.write(f' "basis" : "{self.basis}",\n')
+        inpfile.write(f' "df_basis" : "{self.df_basis}",\n')
         inpfile.write('"angstrom" : true,\n')
 
         # write geometry
         inpfile.write(' "geometry" : [\n')
         for atom in geom[:-1]:
-            inpfile.write(' { "atom" : "%s", "xyz" : [ %14.6f, %14.6f, %14.6f ] },\n' % (
-                atom[0],
-                atom[1],
-                atom[2],
-                atom[3],
-            ))
-        inpfile.write(' { "atom" : "%s", "xyz" : [ %14.6f, %14.6f, %14.6f ] }\n' % (
-            geom[-1][0],
-            geom[-1][1],
-            geom[-1][2],
-            geom[-1][3],
-        ))
+            inpfile.write(f' {{ "atom" : "{atom[0]}", "xyz" : [ {atom[1]:14.6f}, {atom[2]:14.6f}, {atom[3]:14.6f} ] }},\n')
+        inpfile.write(f' {{ "atom" : "{geom[-1][0]}", "xyz" : [ {geom[-1][1]:14.6f}, {geom[-1][2]:14.6f}, {geom[-1][3]:14.6f} ] }}\n')
         inpfile.write(']\n')
         inpfile.write('},\n')
 
         # Load reference
         if 'load_ref' in self.file_options.ActiveOptions:
-            inpfile.write(('{{ \n'
+            inpfile.write(('{ \n'
                            ' "title" : "load_ref", \n'
-                           ' "file" : "scratch/{}/orbs", \n'
-                           ' "continue_geom" : false \n}},\n'.format(self.node_id)))
+                           f' "file" : "scratch/{self.node_id}/orbs", \n'
+                           ' "continue_geom" : false \n},\n'))
 
         if "casscf" in self.file_options.ActiveOptions:
-            inpfile.write(('{{\n'
+            inpfile.write(('{\n'
                            ' "title" : "casscf", \n'
-                           ' "nstate" : {}, \n'
-                           ' "nact" : {}, \n'
-                           ' "nclosed" : {}, \n'
-                           ' "maxiter": {} \n'
-                           '  }},\n\n'.format(self.nstate, self.nact, self.nclosed, self.maxiter)))
+                           f' "nstate" : {self.nstate}, \n'
+                           f' "nact" : {self.nact}, \n'
+                           f' "nclosed" : {self.nclosed}, \n'
+                           f' "maxiter": {self.maxiter} \n'
+                           '  },\n\n'))
         else:
             print(" only casscf implemented now")
             raise NotImplementedError
@@ -160,10 +150,10 @@ class BAGEL(Lot):
             for i, state in enumerate(self.gradient_states):
                 if i+1 == num_states:
                     inpfile.write(
-                        '     {{ "title" : "force", "target" : {} }}\n'.format(state[1]))
+                        f'     {{ "title" : "force", "target" : {state[1]} }}\n')
                 else:
                     inpfile.write(
-                        '     {{ "title" : "force", "target" : {} }},\n'.format(state[1]))
+                        f'     {{ "title" : "force", "target" : {state[1]} }},\n')
             inpfile.write(' \n],\n')
         elif runtype == "gh":
             inpfile.write(('{\n'
@@ -173,39 +163,38 @@ class BAGEL(Lot):
             num_states = len(self.gradient_states)
             for i, state in enumerate(self.gradient_states):
                 inpfile.write(
-                    '     {{ "title" : "force", "target" : {} }},\n'.format(state[1]))
+                    f'     {{ "title" : "force", "target" : {state[1]} }},\n')
 
-            inpfile.write('     {{ "title"  : "nacme", "target1" : {}, "tartet2": {}, "nacmtype" : "full" }}\n'.format(
-                self.coupling_states[0], self.coupling_states[1]))
+            inpfile.write(f'     {{ "title"  : "nacme", "target1" : {self.coupling_states[0]}, "tartet2": {self.coupling_states[1]}, "nacmtype" : "full" }}\n')
             inpfile.write(' ],\n')
 
         if "caspt2" in self.file_options.ActiveOptions and (runtype == 'gh' or runtype == 'gradient'):
-            inpfile.write((' "method" : [ {{\n'
+            inpfile.write((' "method" : [ {\n'
                            '  "title" : "caspt2",\n'
-                           '  "smith" : {{\n'
+                           '  "smith" : {\n'
                            '    "method" : "caspt2",\n'
-                           '    "ms" : "{}",\n'
-                           '    "xms" : "{}",\n'
-                           '    "sssr" : "{}",\n'
-                           '    "shift" : {},\n'
-                           '    "frozen" : "{}"\n'
-                           '  }},\n'
-                           '  "nstate" : {},\n'
-                           '  "nact" : {},\n'
-                           '  "nclosed" : {},\n'
+                           f'    "ms" : "{self.ms}",\n'
+                           f'    "xms" : "{self.xms}",\n'
+                           f'    "sssr" : "{self.sssr}",\n'
+                           f'    "shift" : {self.shift},\n'
+                           f'    "frozen" : "{self.frozen}"\n'
+                           '  },\n'
+                           f'  "nstate" : {self.nstate},\n'
+                           f'  "nact" : {self.nact},\n'
+                           f'  "nclosed" : {self.nclosed},\n'
                            '  "charge" : 0\n'
-                           '  }} ]\n'
-                           '}},\n'.format(self.ms, self.xms, self.sssr, self.shift, self.frozen, self.nstate, self.nact, self.nclosed)))
+                           '  } ]\n'
+                           '},\n'))
         elif runtype == 'energy':
             pass
         else:
             print("only caspt2 gradient implemented")
             raise NotImplementedError
 
-        inpfile.write(('{{\n'
+        inpfile.write(('{\n'
                        '"title" : "save_ref",\n'
-                       '"file" : "scratch/{}/orbs"\n'
-                       '}}\n'.format(self.node_id)))
+                       f'"file" : "scratch/{self.node_id}/orbs"\n'
+                       '}\n'))
 
         inpfile.write(']}')
         inpfile.close()
@@ -216,7 +205,7 @@ class BAGEL(Lot):
         self.Couplings = {}
 
         # Parse the output for Energies
-        tempfileout = 'scratch/{}/output.dat'.format(self.node_id)
+        tempfileout = f'scratch/{self.node_id}/output.dat'
         tmp = []
         if "caspt2" in self.file_options.ActiveOptions:
             pattern = re.compile(
@@ -276,15 +265,15 @@ class BAGEL(Lot):
     def run(self, geom, runtype='gradient'):
         # first write the file, run it, and the read the output
 
-        inpfilename = 'scratch/{}/bagel.json'.format(self.node_id)
-        outfilename = 'scratch/{}/output.dat'.format(self.node_id)
+        inpfilename = f'scratch/{self.node_id}/bagel.json'
+        outfilename = f'scratch/{self.node_id}/output.dat'
 
         # Write
         self.write_input(geom, runtype)
 
         # Run BAGEL
         # RUN THE CALCULATION ###
-        cmd = "BAGEL {} > {}".format(inpfilename, outfilename)
+        cmd = f"BAGEL {inpfilename} > {outfilename}"
         os.system(cmd)
         os.system('wait')
 
@@ -294,7 +283,7 @@ class BAGEL(Lot):
         # Turn on guess for calculations after running
         if 'load_ref' not in self.file_options.ActiveOptions:
             self.file_options.set_active(
-                'load_ref', 'scratch/{}/orbs'.format(self.node_id), str, '')
+                'load_ref', f'scratch/{self.node_id}/orbs', str, '')
         return
 
     def runall(self, geom, runtype=None):

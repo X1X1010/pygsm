@@ -82,7 +82,7 @@ class PyTC(Lot):
 
         nifty.printcool("Building Resources")
         resources = ls.ResourceList.build()
-        nifty.printcool("{}".format(resources))
+        nifty.printcool(f"{resources}")
 
         if not doQMMM:
             nifty.printcool("Building Molecule and Geom")
@@ -105,7 +105,7 @@ class PyTC(Lot):
                 qmmm=qmmm,
                 basisname=basis,
             )
-        nifty.printcool("{}".format(geom))
+        nifty.printcool(f"{geom}")
 
         if doFOMO:
             nifty.printcool("Building FOMO RHF")
@@ -221,13 +221,13 @@ class PyTC(Lot):
         coords = manage_xyz.xyz_to_np(geom)
         T = ls.Tensor.array(coords*units.ANGSTROM_TO_AU)
         print(" In run")
-        print("Lot {} casci {} ref {}".format(id(self.lot), id(self.lot.casci), id(self.lot.casci.reference)))
+        print(f"Lot {id(self.lot)} casci {id(self.lot.casci)} ref {id(self.lot.casci.reference)}")
 
         if not verbose:
             with open('lot_jobs.txt', 'a') as out:
                 with nifty.custom_redirection(out):
                     self.run_code(T)
-                filename = "{}.molden".format(self.node_id)
+                filename = f"{self.node_id}.molden"
                 self.lot.casci.reference.save_molden_file(filename)
         else:
             self.run_code(T)
@@ -235,7 +235,7 @@ class PyTC(Lot):
             #self.lot.casci.reference.save_molden_file(filename)
 
         print(" after run")
-        print("Lot {} casci {} ref {}".format(id(self.lot), id(self.lot.casci), id(self.lot.casci.reference)))
+        print(f"Lot {id(self.lot)} casci {id(self.lot.casci)} ref {id(self.lot.casci.reference)}")
         self.hasRanForCurrentCoords = True
         return
 

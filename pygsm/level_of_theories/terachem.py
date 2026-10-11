@@ -178,13 +178,13 @@ class TeraChem(Lot):
         self.file_options.set_active('gpumem', None, int, '')
 
         self.file_options.set_active(
-            'scrdir', 'scratch/{:03}/{}/scr/'.format(self.ID, self.node_id), str, doc='')
+            'scrdir', f'scratch/{self.ID:03}/{self.node_id}/scr/', str, doc='')
         self.file_options.force_active(
-            'scrdir', 'scratch/{:03}/{}/scr/'.format(self.ID, self.node_id))
+            'scrdir', f'scratch/{self.ID:03}/{self.node_id}/scr/')
         self.file_options.set_active(
-            'coordinates', 'scratch/{:03}/{}/tmp.xyz'.format(self.ID, self.node_id), str, doc='',)
+            'coordinates', f'scratch/{self.ID:03}/{self.node_id}/tmp.xyz', str, doc='',)
         self.file_options.force_active(
-            'coordinates', 'scratch/{:03}/{}/tmp.xyz'.format(self.ID, self.node_id))
+            'coordinates', f'scratch/{self.ID:03}/{self.node_id}/tmp.xyz')
         self.file_options.set_active('charge', 0, int, doc='')
 
 
@@ -212,7 +212,7 @@ class TeraChem(Lot):
             self.file_options.deactivate('prmtop')
         else:
             self.file_options.force_active(
-                'coordinates', 'scratch/{:03}/{}/tmp.inpcrd'.format(self.ID, self.node_id))
+                'coordinates', f'scratch/{self.ID:03}/{self.node_id}/tmp.inpcrd')
 
         # delete?
         # if self.file_options.xtol==None:
@@ -237,17 +237,15 @@ class TeraChem(Lot):
             if state[0] == 2:
                 self.unrestricted = True
 
-        self.file_options.set_active('casguess', 'scratch/{:03}/{}/c0.casscf'.format(
-            self.ID, self.node_id), str, doc='guess for casscf', depend=(self.file_options.casscf == "yes"), msg='')
+        self.file_options.set_active('casguess', f'scratch/{self.ID:03}/{self.node_id}/c0.casscf', str, doc='guess for casscf', depend=(self.file_options.casscf == "yes"), msg='')
 
         if self.unrestricted:
-            guess_file = 'scratch/{:03}{}/ca0'.format(self.ID, self.node_id)
+            guess_file = f'scratch/{self.ID:03}{self.node_id}/ca0'
         else:
-            guess_file = 'scratch/{:03}/{}/c0'.format(self.ID, self.node_id)
+            guess_file = f'scratch/{self.ID:03}/{self.node_id}/c0'
         if os.path.isfile(guess_file):
             if self.unrestricted:
-                guess_file2 = 'scratch/{:03}{}/ca0'.format(
-                    self.ID, self.node_id)
+                guess_file2 = f'scratch/{self.ID:03}{self.node_id}/ca0'
                 self.file_options.set_active('guess', guess_file+guess_file2, str, doc='guess for dft/HF',
                                              clash=(
                                                  self.file_options.casscf or self.file_options.fomo),
@@ -281,30 +279,26 @@ class TeraChem(Lot):
 
         if node_id != lot.node_id and copy_wavefunction:
             if "casscf" in lot.file_options.ActiveOptions:
-                old_path = 'scratch/{:03}/{}/c0.casscf'.format(
-                    lot.ID, lot.node_id)
-                new_path = 'scratch/{:03}/{}/c0.casscf'.format(lot.ID, node_id)
+                old_path = f'scratch/{lot.ID:03}/{lot.node_id}/c0.casscf'
+                new_path = f'scratch/{lot.ID:03}/{node_id}/c0.casscf'
                 copy_file(old_path, new_path)
             else:
                 if lot.unrestricted:
-                    old_path = 'scratch/{:03}/{}/ca0'.format(
-                        lot.ID, lot.node_id)
-                    new_path = 'scratch/{:03}/{}/'.format(lot.ID, node_id)
+                    old_path = f'scratch/{lot.ID:03}/{lot.node_id}/ca0'
+                    new_path = f'scratch/{lot.ID:03}/{node_id}/'
                     if os.path.isfile(old_path):
                         copy_file(old_path, new_path)
                     else:
                         print(" no file to copy")
-                    old_path = 'scratch/{:03}/{}/cb0'.format(
-                        lot.ID, lot.node_id)
-                    new_path = 'scratch/{:03}/{}/'.format(lot.ID, node_id)
+                    old_path = f'scratch/{lot.ID:03}/{lot.node_id}/cb0'
+                    new_path = f'scratch/{lot.ID:03}/{node_id}/'
                     if os.path.isfile(old_path):
                         copy_file(old_path, new_path)
                     else:
                         print(" no file to copy")
                 else:
-                    old_path = 'scratch/{:03}/{}/c0'.format(
-                        lot.ID, lot.node_id)
-                    new_path = 'scratch/{:03}/{}/'.format(lot.ID, node_id)
+                    old_path = f'scratch/{lot.ID:03}/{lot.node_id}/c0'
+                    new_path = f'scratch/{lot.ID:03}/{node_id}/'
                     if os.path.isfile(old_path):
                         copy_file(old_path, new_path)
                     else:
@@ -322,61 +316,59 @@ class TeraChem(Lot):
 
         # Write the file
         for key, value in self.file_options.ActiveOptions.items():
-            inpfile.write('{0:<25}{1:<25}\n'.format(key, value))
-        inpfile.write('spinmult             {}\n'.format(mult))
+            inpfile.write(f'{key:<25}{value:<25}\n')
+        inpfile.write(f'spinmult             {mult}\n')
 
         if "casscf" in self.file_options.ActiveOptions or "casci" in self.file_options.ActiveOptions:
             if runtype == "gradient":
-                inpfile.write('castarget            {}\n'.format(ad_idx))
-                inpfile.write('castargetmult        {}\n'.format(mult))
+                inpfile.write(f'castarget            {ad_idx}\n')
+                inpfile.write(f'castargetmult        {mult}\n')
             elif runtype == "coupling":
-                inpfile.write('nacstate1 {}\n'.format(self.coupling_states[0]))
-                inpfile.write('nacstate2 {}\n'.format(self.coupling_states[1]))
-                inpfile.write('castargetmult        {}\n'.format(mult))
+                inpfile.write(f'nacstate1 {self.coupling_states[0]}\n')
+                inpfile.write(f'nacstate2 {self.coupling_states[1]}\n')
+                inpfile.write(f'castargetmult        {mult}\n')
         elif "cis" in self.file_options.ActiveOptions or "hhtda" in self.file_options.ActiveOptions:
             if runtype == "gradient":
-                inpfile.write('cistarget            {}\n'.format(ad_idx))
+                inpfile.write(f'cistarget            {ad_idx}\n')
             elif runtype == "coupling":
-                inpfile.write('nacstate1 {}\n'.format(self.coupling_states[0]))
-                inpfile.write('nacstate2 {}\n'.format(self.coupling_states[1]))
+                inpfile.write(f'nacstate1 {self.coupling_states[0]}\n')
+                inpfile.write(f'nacstate2 {self.coupling_states[1]}\n')
 
         # Runtype
-        inpfile.write("run         {}\n\n".format(runtype))
+        inpfile.write(f"run         {runtype}\n\n")
         inpfile.close()
 
         # Write the temporary geometry files
         if "prmtop" in self.file_options.ActiveOptions:
             manage_xyz.write_amber_xyz(
-                'scratch/{:03}/{}/tmp.inpcrd'.format(self.ID, self.node_id), geom)
+                f'scratch/{self.ID:03}/{self.node_id}/tmp.inpcrd', geom)
         else:
             manage_xyz.write_xyz(
-                'scratch/{:03}/{}/tmp.xyz'.format(self.ID, self.node_id), geom, scale=1.0)
+                f'scratch/{self.ID:03}/{self.node_id}/tmp.xyz', geom, scale=1.0)
 
         return
 
     def run(self, geom, mult, ad_idx, runtype='gradient'):
         ''' compute an individual gradient or NACME '''
 
-        inpfilename = 'scratch/{:03}/{}/{}'.format(
-            self.ID, self.node_id, self.lot_inp_file)
-        outfilename = 'scratch/{:03}/{}/output.dat'.format(
-            self.ID, self.node_id)
+        inpfilename = f'scratch/{self.ID:03}/{self.node_id}/{self.lot_inp_file}'
+        outfilename = f'scratch/{self.ID:03}/{self.node_id}/output.dat'
 
         # Write input file
         self.write_input(inpfilename, geom, mult, ad_idx, runtype)
 
         ### RUN THE CALCULATION ###
-        cmd = "terachem {} > {}".format(inpfilename, outfilename)
+        cmd = f"terachem {inpfilename} > {outfilename}"
         os.system(cmd)
 
         # Turn on C0 for non-CASSCF calculations after running
         if 'guess' not in self.file_options.ActiveOptions and 'casscf' not in self.file_options.ActiveOptions or self.file_options.guess in ["sad", "generate"]:
             if self.unrestricted:
                 self.file_options.force_active(
-                    'guess', 'scratch/{:03}/{}/ca0 scratch/{:03}/{}/cb0'.format(self.ID, self.node_id, self.ID, self.node_id))
+                    'guess', f'scratch/{self.ID:03}/{self.node_id}/ca0 scratch/{self.ID:03}/{self.node_id}/cb0')
             else:
                 self.file_options.force_active(
-                    'guess', 'scratch/{:03}/{}/c0'.format(self.ID, self.node_id))
+                    'guess', f'scratch/{self.ID:03}/{self.node_id}/c0')
 
         # if QM/MM get link atoms
         if "prmtop" in self.file_options.ActiveOptions and self.link_atoms is None:
@@ -399,40 +391,33 @@ class TeraChem(Lot):
         ## POST PROCESSING  ##
         # copy the wavefunction file
         if "casscf" in self.file_options.ActiveOptions:
-            cp_cmd = 'cp scratch/{:03}/{}/scr/c0.casscf scratch/{:03}/{}/'.format(
-                self.ID, self.node_id, self.ID, self.node_id)
+            cp_cmd = f'cp scratch/{self.ID:03}/{self.node_id}/scr/c0.casscf scratch/{self.ID:03}/{self.node_id}/'
             os.system(cp_cmd)
         else:
             if self.unrestricted:
-                cp_cmd = 'cp scratch/{:03}/{}/scr/ca0 scratch/{:03}/{}/'.format(
-                    self.ID, self.node_id, self.ID, self.node_id)
+                cp_cmd = f'cp scratch/{self.ID:03}/{self.node_id}/scr/ca0 scratch/{self.ID:03}/{self.node_id}/'
                 os.system(cp_cmd)
-                cp_cmd = 'cp scratch/{:03}/{}/scr/cb0 scratch/{:03}/{}/'.format(
-                    self.ID, self.node_id, self.ID, self.node_id)
+                cp_cmd = f'cp scratch/{self.ID:03}/{self.node_id}/scr/cb0 scratch/{self.ID:03}/{self.node_id}/'
                 os.system(cp_cmd)
             else:
-                cp_cmd = 'cp scratch/{:03}/{}/scr/c0 scratch/{:03}/{}/'.format(
-                    self.ID, self.node_id, self.ID, self.node_id)
+                cp_cmd = f'cp scratch/{self.ID:03}/{self.node_id}/scr/c0 scratch/{self.ID:03}/{self.node_id}/'
                 os.system(cp_cmd)
 
         if "casscf" in self.file_options.ActiveOptions:
-            cp_cmd = 'cp scratch/{:03}/{}/scr/casscf.molden scratch/{:03}/{}/'.format(
-                self.ID, self.node_id, self.ID, self.node_id)
+            cp_cmd = f'cp scratch/{self.ID:03}/{self.node_id}/scr/casscf.molden scratch/{self.ID:03}/{self.node_id}/'
             os.system(cp_cmd)
 
         # Get the gradient and coupling
         if "prmtop" not in self.file_options.ActiveOptions:
             if runtype == 'gradient':
-                cp_grad = 'cp scratch/{:03}/{}/scr/grad.xyz scratch/{:03}/{}/grad_{}_{}.xyz'.format(
-                    self.ID, self.node_id, self.ID, self.node_id, mult, ad_idx)
+                cp_grad = f'cp scratch/{self.ID:03}/{self.node_id}/scr/grad.xyz scratch/{self.ID:03}/{self.node_id}/grad_{mult}_{ad_idx}.xyz'
                 os.system(cp_grad)
             elif runtype == "coupling":
-                cp_coup = 'cp scratch/{:03}/{}/scr/grad.xyz scratch/{:03}/{}/coup_{}_{}.xyz'.format(
-                    self.ID, self.node_id, self.ID, self.node_id, self.coupling_states[0], self.coupling_states[1])
+                cp_coup = f'cp scratch/{self.ID:03}/{self.node_id}/scr/grad.xyz scratch/{self.ID:03}/{self.node_id}/coup_{self.coupling_states[0]}_{self.coupling_states[1]}.xyz'
                 os.system(cp_coup)
 
         # clean up
-        rm_cmd = 'rm -rf scratch/{:03}/{}/scr'.format(self.ID, self.node_id)
+        rm_cmd = f'rm -rf scratch/{self.ID:03}/{self.node_id}/scr'
         os.system(rm_cmd)
 
         return
@@ -445,8 +430,7 @@ class TeraChem(Lot):
         self.Energies = {}
         self.Couplings = {}
 
-        tempfileout = 'scratch/{:03}/{}/output.dat'.format(
-            self.ID, self.node_id)
+        tempfileout = f'scratch/{self.ID:03}/{self.node_id}/output.dat'
         if not self.gradient_states and not self.coupling_states or runtype == "energy":
             print(" only calculating energies")
             # TODO what about multiple multiplicities?
@@ -478,8 +462,7 @@ class TeraChem(Lot):
     def parse_E(self):
         # parse the output for Energies  --> This can be done on any of the files since they should be the same
 
-        tempfileout = 'scratch/{:03}/{}/output.dat'.format(
-            self.ID, self.node_id)
+        tempfileout = f'scratch/{self.ID:03}/{self.node_id}/output.dat'
 
         # TODO Parse other multiplicities is broken here
         if "casscf" in self.file_options.ActiveOptions or "casci" in self.file_options.ActiveOptions:
@@ -534,8 +517,7 @@ class TeraChem(Lot):
                    ):
 
         if tempfileout is None:
-            tempfileout = 'scratch/{:03}/{}/output.dat'.format(
-                self.ID, self.node_id)
+            tempfileout = f'scratch/{self.ID:03}/{self.node_id}/output.dat'
         # GET GRADIENT FOR QMMMM -- REGULAR GRADIENT IS PARSED THROUGH grad.xyz
         # QMMM is done differently :(
         if "prmtop" in self.file_options.ActiveOptions:
@@ -573,15 +555,13 @@ class TeraChem(Lot):
             grad[self.mm_indices] = tmpgrad[len(self.qmindices):]
         else:
             # getting gradient of non-prmtop job
-            gradfile = 'scratch/{:03}/{}/grad_{}_{}.xyz'.format(
-                self.ID, self.node_id, state[0], state[1])
+            gradfile = f'scratch/{self.ID:03}/{self.node_id}/grad_{state[0]}_{state[1]}.xyz'
             grad = manage_xyz.read_xyz(gradfile, scale=1.0)
             grad = manage_xyz.xyz_to_np(grad)
         self._Gradients[state] = self.Gradient(grad, "Hartree/Bohr")
 
     def parse_coup(self):
-        tempfileout = 'scratch/{:03}/{}/output.dat'.format(
-            self.ID, self.node_id)
+        tempfileout = f'scratch/{self.ID:03}/{self.node_id}/output.dat'
         if "prmtop" in self.file_options.ActiveOptions:
             tmpcoup = []
             with open(tempfileout, "r") as f:
@@ -615,8 +595,7 @@ class TeraChem(Lot):
             coup[self.qmindices] = tmpcoup[:len(self.qmindices)]
             coup[self.mm_indices] = tmpcoup[len(self.qmindices):]
         else:
-            coupfile = 'scratch/{:03}/{}/coup_{}_{}.xyz'.format(
-                self.ID, self.node_id, self.coupling_states[0], self.coupling_states[1])
+            coupfile = f'scratch/{self.ID:03}/{self.node_id}/coup_{self.coupling_states[0]}_{self.coupling_states[1]}.xyz'
             coup = manage_xyz.read_xyz(coupfile, scale=1.0)
             coup = manage_xyz.xyz_to_np(coup)
         self.Couplings[self.coupling_states] = self.Coupling(

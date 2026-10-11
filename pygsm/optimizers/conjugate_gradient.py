@@ -58,7 +58,7 @@ class conjugate_gradient(base_optimizer):
             return geoms, energies
 
         for ostep in range(opt_steps):
-            print(" On opt step {} ".format(ostep+1))
+            print(f" On opt step {ostep+1} ")
 
             if self.initial_step is True:
                 # d: store the negative gradient of the object function on point x.
@@ -73,7 +73,7 @@ class conjugate_gradient(base_optimizer):
                 deltanew = np.dot(dnew.T, dnew)
                 deltaold = np.dot(-gp_prim.T, -gp_prim)
                 beta = deltanew/deltaold
-                print(" beta = %1.2f" % beta)
+                print(f" beta = {beta:1.2f}")
                 d_prim = dnew + beta*d_prim
 
             # form in DLC basis (does nothing if cartesian)
@@ -81,11 +81,11 @@ class conjugate_gradient(base_optimizer):
 
             # normalize the direction
             actual_step = np.linalg.norm(d)
-            print(" actual_step= %1.2f" % actual_step)
+            print(f" actual_step= {actual_step:1.2f}")
             d = d/actual_step  # normalize
             if actual_step > self.options['DMAX']:
                 step = self.options['DMAX']
-                print(" reducing step, new step = %1.2f" % step)
+                print(f" reducing step, new step = {step:1.2f}")
             else:
                 step = actual_step
 
@@ -129,7 +129,7 @@ class conjugate_gradient(base_optimizer):
 
             # dE
             dEstep = fx - fxp
-            print(" dEstep=%5.4f" % dEstep)
+            print(f" dEstep={dEstep:5.4f}")
 
             # update molecule xyz
             # xyz = molecule.update_xyz(x-xp)
@@ -137,16 +137,16 @@ class conjugate_gradient(base_optimizer):
             energies.append(molecule.energy-refE)
 
             if self.options['print_level'] > 0:
-                print(" Opt step: %d E: %5.4f gradrms: %1.5f ss: %1.3f DMAX: %1.3f" % (ostep+1, fx-refE, molecule.gradrms, step, self.options['DMAX']))
-            self.buf.write(u' Opt step: %d E: %5.4f gradrms: %1.5f ss: %1.3f DMAX: %1.3f\n' % (ostep+1, fx-refE, molecule.gradrms, step, self.options['DMAX']))
+                print(" Opt step: {} E: {:5.4f} gradrms: {:1.5f} ss: {:1.3f} DMAX: {:1.3f}".format(ostep+1, fx-refE, molecule.gradrms, step, self.options['DMAX']))
+            self.buf.write(u' Opt step: {} E: {:5.4f} gradrms: {:1.5f} ss: {:1.3f} DMAX: {:1.3f}\n'.format(ostep+1, fx-refE, molecule.gradrms, step, self.options['DMAX']))
 
             # gmax = np.max(g)/units.ANGSTROM_TO_AU/KCAL_MOL_PER_AU
             # print "current gradrms= %r au" % gradrms
             gmax = np.max(g)/units.ANGSTROM_TO_AU
             self.disp = np.max(x - xp)/units.ANGSTROM_TO_AU
             self.Ediff = fx - fxp / units.KCAL_MOL_PER_AU
-            print(" maximum displacement component %1.2f (au)" % self.disp)
-            print(" maximum gradient component %1.2f (au)" % gmax)
+            print(f" maximum displacement component {self.disp:1.2f} (au)")
+            print(f" maximum gradient component {gmax:1.2f} (au)")
 
             # check for convergence TODO
             molecule.gradrms = np.sqrt(np.dot(g[nconstraints:].T, g[nconstraints:])/n)
@@ -171,7 +171,7 @@ class conjugate_gradient(base_optimizer):
                 fx = molecule.energy
                 dE = molecule.difference_energy
                 if dE != 1000.:
-                    print(" difference energy is %5.4f" % dE)
+                    print(f" difference energy is {dE:5.4f}")
                 g = molecule.gradient.copy()
                 molecule.form_Hessian_in_basis()
             print()

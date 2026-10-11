@@ -36,7 +36,7 @@ class DelocalizedInternalCoordinates(InternalCoordinates):
             t1 = time()
             self.Prims = PrimitiveInternalCoordinates(options.copy())
             dt = time() - t1
-            print(" Time to make prims %.3f" % dt)
+            print(f" Time to make prims {dt:.3f}")
             self.options['primitives'] = self.Prims
         else:
             print(" setting primitives from options!")
@@ -45,9 +45,9 @@ class DelocalizedInternalCoordinates(InternalCoordinates):
             t0 = time()
             self.Prims = PrimitiveInternalCoordinates.copy(self.options['primitives'])
 
-            print(" num of primitives {}".format(len(self.Prims.Internals)))
+            print(f" num of primitives {len(self.Prims.Internals)}")
             dt = time() - t0
-            print(" Time to copy prims %.3f" % dt)
+            print(f" Time to copy prims {dt:.3f}")
             self.Prims.clearCache()
         # print "in constructor",len(self.Prims.Internals)
 
@@ -325,9 +325,9 @@ class DelocalizedInternalCoordinates(InternalCoordinates):
         # print(self.Vecs.shape)
 
         time_eig = nifty.click()
-        print(" Timings: Build G: %.3f Eig: %.3f" % (time_G, time_eig))
+        print(f" Timings: Build G: {time_G:.3f} Eig: {time_eig:.3f}")
 
-        self.Internals = ["DLC %i" % (i+1) for i in range(self.Vecs.shape[1])]
+        self.Internals = ["DLC %s" % (i+1) for i in range(self.Vecs.shape[1])]
 
         # Vecs has number of rows equal to the number of primitives, and
         # number of columns equal to the number of delocalized internal coordinates.
@@ -390,7 +390,7 @@ class DelocalizedInternalCoordinates(InternalCoordinates):
         nifty.click()
         G = self.Prims.GMatrix(xyz)  # in primitive coords
         time_G = nifty.click()
-        print(" Timings: Build G: %.3f " % (time_G))
+        print(f" Timings: Build G: {time_G:.3f} ")
 
         tmpvecs = []
         for A in G.matlist:
@@ -408,7 +408,7 @@ class DelocalizedInternalCoordinates(InternalCoordinates):
         time_eig = nifty.click()
         # print(" Timings: Build G: %.3f Eig: %.3f" % (time_G, time_eig))
 
-        self.Internals = ["DLC %i" % (i+1) for i in range(len(LargeIdx))]
+        self.Internals = ["DLC %s" % (i+1) for i in range(len(LargeIdx))]
 
         # Vecs has number of rows equal to the number of primitives, and
         # number of columns equal to the number of delocalized internal coordinates.
@@ -529,14 +529,14 @@ class DelocalizedInternalCoordinates(InternalCoordinates):
                 elif len(U) == self.Vecs.shape[1]:
                     break
                 elif len(U) < self.Vecs.shape[1]:
-                    raise RuntimeError('Gram-Schmidt orthogonalization has failed (expect %i length %i)' % (self.Vecs.shape[1], len(U)))
+                    raise RuntimeError(f'Gram-Schmidt orthogonalization has failed (expect {self.Vecs.shape[1]} length {len(U)})')
             # print "Gram-Schmidt completed with thre=%.0e" % thre
             self.Vecs = np.array(U).T
             # Constrained DLCs are on the left of self.Vecs.
             self.cDLC = [i for i in range(len(self.Prims.cPrims))]
         # Now self.Internals is no longer a list of InternalCoordinate objects but only a list of strings.
         # We do not create objects for individual DLCs but
-        self.Internals = ["Constraint-DLC" if i < ncon else "DLC" + " %i" % (i+1) for i in range(self.Vecs.shape[1])]
+        self.Internals = ["Constraint-DLC" if i < ncon else "DLC" + " %s" % (i+1) for i in range(self.Vecs.shape[1])]
 
         def build_dlc_1(self, xyz):
             """
@@ -613,7 +613,7 @@ class DelocalizedInternalCoordinates(InternalCoordinates):
             Expect = np.sum(np.linalg.eigh(G)[0] > 1e-6)
 
             if (ncon + len(LargeIdx)) < Expect:
-                raise RuntimeError("Expected at least %i delocalized coordinates, but got only %i" % (Expect, ncon + len(LargeIdx)))
+                raise RuntimeError(f"Expected at least {Expect} delocalized coordinates, but got only {ncon + len(LargeIdx)}")
             # print("%i atoms (expect %i coordinates); %i/%i singular values are > 1e-6" % (self.na, Expect, LargeVals, len(L)))
 
             # Create "generalized" DLCs where the first six columns are the constrained primitive ICs
@@ -642,7 +642,7 @@ class DelocalizedInternalCoordinates(InternalCoordinates):
                     ui = U[:, ic]
                     Unorms[ic] = np.sqrt(ov(ui, ui))
                     if Unorms[ic]/Vnorms[ic] < 0.1:
-                        print("Constraint %i is almost redundant; after projection norm is %.3f of original\n" % (ic, Unorms[ic]/Vnorms[ic]))
+                        print(f"Constraint {ic} is almost redundant; after projection norm is {Unorms[ic]/Vnorms[ic]:.3f} of original\n")
                     # Project out newest U column from all remaining V columns.
                     for jc in range(ic+1, nv):
                         vj = V[:, jc]
@@ -665,7 +665,7 @@ class DelocalizedInternalCoordinates(InternalCoordinates):
                 # Constrained DLCs are on the left of self.Vecs.
                 self.cDLC = [i for i in range(len(self.Prims.cPrims))]
 
-            self.Internals = ["Constraint" if i < ncon else "DLC" + " %i" % (i+1) for i in range(self.Vecs.shape[1])]
+            self.Internals = ["Constraint" if i < ncon else "DLC" + " %s" % (i+1) for i in range(self.Vecs.shape[1])]
             # # LPW: Coefficients of DLC's are in each column and DLCs corresponding to constraints should basically be like (0 1 0 0 0 ..)
             # pmat2d(self.Vecs, format='f', precision=2)
             # B = self.Prims.wilsonB(xyz)

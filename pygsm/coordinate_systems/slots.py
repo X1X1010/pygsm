@@ -59,7 +59,7 @@ class CartesianX(PrimitiveCoordinate):
         self.isPeriodic = False
 
     def __repr__(self):
-        return "Cartesian-X %i" % (self.a+1)
+        return "Cartesian-X %s" % (self.a+1)
 
     @property
     def atoms(self):
@@ -70,7 +70,7 @@ class CartesianX(PrimitiveCoordinate):
             return False
         eq = self.a == other.a
         if eq and self.w != other.w:
-            nifty.logger.warning("Warning: CartesianX same atoms, different weights (%.4f %.4f)" % (self.w, other.w))
+            nifty.logger.warning(f"Warning: CartesianX same atoms, different weights ({self.w:.4f} {other.w:.4f})")
         return eq
 
     def __ne__(self, other):
@@ -109,7 +109,7 @@ class CartesianY(PrimitiveCoordinate):
 
     def __repr__(self):
         # return "Cartesian-Y %i : Weight %.3f" % (self.a+1, self.w)
-        return "Cartesian-Y %i" % (self.a+1)
+        return "Cartesian-Y %s" % (self.a+1)
 
     @property
     def atoms(self):
@@ -120,7 +120,7 @@ class CartesianY(PrimitiveCoordinate):
             return False
         eq = self.a == other.a
         if eq and self.w != other.w:
-            nifty.logger.warning("Warning: CartesianY same atoms, different weights (%.4f %.4f)" % (self.w, other.w))
+            nifty.logger.warning(f"Warning: CartesianY same atoms, different weights ({self.w:.4f} {other.w:.4f})")
         return eq
 
     def __ne__(self, other):
@@ -163,7 +163,7 @@ class CartesianZ(PrimitiveCoordinate):
 
     def __repr__(self):
         # return "Cartesian-Z %i : Weight %.3f" % (self.a+1, self.w)
-        return "Cartesian-Z %i" % (self.a+1)
+        return "Cartesian-Z %s" % (self.a+1)
 
     @property
     def atoms(self):
@@ -174,7 +174,7 @@ class CartesianZ(PrimitiveCoordinate):
             return False
         eq = self.a == other.a
         if eq and self.w != other.w:
-            nifty.logger.warning("Warning: CartesianZ same atoms, different weights (%.4f %.4f)" % (self.w, other.w))
+            nifty.logger.warning(f"Warning: CartesianZ same atoms, different weights ({self.w:.4f} {other.w:.4f})")
         return eq
 
     def __ne__(self, other):
@@ -218,7 +218,7 @@ class TranslationX(PrimitiveCoordinate):
 
     def __repr__(self):
         # return "Translation-X %s : Weights %s" % (' '.join([str(i+1) for i in self.a]), ' '.join(['%.2e' % i for i in self.w]))
-        return "Translation-X %s" % (nifty.commadash(self.a))
+        return f"Translation-X {nifty.commadash(self.a)}"
 
     @property
     def atoms(self):
@@ -279,7 +279,7 @@ class TranslationY(PrimitiveCoordinate):
 
     def __repr__(self):
         # return "Translation-Y %s : Weights %s" % (' '.join([str(i+1) for i in self.a]), ' '.join(['%.2e' % i for i in self.w]))
-        return "Translation-Y %s" % (nifty.commadash(self.a))
+        return f"Translation-Y {nifty.commadash(self.a)}"
 
     @property
     def atoms(self):
@@ -340,7 +340,7 @@ class TranslationZ(PrimitiveCoordinate):
 
     def __repr__(self):
         # return "Translation-Z %s : Weights %s" % (' '.join([str(i+1) for i in self.a]), ' '.join(['%.2e' % i for i in self.w]))
-        return "Translation-Z %s" % (nifty.commadash(self.a))
+        return f"Translation-Z {nifty.commadash(self.a)}"
 
     @property
     def atoms(self):
@@ -438,7 +438,7 @@ class Rotator(object):
         return eq
 
     def __repr__(self):
-        return "Rotator %s" % nifty.commadash(self.a)
+        return f"Rotator {nifty.commadash(self.a)}"
 
     def __ne__(self, other):
         return not self.__eq__(other)
@@ -806,7 +806,7 @@ class RotationA(PrimitiveCoordinate):
 
     def __repr__(self):
         # return "Rotation-A %s : Weight %.3f" % (' '.join([str(i+1) for i in self.a]), self.w)
-        return "Rotation-A %s" % (nifty.commadash(self.a))
+        return f"Rotation-A {nifty.commadash(self.a)}"
 
     @property
     def atoms(self):
@@ -857,7 +857,7 @@ class RotationB(PrimitiveCoordinate):
 
     def __repr__(self):
         # return "Rotation-B %s : Weight %.3f" % (' '.join([str(i+1) for i in self.a]), self.w)
-        return "Rotation-B %s" % (nifty.commadash(self.a))
+        return f"Rotation-B {nifty.commadash(self.a)}"
 
     @property
     def atoms(self):
@@ -908,7 +908,7 @@ class RotationC(PrimitiveCoordinate):
 
     def __repr__(self):
         # return "Rotation-C %s : Weight %.3f" % (' '.join([str(i+1) for i in self.a]), self.w)
-        return "Rotation-C %s" % (nifty.commadash(self.a))
+        return f"Rotation-C {nifty.commadash(self.a)}"
 
     @property
     def atoms(self):
@@ -956,7 +956,7 @@ class Distance(PrimitiveCoordinate):
         self.isPeriodic = False
 
     def __repr__(self):
-        return "Distance %i-%i" % (self.a+1, self.b+1)
+        return f"Distance {self.a+1}-{self.b+1}"
 
     @property
     def atoms(self):
@@ -1022,7 +1022,7 @@ class Angle(PrimitiveCoordinate):
             raise RuntimeError('a, b, and c must be different')
 
     def __repr__(self):
-        return "Angle %i-%i-%i" % (self.a+1, self.b+1, self.c+1)
+        return f"Angle {self.a+1}-{self.b+1}-{self.c+1}"
 
     @property
     def atoms(self):
@@ -1201,7 +1201,7 @@ class LinearAngle(PrimitiveCoordinate):
         self.stored_dot2 = 0.0
 
     def __repr__(self):
-        return "LinearAngle%s %i-%i-%i" % (["X", "Y"][self.axis], self.a+1, self.b+1, self.c+1)
+        return "LinearAngle{} {}-{}-{}".format(["X", "Y"][self.axis], self.a+1, self.b+1, self.c+1)
 
     def __eq__(self, other):
         if not hasattr(other, 'axis'):
@@ -1350,9 +1350,9 @@ class MultiAngle(PrimitiveCoordinate):
             raise RuntimeError('a, b, and c must be different')
 
     def __repr__(self):
-        stra = ("("+','.join(["%i" % (i+1) for i in self.a])+")") if len(self.a) > 1 else "%i" % (self.a[0]+1)
-        strc = ("("+','.join(["%i" % (i+1) for i in self.c])+")") if len(self.c) > 1 else "%i" % (self.c[0]+1)
-        return "%sAngle %s-%i-%s" % ("Multi" if (len(self.a) > 1 or len(self.c) > 1) else "", stra, self.b+1, strc)
+        stra = ("("+','.join(["%s" % (i+1) for i in self.a])+")") if len(self.a) > 1 else "%s" % (self.a[0]+1)
+        strc = ("("+','.join(["%s" % (i+1) for i in self.c])+")") if len(self.c) > 1 else "%s" % (self.c[0]+1)
+        return "{}Angle {}-{}-{}".format("Multi" if (len(self.a) > 1 or len(self.c) > 1) else "", stra, self.b+1, strc)
 
     def __eq__(self, other):
         if type(self) is not type(other):
@@ -1447,7 +1447,7 @@ class MultiAngle(PrimitiveCoordinate):
         return derivatives
 
     def second_derivative(self, xyz, start_idx):
-        raise NotImplementedError("Second derivatives have not been implemented for IC type %s" % self.__name__)
+        raise NotImplementedError(f"Second derivatives have not been implemented for IC type {self.__name__}")
 
 
 class Dihedral(PrimitiveCoordinate):
@@ -1464,7 +1464,7 @@ class Dihedral(PrimitiveCoordinate):
             raise RuntimeError('a, b, c and d must be different')
 
     def __repr__(self):
-        return "Dihedral %i-%i-%i-%i" % (self.a+1, self.b+1, self.c+1, self.d+1)
+        return f"Dihedral {self.a+1}-{self.b+1}-{self.c+1}-{self.d+1}"
 
     @property
     def atoms(self):
@@ -1636,9 +1636,9 @@ class MultiDihedral(PrimitiveCoordinate):
             raise RuntimeError('a, b, c and d must be different')
 
     def __repr__(self):
-        stra = ("("+','.join(["%i" % (i+1) for i in self.a])+")") if len(self.a) > 1 else "%i" % (self.a[0]+1)
-        strd = ("("+','.join(["%i" % (i+1) for i in self.d])+")") if len(self.d) > 1 else "%i" % (self.d[0]+1)
-        return "%sDihedral %s-%i-%i-%s" % ("Multi" if (len(self.a) > 1 or len(self.d) > 1) else "", stra, self.b+1, self.c+1, strd)
+        stra = ("("+','.join(["%s" % (i+1) for i in self.a])+")") if len(self.a) > 1 else "%s" % (self.a[0]+1)
+        strd = ("("+','.join(["%s" % (i+1) for i in self.d])+")") if len(self.d) > 1 else "%s" % (self.d[0]+1)
+        return "{}Dihedral {}-{}-{}-{}".format("Multi" if (len(self.a) > 1 or len(self.d) > 1) else "", stra, self.b+1, self.c+1, strd)
 
     def __eq__(self, other):
         if type(self) is not type(other):
@@ -1722,7 +1722,7 @@ class MultiDihedral(PrimitiveCoordinate):
         return derivatives
 
     def second_derivative(self, xyz, start_idx=0):
-        raise NotImplementedError("Second derivatives have not been implemented for IC type %s" % self.__name__)
+        raise NotImplementedError(f"Second derivatives have not been implemented for IC type {self.__name__}")
 
 
 class OutOfPlane(PrimitiveCoordinate):
@@ -1739,7 +1739,7 @@ class OutOfPlane(PrimitiveCoordinate):
             raise RuntimeError('a, b, c and d must be different')
 
     def __repr__(self):
-        return "Out-of-Plane %i-%i-%i-%i" % (self.a+1, self.b+1, self.c+1, self.d+1)
+        return f"Out-of-Plane {self.a+1}-{self.b+1}-{self.c+1}-{self.d+1}"
 
     @property
     def atoms(self):
@@ -1848,7 +1848,7 @@ class OutOfPlane(PrimitiveCoordinate):
 
 
 def logArray(mat, precision=3, fmt="f"):
-    fmt = "%% .%i%s" % (precision, fmt)
+    fmt = f"% .{precision}{fmt}"
     if len(mat.shape) == 1:
         for i in range(mat.shape[0]):
             nifty.logger.info(fmt % mat[i]),

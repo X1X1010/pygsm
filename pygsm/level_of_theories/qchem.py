@@ -16,26 +16,26 @@ class QChem(Lot):
 
         qcscratch = os.environ['QCSCRATCH']
         for state in self.states:
-            tempfolder = qcscratch + '/string_{:03d}/{}.{}/'.format(self.ID, self.node_id, state[0])
-            print(" making temp folder {}".format(tempfolder))
-            os.system('mkdir -p {}'.format(tempfolder))
+            tempfolder = qcscratch + f'/string_{self.ID:03d}/{self.node_id}.{state[0]}/'
+            print(f" making temp folder {tempfolder}")
+            os.system(f'mkdir -p {tempfolder}')
 
         copy_input_file = os.getcwd() + "/QChem_input.txt"
         print(copy_input_file)
         self.write_preamble(self.geom, self.states[0][0], copy_input_file)
-        print(" making folder scratch/{}".format(self.node_id))
-        os.system('mkdir -p scratch/{}'.format(self.node_id))
+        print(f" making folder scratch/{self.node_id}")
+        os.system(f'mkdir -p scratch/{self.node_id}')
 
     def write_preamble(self, geom, multiplicity, tempfilename, jobtype='FORCE'):
 
         tempfile = open(tempfilename, 'w')
         if not self.lot_inp_file:
             tempfile.write(' $rem\n')
-            tempfile.write(' JOBTYPE {}\n'.format(jobtype))
-            tempfile.write(' EXCHANGE {}\n'.format(self.functional))
+            tempfile.write(f' JOBTYPE {jobtype}\n')
+            tempfile.write(f' EXCHANGE {self.functional}\n')
             tempfile.write(' SCF_ALGORITHM rca_diis\n')
             tempfile.write(' SCF_MAX_CYCLES 300\n')
-            tempfile.write(' BASIS {}\n'.format(self.basis))
+            tempfile.write(f' BASIS {self.basis}\n')
             # tempfile.write(' ECP LANL2DZ \n')
             tempfile.write(' WAVEFUNCTION_ANALYSIS FALSE\n')
             tempfile.write(' GEOM_OPT_MAX_CYCLES 300\n')
@@ -52,7 +52,7 @@ class QChem(Lot):
             for line in lot_inp_lines:
                 tempfile.write(line)
 
-        tempfile.write('{} {}\n'.format(self.charge, multiplicity))
+        tempfile.write(f'{self.charge} {multiplicity}\n')
         if os.path.isfile("link.txt"):
             with open("link.txt") as link:
                 link_lines = link.readlines()
@@ -75,7 +75,7 @@ class QChem(Lot):
         assert ad_idx == 0, "pyGSM Q-Chem doesn't currently support ad_idx!=0"
 
         qcscratch = os.environ['QCSCRATCH']
-        tempfilename = qcscratch + '/string_{:03d}/{}.{}/tempQCinp'.format(self.ID, self.node_id, multiplicity)
+        tempfilename = qcscratch + f'/string_{self.ID:03d}/{self.node_id}.{multiplicity}/tempQCinp'
 
         if self.calc_grad and runtype != "energy":
             self.write_preamble(geom, multiplicity, tempfilename)
@@ -86,8 +86,8 @@ class QChem(Lot):
         args = ['-nt', str(self.nproc),
                 '-save',
                 tempfilename,
-                '{}.qchem.out'.format(tempfilename),
-                'string_{:03d}/{}.{}'.format(self.ID, self.node_id, multiplicity)
+                f'{tempfilename}.qchem.out',
+                f'string_{self.ID:03d}/{self.node_id}.{multiplicity}'
                 ]
         cmd.extend(args)
 
@@ -101,7 +101,7 @@ class QChem(Lot):
     def parse(self, qcscratch, multiplicity):
         # PARSE OUTPUT #
         if self.calc_grad:
-            efilepath = qcscratch + '/string_{:03d}/{}.{}/GRAD'.format(self.ID, self.node_id, multiplicity)
+            efilepath = qcscratch + f'/string_{self.ID:03d}/{self.node_id}.{multiplicity}/GRAD'
             with open(efilepath) as efile:
                 elines = efile.readlines()
 
@@ -139,9 +139,9 @@ class QChem(Lot):
         if node_id != lot.node_id:  # and copy_wavefunction: # other theories are more sensitive than qchem -- commenting out
             for state in lot.states:
                 multiplicity = state[0]
-                efilepath_old = base + '/string_{:03d}/{}.{}'.format(lot.ID, lot.node_id, multiplicity)
-                efilepath_new = base + '/string_{:03d}/{}.{}'.format(lot.ID, node_id, multiplicity)
+                efilepath_old = base + f'/string_{lot.ID:03d}/{lot.node_id}.{multiplicity}'
+                efilepath_new = base + f'/string_{lot.ID:03d}/{node_id}.{multiplicity}'
                 cmd = 'cp -r ' + efilepath_old + ' ' + efilepath_new
-                print(" copying QCSCRATCH files\n {}".format(cmd))
+                print(f" copying QCSCRATCH files\n {cmd}")
                 os.system(cmd)
         return cls(lot.options.copy().set_values(options))

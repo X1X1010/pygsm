@@ -191,7 +191,7 @@ class Molecule(object):
     @staticmethod
     def copy_from_options(MoleculeA, xyz=None, fnm=None, new_node_id=1, copy_wavefunction=True):
         """Create a copy of MoleculeA"""
-        print(" Copying from MoleculA {}".format(MoleculeA.node_id))
+        print(f" Copying from MoleculA {MoleculeA.node_id}")
         return Molecule._copy_fast(
             MoleculeA,
             xyz=xyz,

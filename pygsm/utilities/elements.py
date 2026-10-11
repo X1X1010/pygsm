@@ -405,7 +405,7 @@ class ElementData(object):
             raise TypeError("Atomic number must be an integer")
         if atomic_num >= len(cls.data) or atomic_num < 0:
             raise ValueError(
-                "Atomic number {} is out of bound".format(atomic_num))
+                f"Atomic number {atomic_num} is out of bound")
         return cls.data[atomic_num]
 
     def from_symbol(self, symbol):
@@ -427,7 +427,7 @@ class ElementData(object):
             raise TypeError("Element symbol must be a string")
         symbol = symbol.strip().capitalize()
         if symbol not in self.symbol_lookup:
-            raise ValueError("Element symbol {} is not valid".format(symbol))
+            raise ValueError(f"Element symbol {symbol} is not valid")
         return self.symbol_lookup[symbol]
 
     @classmethod

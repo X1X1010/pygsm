@@ -58,7 +58,7 @@ def build_correlation(x, y):
 
     """
     if not (x.ndim == 2 and y.ndim == 2 and x.shape[1] == 3 and y.shape[1] == 3 and x.shape[0] == y.shape[0]):
-        raise ValueError("Input dimensions not (any_same_value, 3): x ({}), y ({})".format(x.shape, y.shape))
+        raise ValueError(f"Input dimensions not (any_same_value, 3): x ({x.shape}), y ({y.shape})")
     xmat = x.T
     ymat = y.T
     return np.dot(xmat, ymat.T)
@@ -518,7 +518,7 @@ def get_q_der(x, y, second=False, fdcheck=False, use_loops=False):
                 x[u, w] += h
                 FDiffQ[u, w] = (QPlus-QMinus)/(2*h)
                 maxerr = np.max(np.abs(dq[u, w]-FDiffQ[u, w]))
-                print("atom %3i %s : maxerr = %.3e %s\n" % (u, 'xyz'[w], maxerr, 'X' if maxerr > 1e-6 else ''))
+                print(f"atom {u:>3} {'xyz'[w]} : maxerr = {maxerr:.3e} {'X' if maxerr > 1e-6 else ''}\n")
         dq = FDiffQ
         if second:
             h = 1.0e-3
@@ -551,7 +551,7 @@ def get_q_der(x, y, second=False, fdcheck=False, use_loops=False):
                                 FDiffQ2[u, w, a, b] /= (4*h**2)
                             maxerr = np.max(np.abs(dq2[u, w, a, b]-FDiffQ2[u, w, a, b]))
                             if maxerr > 1e-8:
-                                print("atom %3i %s, %3i %s : maxerr = %.3e %s\n" % (u, 'xyz'[w], a, 'xyz'[b], maxerr, 'X' if maxerr > 1e-6 else ''))
+                                print(f"atom {u:>3} {'xyz'[w]}, {a:>3} {'xyz'[b]} : maxerr = {maxerr:.3e} {'X' if maxerr > 1e-6 else ''}\n")
             dq2 = FDiffQ2
     if second:
         return dq, dq2
@@ -674,7 +674,7 @@ def get_expmap_der(x, y, second=False, fdcheck=False, use_loops=False):
             q[p] += h
             FDiffV = (V0-VMinus)/h
             maxerr = np.max(np.abs(dvdq[p]-FDiffV))
-            print("q %3i : maxerr = %.3e %s\n" % (i, maxerr, 'X' if maxerr > 1e-6 else ''))
+            print(f"q {i:>3} : maxerr = {maxerr:.3e} {'X' if maxerr > 1e-6 else ''}\n")
             # logger.info(i, dvdq[i], FDiffV, np.max(np.abs(dvdq[i]-FDiffV)))
         if second:
             h = 1e-5
@@ -706,7 +706,7 @@ def get_expmap_der(x, y, second=False, fdcheck=False, use_loops=False):
                     FDiffV2 /= h**2
                     maxerr = np.max(np.abs(dvdq2[p, r]-FDiffV2))
                     if maxerr > 1e-7:
-                        print("q %3i %3i : maxerr = %.3e %s\n" % (p, r, maxerr, 'X' if maxerr > 1e-5 else ''))
+                        print(f"q {p:>3} {r:>3} : maxerr = {maxerr:.3e} {'X' if maxerr > 1e-5 else ''}\n")
                     # print("q %3i %3i : analytic %s numerical %s maxerr = %.3e %s" % (i, j, str(dvdq2[i, j]), str(FDiffV2), maxerr, 'X' if maxerr > 1e-4 else ''))
 
     # Dimensionality: Number of atoms, number of dimensions (3), number of elements in q (4)
@@ -759,7 +759,7 @@ def get_expmap_der(x, y, second=False, fdcheck=False, use_loops=False):
                 x[u, w] += h
                 FDiffV[u, w] = (VPlus-VMinus)/(2*h)
                 maxerr = np.max(np.abs(dvdx[u, w]-FDiffV[u, w]))
-                print("atom %3i %s : maxerr = %.3e %s\n" % (u, 'xyz'[w], maxerr, 'X' if maxerr > 1e-6 else ''))
+                print(f"atom {u:>3} {'xyz'[w]} : maxerr = {maxerr:.3e} {'X' if maxerr > 1e-6 else ''}\n")
         dvdx = FDiffV
         if second:
             print("-=# Now checking second derivatives of exponential map w/r.t. Cartesians #=-\n")
@@ -790,7 +790,7 @@ def get_expmap_der(x, y, second=False, fdcheck=False, use_loops=False):
                                 FDiffV2[u, w, a, b] /= (4*h**2)
                             maxerr = np.max(np.abs(dvdx2[u, w, a, b]-FDiffV2[u, w, a, b]))
                             if maxerr > 1e-8:
-                                print("atom %3i %s, %3i %s : maxerr = %.3e %s\n" % (u, 'xyz'[w], a, 'xyz'[b], maxerr, 'X' if maxerr > 1e-6 else ''))
+                                print(f"atom {u:>3} {'xyz'[w]}, {a:>3} {'xyz'[b]} : maxerr = {maxerr:.3e} {'X' if maxerr > 1e-6 else ''}\n")
             dvdx2 = FDiffV2
 
     if second:

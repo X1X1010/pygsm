@@ -60,7 +60,7 @@ class Avg_PES(PES):
     def symmetric_orthogonalization(self, xyz):
         def get_beta(g, h):
             gdoth = np.dot(g.T, h)
-            print(" g*h = %1.4f" % gdoth)
+            print(f" g*h = {gdoth:1.4f}")
             dotg = np.dot(g.T, g)
             doth = np.dot(h.T, h)
             arg = (2*gdoth)/(dotg - doth)
@@ -81,12 +81,12 @@ class Avg_PES(PES):
         dgrad = 0.5*self.get_dgrad(xyz)
         dvec = self.get_coupling(xyz)
         sab = self.get_average_gradient(xyz)
-        print(" dE is %5.4f" % self.dE)
+        print(f" dE is {self.dE:5.4f}")
 
         # non-adiabatic coupling is derivative coupling times dE
         nac = dvec*self.dE/units.KCAL_MOL_PER_AU
         beta = get_beta(dgrad, nac)
-        print(" beta = %1.6f" % beta)
+        print(f" beta = {beta:1.6f}")
 
         # rotate nac and dgrad to be orthonormal
         save_nac = nac.copy()
@@ -116,7 +116,7 @@ class Avg_PES(PES):
         sab_y = doty/pitch
 
         # flip direction of dgrad,nac
-        print(" sab_x %1.2f sab_y %1.2f" % (sab_x, sab_y))
+        print(f" sab_x {sab_x:1.2f} sab_y {sab_y:1.2f}")
         if sab_x < 0. and sab_y > 0.:
             print(" flipping dgrad")
             dgrad = -dgrad
@@ -130,11 +130,11 @@ class Avg_PES(PES):
 
         sigma = np.sqrt(sab_x*sab_x + sab_y*sab_y)
         theta_s = np.arctan(sab_y/sab_x)
-        print(" pitch  %1.5f, asymmetry %1.5f, sigma %1.5f theta_s %1.5f sx %1.2f sy %1.2f" % (pitch, asymmetry, sigma, theta_s, sab_x, sab_y))
+        print(f" pitch  {pitch:1.5f}, asymmetry {asymmetry:1.5f}, sigma {sigma:1.5f} theta_s {theta_s:1.5f} sx {sab_x:1.2f} sy {sab_y:1.2f}")
 
         P = ((sigma**2.)/(1.-asymmetry**2.))*(1.-asymmetry*np.cos(2*theta_s))
         B = ((sigma**2) / (4*asymmetry**2))**(1./3) * (((1.+asymmetry)*(np.cos(theta_s))**2)**(1./3) + ((1-asymmetry)*(np.sin(theta_s))**2)**(1./3))
-        print(" P %2.5f B %2.5f" % (P, B))
+        print(f" P {P:2.5f} B {B:2.5f}")
 
         if P < 1.:
             print(" Your conical intersection is peaked")

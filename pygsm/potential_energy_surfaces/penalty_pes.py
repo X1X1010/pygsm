@@ -26,7 +26,7 @@ class Penalty_PES(PES):
         self.alpha = alpha
         self.dE = 1000.
         self.sigma = sigma
-        print(' PES1 multiplicity: {} PES2 multiplicity: {} sigma: {}'.format(self.PES1.multiplicity, self.PES2.multiplicity, self.sigma))
+        print(f' PES1 multiplicity: {self.PES1.multiplicity} PES2 multiplicity: {self.PES2.multiplicity} sigma: {self.sigma}')
 
     @classmethod
     def create_pes_from(cls, PES, options={}, copy_wavefunction=True):

@@ -46,7 +46,7 @@ class xTB_lot(Lot):
         if self.solvent is not None:
             calc.set_solvent(get_solvent(self.solvent))
 
-        calc.set_output('lot_jobs_{}.txt'.format(self.node_id))
+        calc.set_output(f'lot_jobs_{self.node_id}.txt')
         res = calc.singlepoint()  # energy printed is only the electronic part
         calc.release_output()
 

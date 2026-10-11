@@ -234,24 +234,24 @@ class InternalCoordinates(object):
                 PMDiff = self.calcDiff(x1, x2)
                 FiniteDifference[:, i, j] = PMDiff/(2*h)
         for i in range(Analytical.shape[0]):
-            nifty.logger.info("IC %i/%i : %s" % (i, Analytical.shape[0], self.Internals[i]))
+            nifty.logger.info(f"IC {i}/{Analytical.shape[0]} : {self.Internals[i]}")
             lines = [""]
             maxerr = 0.0
             for j in range(Analytical.shape[1]):
-                lines.append("Atom %i" % (j+1))
+                lines.append("Atom %s" % (j+1))
                 for k in range(Analytical.shape[2]):
                     error = Analytical[i, j, k] - FiniteDifference[i, j, k]
                     if np.abs(error) > 1e-5:
                         color = "\x1b[91m"
                     else:
                         color = "\x1b[92m"
-                    lines.append("%s % .5e % .5e %s% .5e\x1b[0m" % ("xyz"[k], Analytical[i, j, k], FiniteDifference[i, j, k], color, Analytical[i, j, k] - FiniteDifference[i, j, k]))
+                    lines.append("{} {: .5e} {: .5e} {}{: .5e}\x1b[0m".format("xyz"[k], Analytical[i, j, k], FiniteDifference[i, j, k], color, Analytical[i, j, k] - FiniteDifference[i, j, k]))
                     if maxerr < np.abs(error):
                         maxerr = np.abs(error)
             if maxerr > 1e-5:
                 nifty.logger.info('\n'.join(lines))
             else:
-                nifty.logger.info("Max Error = %.5e" % maxerr)
+                nifty.logger.info(f"Max Error = {maxerr:.5e}")
         nifty.logger.info("Finite-difference Finished")
 
     def checkFiniteDifferenceHess(self, xyz):
@@ -283,7 +283,7 @@ class InternalCoordinates(object):
         #                 print('\r%i %i' % (j, k), end='')
         # print()
         for i in range(Analytical.shape[0]):
-            title = "%20s : %20s" % ("IC %i/%i" % (i+1, Analytical.shape[0]), self.Internals[i])
+            title = f"{f'IC {i+1}/{Analytical.shape[0]}':>20} : {str(self.Internals[i]):>20}"
             lines = [title]
             if verbose:
                 print(title+'\n')
@@ -296,7 +296,7 @@ class InternalCoordinates(object):
                             ana = Analytical[i, j, m, k, n]
                             fin = FiniteDifference[i, j, m, k, n]
                             error = ana - fin
-                            message = "Atom %i %s %i %s a: % 12.5e n: % 12.5e e: % 12.5e %s" % (j+1, 'xyz'[m], k+1, 'xyz'[n], ana, fin,
+                            message = "Atom {} {} {} {} a: {: 12.5e} n: {: 12.5e} e: {: 12.5e} {}".format(j+1, 'xyz'[m], k+1, 'xyz'[n], ana, fin,
                                                                                                 error, 'X' if np.abs(error) > 1e-5 else '')
                             if np.abs(error) > 1e-5:
                                 numerr += 1
@@ -307,7 +307,7 @@ class InternalCoordinates(object):
                                 maxerr = np.abs(error)
             if maxerr > 1e-5 and not verbose:
                 print('\n'.join(lines)+'\n')
-            print("%s : Max Error = % 12.5e (%i above threshold)\n" % (title, maxerr, numerr))
+            print(f"{title} : Max Error = {maxerr: 12.5e} ({numerr} above threshold)\n")
         print("Finite-difference Finished\n")
         return FiniteDifference
 
@@ -383,16 +383,16 @@ class InternalCoordinates(object):
         def finish(microiter, rmsdt, ndqt, xyzsave, xyz_iter1):
             if ndqt > 1e-1:
                 if verbose:
-                    nifty.logger.info(" Failed to obtain coordinates after %i microiterations (rmsd = %.3e |dQ| = %.3e)\n" % (microiter, rmsdt, ndqt))
+                    nifty.logger.info(f" Failed to obtain coordinates after {microiter} microiterations (rmsd = {rmsdt:.3e} |dQ| = {ndqt:.3e})\n")
                 self.bork = True
                 self.writeCache(xyz, dQ, xyz_iter1)
                 return xyzsave.reshape((-1, 3))
             elif ndqt > 1e-3:
                 if verbose:
-                    nifty.logger.info(" Approximate coordinates obtained after %i microiterations (rmsd = %.3e |dQ| = %.3e)\n" % (microiter, rmsdt, ndqt))
+                    nifty.logger.info(f" Approximate coordinates obtained after {microiter} microiterations (rmsd = {rmsdt:.3e} |dQ| = {ndqt:.3e})\n")
             else:
                 if verbose:
-                    nifty.logger.info(" Cartesian coordinates obtained after %i microiterations (rmsd = %.3e |dQ| = %.3e)\n" % (microiter, rmsdt, ndqt))
+                    nifty.logger.info(f" Cartesian coordinates obtained after {microiter} microiterations (rmsd = {rmsdt:.3e} |dQ| = {ndqt:.3e})\n")
             self.writeCache(xyz, dQ, xyzsave)
             return xyzsave.reshape((-1, 3))
 
@@ -420,13 +420,13 @@ class InternalCoordinates(object):
             if len(ndqs) > 0:
                 if ndq > ndqt:
                     if verbose:
-                        nifty.logger.info(" Iter: %i Err-dQ (Best) = %.5e (%.5e) RMSD: %.5e Damp: %.5e (Bad)\n" % (microiter, ndq, ndqt, rmsd, damp))
+                        nifty.logger.info(f" Iter: {microiter} Err-dQ (Best) = {ndq:.5e} ({ndqt:.5e}) RMSD: {rmsd:.5e} Damp: {damp:.5e} (Bad)\n")
                     damp /= 2
                     fail_counter += 1
                     # xyz2 = xyz1.copy()
                 else:
                     if verbose:
-                        nifty.logger.info(" Iter: %i Err-dQ (Best) = %.5e (%.5e) RMSD: %.5e Damp: %.5e (Good)\n" % (microiter, ndq, ndqt, rmsd, damp))
+                        nifty.logger.info(f" Iter: {microiter} Err-dQ (Best) = {ndq:.5e} ({ndqt:.5e}) RMSD: {rmsd:.5e} Damp: {damp:.5e} (Good)\n")
                     fail_counter = 0
                     damp = min(damp*1.2, 1.0)
                     rmsdt = rmsd
@@ -434,7 +434,7 @@ class InternalCoordinates(object):
                     xyzsave = xyz2.copy()
             else:
                 if verbose:
-                    nifty.logger.info(" Iter: %i Err-dQ = %.5e RMSD: %.5e Damp: %.5e\n" % (microiter, ndq, rmsd, damp))
+                    nifty.logger.info(f" Iter: {microiter} Err-dQ = {ndq:.5e} RMSD: {rmsd:.5e} Damp: {damp:.5e}\n")
                 rmsdt = rmsd
                 ndqt = ndq
             ndqs.append(ndq)

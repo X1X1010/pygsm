@@ -160,13 +160,13 @@ def pvec1d(vec1d, precision=1, format="e", loglevel=INFO):
     """
     v2a = np.array(vec1d)
     for i in range(v2a.shape[0]):
-        logger.log(loglevel, "%% .%i%s " % (precision, format) % v2a[i])
+        logger.log(loglevel, f"% .{precision}{format} " % v2a[i])
     logger.log(loglevel, '\n')
 
 
 def astr(vec1d, precision=4):
     """ Write an array to a string so we can use it to key a dictionary. """
-    return ' '.join([("%% .%ie " % precision % i) for i in vec1d])
+    return ' '.join([(f"% .{precision}e " % i) for i in vec1d])
 
 
 def pmat2d(mat2d, precision=1, format="e", loglevel=INFO):
@@ -177,7 +177,7 @@ def pmat2d(mat2d, precision=1, format="e", loglevel=INFO):
     m2a = np.array(mat2d)
     for i in range(m2a.shape[0]):
         for j in range(m2a.shape[1]):
-            logger.log(loglevel, "%% .%i%s " % (precision, format) % m2a[i][j])
+            logger.log(loglevel, f"% .{precision}{format} " % m2a[i][j])
         logger.log(loglevel, '\n')
 
 
@@ -209,7 +209,7 @@ def commadash(l):
         return "(empty)"
     L.append(L[-1]+1)
     LL = [i in L for i in range(L[-1])]
-    return ','.join('%i-%i' % (i[0]+1, i[1]) if (i[1]-1 > i[0]) else '%i' % (i[0]+1) for i in segments(encode(LL)))
+    return ','.join(f'{i[0]+1}-{i[1]}' if (i[1]-1 > i[0]) else '%s' % (i[0]+1) for i in segments(encode(LL)))
 
 
 def uncommadash(s):
@@ -230,10 +230,10 @@ def uncommadash(s):
             if a < 0 or b <= 0 or b <= a:
                 if a < 0 or b <= 0:
                     logger.warning(
-                        "Items in list cannot be zero or negative: %d %d\n" % (a, b))
+                        f"Items in list cannot be zero or negative: {a} {b}\n")
                 else:
                     logger.warning(
-                        "Second number cannot be smaller than first: %d %d\n" % (a, b))
+                        f"Second number cannot be smaller than first: {a} {b}\n")
                 raise
             newL = list(range(a, b))
             if any([i in L for i in newL]):
@@ -245,7 +245,7 @@ def uncommadash(s):
             raise
     except:
         logger.error(
-            'Invalid string for converting to list of numbers: %s\n' % s)
+            f'Invalid string for converting to list of numbers: {s}\n')
         raise RuntimeError
     return L
 
@@ -309,18 +309,16 @@ def printcool(text, sym="#", bold=False, color=2, ansi=None, bottom='-', minwidt
         padright = ' ' * (width - newlen(line) - len(padleft))
         if ansi is not None:
             ansi = str(ansi)
-            logger.info("%s| \x1b[%sm%s " % (
-                sym, ansi, padleft)+line+" %s\x1b[0m |%s\n" % (padright, sym))
+            logger.info(f"{sym}| \x1b[{ansi}m{padleft} "+line+f" {padright}\x1b[0m |{sym}\n")
         elif color is not None:
             if color == 0 and bold:
-                logger.info("%s| \x1b[1m%s " % (
-                    sym, padleft) + line + " %s\x1b[0m |%s\n" % (padright, sym))
+                logger.info(f"{sym}| \x1b[1m{padleft} " + line + f" {padright}\x1b[0m |{sym}\n")
             elif color == 0:
-                logger.info("%s| %s " % (sym, padleft)+line +
-                            " %s |%s\n" % (padright, sym))
+                logger.info(f"{sym}| {padleft} "+line +
+                            f" {padright} |{sym}\n")
             else:
-                logger.info("%s| \x1b[%s9%im%s " % (
-                    sym, bold and "1;" or "", color, padleft)+line+" %s\x1b[0m |%s\n" % (padright, sym))
+                logger.info("{}| \x1b[{}9{}m{} ".format(
+                    sym, bold and "1;" or "", color, padleft)+line+f" {padright}\x1b[0m |{sym}\n")
             # if color == 3 or color == 7:
             #     print "%s\x1b[40m\x1b[%s9%im%s" % (''.join([sym for i in range(3)]), bold and "1;" or "", color, padleft),line,"%s\x1b[0m%s" % (padright, ''.join([sym for i in range(3)]))
             # else:
@@ -349,14 +347,13 @@ def printcool_dictionary(Dict, title="Dictionary Keys : Values", bold=False, col
         # This cryptic command returns a string with the number of characters specified as a variable. :P
         # Useful for printing nice-looking dictionaries, i guess.
         # print "\'%%-%is\' %% '%s'" % (keywidth,str.replace("'","\\'").replace('"','\\"'))
-        return eval("\'%%-%is\' %% '%s'" % (keywidth, str.replace("'", "\\'").replace('"', '\\"')))
+        return eval("\'%-{}s\' % '{}'".format(keywidth, str.replace("'", "\\'").replace('"', '\\"')))
     if isinstance(Dict, OrderedDict):
-        logger.info('\n'.join([' '*leftpad + "%s %s " % (magic_string(str(key)),
-                    str(Dict[key])) for key in Dict if Dict[key] is not None]))
+        logger.info('\n'.join([' '*leftpad + f"{magic_string(str(key))} {str(Dict[key])} " for key in Dict if Dict[key] is not None]))
     else:
-        logger.info('\n'.join([' '*leftpad + "%s %s " % (magic_string(str(key)), str(Dict[key]))
+        logger.info('\n'.join([' '*leftpad + f"{magic_string(str(key))} {str(Dict[key])} "
                     for key in sorted([i for i in Dict]) if Dict[key] is not None]))
-    logger.info("\n%s" % bar)
+    logger.info(f"\n{bar}")
 
 #===============================#
 #| Math: Variable manipulation |#
@@ -419,7 +416,7 @@ def floatornan(word):
     if isfloat(word):
         return float(word)
     else:
-        logger.info("Setting %s to % .1e\n" % big)
+        logger.info("Setting {} to {: .1e}\n".format(*big))
         return big
 
 
@@ -560,7 +557,7 @@ def monotonic_decreasing(arr, start=None, end=None, verbose=False):
     a0 = arr[start]
     idx = [start]
     if verbose:
-        logger.info("Starting @ %i : %.6f" % (start, arr[start]))
+        logger.info(f"Starting @ {start} : {arr[start]:.6f}")
     if end > start:
         i = start+1
         while i < end:
@@ -568,10 +565,10 @@ def monotonic_decreasing(arr, start=None, end=None, verbose=False):
                 a0 = arr[i]
                 idx.append(i)
                 if verbose:
-                    logger.info("Including  %i : %.6f" % (i, arr[i]))
+                    logger.info(f"Including  {i} : {arr[i]:.6f}")
             else:
                 if verbose:
-                    logger.info("Excluding  %i : %.6f" % (i, arr[i]))
+                    logger.info(f"Excluding  {i} : {arr[i]:.6f}")
             i += 1
     if end < start:
         i = start-1
@@ -580,10 +577,10 @@ def monotonic_decreasing(arr, start=None, end=None, verbose=False):
                 a0 = arr[i]
                 idx.append(i)
                 if verbose:
-                    logger.info("Including  %i : %.6f" % (i, arr[i]))
+                    logger.info(f"Including  {i} : {arr[i]:.6f}")
             else:
                 if verbose:
-                    logger.info("Excluding  %i : %.6f" % (i, arr[i]))
+                    logger.info(f"Excluding  {i} : {arr[i]:.6f}")
             i -= 1
     return np.array(idx)
 
@@ -668,7 +665,7 @@ def get_least_squares(x, y, w=None, thresh=1e-12):
     if w is not None:
         if len(w) != n_x:
             warn_press_key(
-                "The weight array length (%i) must be the same as the number of 'X' data points (%i)!" % len(w), n_x)
+                "The weight array length ({}) must be the same as the number of 'X' data points ({})!".format(*len(w)), n_x)
         w /= np.mean(w)
         WH = np.diag(w**0.5)
     else:
@@ -825,7 +822,7 @@ def lp_dump(obj, fnm, protocol=0):
     #     raise IOError
     if os.path.islink(fnm):
         logger.warning(
-            "Trying to write to a symbolic link %s, removing it first\n" % fnm)
+            f"Trying to write to a symbolic link {fnm}, removing it first\n")
         os.unlink(fnm)
     if HaveGZ:
         f = gzip.GzipFile(fnm, 'wb')
@@ -841,7 +838,7 @@ def lp_load(fnm):
     """ Read an object from a bzipped file specified by the path. """
     if not os.path.exists(fnm):
         logger.error(
-            "lp_load cannot read from a path that doesn't exist (%s)" % fnm)
+            f"lp_load cannot read from a path that doesn't exist ({fnm})")
         raise IOError
 
     def load_uncompress():
@@ -963,8 +960,8 @@ def queue_up(wq, command, input_files, output_files, tag=None, tgt=None, verbose
     task.print_time = print_time
     taskid = wq.submit(task)
     if verbose:
-        logger.info("Submitting command '%s' to the Work Queue, %staskid %i\n" % (
-            command, "tag %s, " % tag if tag != command else "", taskid))
+        logger.info("Submitting command '{}' to the Work Queue, {}taskid {}\n".format(
+            command, f"tag {tag}, " if tag != command else "", taskid))
     if tgt is not None:
         WQIDS[tgt.name].append(taskid)
     else:
@@ -999,7 +996,7 @@ def queue_up_src_dest(wq, command, input_files, output_files, tag=None, tgt=None
     taskid = wq.submit(task)
     if verbose:
         logger.info(
-            "Submitting command '%s' to the Work Queue, taskid %i\n" % (command, taskid))
+            f"Submitting command '{command}' to the Work Queue, taskid {taskid}\n")
     if tgt is not None:
         WQIDS[tgt.name].append(taskid)
     else:
@@ -1040,16 +1037,14 @@ def wq_wait1(wq, wait_time=10, wait_intvl=1, print_time=60, verbose=False):
                         tgtname = tnm
                         WQIDS[tnm].remove(task.id)
                 taskid = wq.submit(task)
-                logger.warning("Task '%s' (task %i) failed on host %s (%i seconds), resubmitted: taskid %i\n" % (
-                    task.tag, oldid, oldhost, exectime, taskid))
+                logger.warning(f"Task '{task.tag}' (task {oldid}) failed on host {oldhost} ({exectime} seconds), resubmitted: taskid {taskid}\n")
                 WQIDS[tgtname].append(taskid)
             else:
                 if hasattr(task, 'print_time'):
                     print_time = task.print_time
                 # Assume that we're only interested in printing jobs that last longer than a minute.
                 if exectime > print_time:
-                    logger.info("Task '%s' (task %i) finished successfully on host %s (%i seconds)\n" % (
-                        task.tag, task.id, task.hostname, exectime))
+                    logger.info(f"Task '{task.tag}' (task {task.id}) finished successfully on host {task.hostname} ({exectime} seconds)\n")
                 for tnm in WQIDS:
                     if task.id in WQIDS[tnm]:
                         WQIDS[tnm].remove(task.id)
@@ -1058,15 +1053,11 @@ def wq_wait1(wq, wait_time=10, wait_intvl=1, print_time=60, verbose=False):
         # LPW 2018-09-10 Updated to use stats fields from CCTools 6.2.10
         # Please upgrade CCTools version if errors are encountered during runtime.
         if verbose:
-            logger.info("Workers: %i init, %i idle, %i busy, %i total joined, %i total removed\n"
-                        % (wq.stats.workers_init, wq.stats.workers_idle, wq.stats.workers_busy, wq.stats.workers_joined, wq.stats.workers_removed))
-            logger.info("Tasks: %i running, %i waiting, %i dispatched, %i submitted, %i total complete\n"
-                        % (wq.stats.tasks_running, wq.stats.tasks_waiting, wq.stats.tasks_dispatched, wq.stats.tasks_submitted, wq.stats.tasks_done))
-            logger.info("Data: %i / %i kb sent/received\n" %
-                        (int(wq.stats.bytes_sent/1024), int(wq.stats.bytes_received/1024)))
+            logger.info(f"Workers: {wq.stats.workers_init} init, {wq.stats.workers_idle} idle, {wq.stats.workers_busy} busy, {wq.stats.workers_joined} total joined, {wq.stats.workers_removed} total removed\n")
+            logger.info(f"Tasks: {wq.stats.tasks_running} running, {wq.stats.tasks_waiting} waiting, {wq.stats.tasks_dispatched} dispatched, {wq.stats.tasks_submitted} submitted, {wq.stats.tasks_done} total complete\n")
+            logger.info(f"Data: {int(wq.stats.bytes_sent/1024)} / {int(wq.stats.bytes_received/1024)} kb sent/received\n")
         else:
-            logger.info("\r%s : %i/%i workers busy; %i/%i jobs complete  \r" %
-                        (time.ctime(), wq.stats.workers_busy, wq.stats.workers_connected, wq.stats.tasks_done, wq.stats.tasks_submitted))
+            logger.info(f"\r{time.ctime()} : {wq.stats.workers_busy}/{wq.stats.workers_connected} workers busy; {wq.stats.tasks_done}/{wq.stats.tasks_submitted} jobs complete  \r")
             if time.time() - wq_wait1.t0 > 900:
                 wq_wait1.t0 = time.time()
                 logger.info('\n')
@@ -1112,12 +1103,12 @@ def bak(path, dest=None):
             os.makedirs(dest)
         i = 1
         while True:
-            fnm = "%s_%i%s" % (base, i, ext)
+            fnm = f"{base}_{i}{ext}"
             newf = os.path.join(dest, fnm)
             if not os.path.exists(newf):
                 break
             i += 1
-        logger.info("Backing up %s -> %s\n" % (oldf, newf))
+        logger.info(f"Backing up {oldf} -> {newf}\n")
         shutil.move(oldf, newf)
     return newf
 
@@ -1147,38 +1138,34 @@ def onefile(fnm=None, ext=None, err=False):
                 #-----
                 if os.path.exists(fdest):
                     if not filecmp.cmp(fsrc, fdest):
-                        logger.error("onefile() will not overwrite %s with %s\n" % (
-                            os.path.join(os.getcwd(), os.path.basename(fnm)), os.path.abspath(fnm)))
+                        logger.error(f"onefile() will not overwrite {os.path.join(os.getcwd(), os.path.basename(fnm))} with {os.path.abspath(fnm)}\n")
                         raise RuntimeError
                     else:
-                        logger.info("\x1b[93monefile() says the files %s and %s are identical\x1b[0m\n" % (
-                            os.path.abspath(fnm), os.getcwd()))
+                        logger.info(f"\x1b[93monefile() says the files {os.path.abspath(fnm)} and {os.getcwd()} are identical\x1b[0m\n")
                 else:
-                    logger.info("\x1b[93monefile() will copy %s to %s\x1b[0m\n" % (
-                        os.path.abspath(fnm), os.getcwd()))
+                    logger.info(f"\x1b[93monefile() will copy {os.path.abspath(fnm)} to {os.getcwd()}\x1b[0m\n")
                     shutil.copy2(fsrc, fdest)
             return os.path.basename(fnm)
         elif err == True or ext is None:
-            logger.error("File specified by %s does not exist!" % fnm)
+            logger.error(f"File specified by {fnm} does not exist!")
             raise RuntimeError
         elif ext is not None:
             warn_once(
-                "File specified by %s does not exist - will try to autodetect .%s extension" % (fnm, ext))
+                f"File specified by {fnm} does not exist - will try to autodetect .{ext} extension")
     answer = None
     cwd = os.getcwd()
-    ls = [i for i in os.listdir(cwd) if i.endswith('.%s' % ext)]
+    ls = [i for i in os.listdir(cwd) if i.endswith(f'.{ext}')]
     if len(ls) != 1:
         if err:
-            logger.error("Cannot find a unique file with extension .%s in %s (%i found; %s)" % (
+            logger.error("Cannot find a unique file with extension .{} in {} ({} found; {})".format(
                 ext, cwd, len(ls), ' '.join(ls)))
             raise RuntimeError
         else:
-            warn_once("Cannot find a unique file with extension .%s in %s (%i found; %s)" %
-                      (ext, cwd, len(ls), ' '.join(ls)), warnhash="Found %i .%s files" % (len(ls), ext))
+            warn_once("Cannot find a unique file with extension .{} in {} ({} found; {})".format(ext, cwd, len(ls), ' '.join(ls)), warnhash=f"Found {len(ls)} .{ext} files")
     else:
         answer = os.path.basename(ls[0])
-        warn_once("Autodetected %s in %s" % (answer, cwd),
-                  warnhash="Autodetected %s" % answer)
+        warn_once(f"Autodetected {answer} in {cwd}",
+                  warnhash=f"Autodetected {answer}")
     return answer
 
 # Purpose: Given a file name / file list and/or an extension, do one of the following:
@@ -1199,12 +1186,12 @@ def listfiles(fnms=None, ext=None, err=False, dnm=None):
     if isinstance(fnms, list):
         for i in fnms:
             if not os.path.exists(i):
-                logger.error('Specified %s but it does not exist' % i)
+                logger.error(f'Specified {i} but it does not exist')
                 raise RuntimeError
             answer.append(i)
     elif isinstance(fnms, six.string_types):
         if not os.path.exists(fnms):
-            logger.error('Specified %s but it does not exist' % fnms)
+            logger.error(f'Specified {fnms} but it does not exist')
             raise RuntimeError
         answer = [fnms]
     elif fnms is not None:
@@ -1214,10 +1201,9 @@ def listfiles(fnms=None, ext=None, err=False, dnm=None):
         raise RuntimeError
     if answer == [] and ext is not None:
         answer = [os.path.basename(i) for i in os.listdir(
-            os.getcwd()) if i.endswith('.%s' % ext)]
+            os.getcwd()) if i.endswith(f'.{ext}')]
     if answer == [] and err:
-        logger.error('listfiles function failed to come up with a file! (fnms = %s ext = %s)' % (
-            str(fnms), str(ext)))
+        logger.error(f'listfiles function failed to come up with a file! (fnms = {str(fnms)} ext = {str(ext)})')
         raise RuntimeError
 
     for ifnm, fnm in enumerate(answer):
@@ -1230,16 +1216,13 @@ def listfiles(fnms=None, ext=None, err=False, dnm=None):
             #-----
             if os.path.exists(fdest):
                 if not filecmp.cmp(fsrc, fdest):
-                    logger.error("onefile() will not overwrite %s with %s\n" % (
-                        os.path.join(os.getcwd(), os.path.basename(fnm)), os.path.abspath(fnm)))
+                    logger.error(f"onefile() will not overwrite {os.path.join(os.getcwd(), os.path.basename(fnm))} with {os.path.abspath(fnm)}\n")
                     raise RuntimeError
                 else:
-                    logger.info("\x1b[93monefile() says the files %s and %s are identical\x1b[0m\n" % (
-                        os.path.abspath(fnm), os.getcwd()))
+                    logger.info(f"\x1b[93monefile() says the files {os.path.abspath(fnm)} and {os.getcwd()} are identical\x1b[0m\n")
                     answer[ifnm] = os.path.basename(fnm)
             else:
-                logger.info("\x1b[93monefile() will copy %s to %s\x1b[0m\n" % (
-                    os.path.abspath(fnm), os.getcwd()))
+                logger.info(f"\x1b[93monefile() will copy {os.path.abspath(fnm)} to {os.getcwd()}\x1b[0m\n")
                 shutil.copy2(fsrc, fdest)
                 answer[ifnm] = os.path.basename(fnm)
     os.chdir(cwd)
@@ -1289,7 +1272,7 @@ def GoInto(Dir):
             pass
         else:
             logger.error(
-                "Tried to create directory %s, it exists but isn't a directory\n" % newdir)
+                f"Tried to create directory {newdir}, it exists but isn't a directory\n")
             raise RuntimeError
     else:
         os.makedirs(Dir)
@@ -1306,8 +1289,7 @@ def allsplit(Dir):
 
 def Leave(Dir):
     if os.path.split(os.getcwd())[1] != Dir:
-        logger.error("Trying to leave directory %s, but we're actually in directory %s (check your code)\n" % (
-            Dir, os.path.split(os.getcwd())[1]))
+        logger.error(f"Trying to leave directory {Dir}, but we're actually in directory {os.path.split(os.getcwd())[1]} (check your code)\n")
         raise RuntimeError
     for i in range(len(allsplit(Dir))):
         os.chdir('..')
@@ -1344,7 +1326,7 @@ def MissingFileInspection(fnm):
         if answer == "":
             answer += "\n"
         if re.match(key, fnm):
-            answer += "%s\n" % specific_dct[key]
+            answer += f"{specific_dct[key]}\n"
     return answer
 
 
@@ -1352,7 +1334,7 @@ def wopen(dest, binary=False):
     """ If trying to write to a symbolic link, remove it first. """
     if os.path.islink(dest):
         logger.warning(
-            "Trying to write to a symbolic link %s, removing it first\n" % dest)
+            f"Trying to write to a symbolic link {dest}, removing it first\n")
         os.unlink(dest)
     if binary:
         return open(dest, 'wb')
@@ -1373,14 +1355,13 @@ def LinkFile(src, dest, nosrcok=False):
                 pass
             else:
                 logger.error(
-                    "Tried to create symbolic link %s to %s, destination exists but isn't a symbolic link\n" % (src, dest))
+                    f"Tried to create symbolic link {src} to {dest}, destination exists but isn't a symbolic link\n")
                 raise RuntimeError
         else:
             os.symlink(src, dest)
     else:
         if not nosrcok:
-            logger.error("Tried to create symbolic link %s to %s, but source file doesn't exist%s\n" % (
-                src, dest, MissingFileInspection(src)))
+            logger.error(f"Tried to create symbolic link {src} to {dest}, but source file doesn't exist{MissingFileInspection(src)}\n")
             raise RuntimeError
 
 
@@ -1389,13 +1370,12 @@ def CopyFile(src, dest):
         if os.path.exists(dest):
             if os.path.islink(dest):
                 logger.error(
-                    "Tried to copy %s to %s, destination exists but it's a symbolic link\n" % (src, dest))
+                    f"Tried to copy {src} to {dest}, destination exists but it's a symbolic link\n")
                 raise RuntimeError
         else:
             shutil.copy2(src, dest)
     else:
-        logger.error("Tried to copy %s to %s, but source file doesn't exist%s\n" % (
-            src, dest, MissingFileInspection(src)))
+        logger.error(f"Tried to copy {src} to {dest}, but source file doesn't exist{MissingFileInspection(src)}\n")
         raise RuntimeError
 
 
@@ -1420,7 +1400,7 @@ def remove_if_exists(fnm):
 def which(fnm):
     # Get the location of a file.  Works only on UNIX-like file systems.
     try:
-        return os.path.split(os.popen('which %s 2> /dev/null' % fnm).readlines()[0].strip())[0]
+        return os.path.split(os.popen(f'which {fnm} 2> /dev/null').readlines()[0].strip())[0]
     except:
         return ''
 
@@ -1506,12 +1486,11 @@ def _exec(command, print_to_screen=False, outfnm=None, logfnm=None, stdin="",
 
     if print_command:
         logger.info("Executing process: \x1b[92m%-50s\x1b[0m%s%s%s%s\n" % (' '.join(command) if type(command) is list else command,
-                                                                           " In: %s" % cwd if cwd is not None else "",
-                                                                           " Output: %s" % outfnm if outfnm is not None else "",
-                                                                           " Append: %s" % logfnm if logfnm is not None else "",
-                                                                           (" Stdin: %s" % stdin.replace('\n', '\\n')) if stdin else ""))
-        wtf("Executing process: %s%s\n" % (command, (" Stdin: %s" %
-            stdin.replace('\n', '\\n')) if stdin else ""))
+                                                                           f" In: {cwd}" if cwd is not None else "",
+                                                                           f" Output: {outfnm}" if outfnm is not None else "",
+                                                                           f" Append: {logfnm}" if logfnm is not None else "",
+                                                                           (" Stdin: {}".format(stdin.replace('\n', '\\n'))) if stdin else ""))
+        wtf("Executing process: {}{}\n".format(command, (" Stdin: {}".format(stdin.replace('\n', '\\n'))) if stdin else ""))
 
     cmd_options.update(kwargs)
     p = subprocess.Popen(command, **cmd_options)
@@ -1619,13 +1598,12 @@ def _exec(command, print_to_screen=False, outfnm=None, logfnm=None, stdin="",
         if persist:
             if print_error:
                 logger.info(
-                    "%s gave a return code of %i (it may have crashed) -- carrying on\n" % (command, p.returncode))
+                    f"{command} gave a return code of {p.returncode} (it may have crashed) -- carrying on\n")
         else:
             # This code (commented out) would not throw an exception, but instead exit with the returncode of the crashed program.
             # sys.stderr.write("\x1b[1;94m%s\x1b[0m gave a return code of %i (\x1b[91mit may have crashed\x1b[0m)\n" % (command, p.returncode))
             # sys.exit(p.returncode)
-            logger.error("\x1b[1;94m%s\x1b[0m gave a return code of %i (\x1b[91mit may have crashed\x1b[0m)\n\n" % (
-                command, p.returncode))
+            logger.error(f"\x1b[1;94m{command}\x1b[0m gave a return code of {p.returncode} (\x1b[91mit may have crashed\x1b[0m)\n\n")
             raise RuntimeError
 
     # Return the output in the form of a list of lines, so we can loop over it using "for line in output".
@@ -1642,7 +1620,7 @@ def warn_press_key(warning, timeout=10):
     logger.warning(warning + '\n')
     if sys.stdin.isatty():
         logger.warning(
-            "\x1b[1;91mPress Enter or wait %i seconds (I assume no responsibility for what happens after this!)\x1b[0m\n" % timeout)
+            f"\x1b[1;91mPress Enter or wait {timeout} seconds (I assume no responsibility for what happens after this!)\x1b[0m\n")
         try:
             rlist, wlist, xlist = select([sys.stdin], [], [], timeout)
             if rlist:

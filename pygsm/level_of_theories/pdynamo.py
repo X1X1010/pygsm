@@ -31,8 +31,8 @@ class pDynamo(Lot):
         #pDynamo
         self.system = self.options['job_data'].get('system', None)
 
-        print(" making folder scratch/{}".format(self.node_id))
-        os.system('mkdir -p scratch/{}'.format(self.node_id))
+        print(f" making folder scratch/{self.node_id}")
+        os.system(f'mkdir -p scratch/{self.node_id}')
 
         # if simulation doesn't exist create it
         if self.lot_inp_file is not None and self.simulation is None:
@@ -73,7 +73,7 @@ class pDynamo(Lot):
             self.file_options.set_active('command', None, str, 'pDynamo requires a path to an executable like ORCA or DFTB+')
             self.file_options.set_active('scratch', None, str, 'Folder to store temporary files')
 
-            self.file_options.force_active('scratch', 'scratch/{}'.format(self.node_id), 'Setting scratch folder')
+            self.file_options.force_active('scratch', f'scratch/{self.node_id}', 'Setting scratch folder')
             nifty.printcool(" Options for pdynamo")
 
             for line in self.file_options.record():
@@ -89,7 +89,7 @@ class pDynamo(Lot):
     def build_system(self):
 
         # save xyz file
-        manage_xyz.write_xyz('scratch/{}/tmp.xyz'.format(self.node_id), self.geom)
+        manage_xyz.write_xyz(f'scratch/{self.node_id}/tmp.xyz', self.geom)
 
         # ORCA
         if self.use_orca:
@@ -125,7 +125,7 @@ class pDynamo(Lot):
                 system = pB.CHARMMPSFFile_ToSystem(
                     self.psf_file,
                     isXPLOR=True,
-                    log='scratch/{}/logfile'.format(self.node_id),
+                    log=f'scratch/{self.node_id}/logfile',
                     parameters=parameters)
 
                 # Get qm atoms
@@ -137,7 +137,7 @@ class pDynamo(Lot):
                 system.DefineNBModel(nbModel)
             else:
                 # Define System
-                system = pB.XYZFile_ToSystem('scratch/{}/tmp.xyz'.format(self.node_id))
+                system = pB.XYZFile_ToSystem(f'scratch/{self.node_id}/tmp.xyz')
                 system.DefineQCModel(qcmodel)
             # system.Summary ( )
 
@@ -148,11 +148,11 @@ class pDynamo(Lot):
             qcModel = pM.QCModel.QCModelDFTB.WithOptions(deleteJobFiles=False,
                                                          electronicState=electronicState,
                                                          randomScratch=True,
-                                                         scratch='scratch/{}'.format(self.node_id),
+                                                         scratch=f'scratch/{self.node_id}',
                                                          skfPath=self.path_to_skf,
                                                          command=self.command,
                                                          useSCC=self.use_scc)
-            system = pB.XYZFile_ToSystem('scratch/{}/tmp.xyz'.format(self.node_id))
+            system = pB.XYZFile_ToSystem(f'scratch/{self.node_id}/tmp.xyz')
             system.DefineQCModel(qcModel)
             self.system = system
 

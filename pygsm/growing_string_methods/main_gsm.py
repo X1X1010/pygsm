@@ -98,8 +98,8 @@ class MainGSM(GSM):
         for n in range(self.nnodes):
             if self.nodes[n] and self.active[n]:
                 print()
-                path = os.path.join(os.getcwd(), 'scratch/{:03d}/{}'.format(self.ID, n))
-                printcool("Optimizing node {}".format(n))
+                path = os.path.join(os.getcwd(), f'scratch/{self.ID:03d}/{n}')
+                printcool(f"Optimizing node {n}")
                 opt_type = self.set_opt_type(n)
                 osteps = self.mult_steps(n, opt_steps)
                 self.optimizer[n].optimize(
@@ -116,7 +116,7 @@ class MainGSM(GSM):
             fp = self.find_peaks('opting')
             if self.energies[self.nnodes-1] > self.energies[self.nnodes-2] and fp > 0 and self.nodes[self.nnodes-1].gradrms > self.CONV_TOL:
                 printcool('Last node is not a minimum, Might need to verify that the last node is a minimum')
-                path = os.path.join(os.getcwd(), 'scratch/{:03d}/{}'.format(self.ID, self.nnodes-1))
+                path = os.path.join(os.getcwd(), f'scratch/{self.ID:03d}/{self.nnodes-1}')
                 self.optimizer[self.nnodes-1].optimize(
                     molecule=self.nodes[self.nnodes-1],
                     refE=refE,
@@ -157,7 +157,7 @@ class MainGSM(GSM):
             #        )
 
             if self.__class__.__name__ == "DE_GSM":  # or self.__class__.__name__=="SE_Cross":
-                print(" getting tangent [%i ]from between %i %i pointing towards %i" % (nlist[2*n], nlist[2*n], nlist[2*n+1], nlist[2*n]))
+                print(f" getting tangent [{nlist[2*n]} ]from between {nlist[2*n]} {nlist[2*n+1]} pointing towards {nlist[2*n]}")
                 ictan0 = self.get_tangent_xyz(self.nodes[nlist[2*n]].xyz,
                                               self.nodes[nlist[2*n+1]].xyz,
                                               self.nodes[0].primitive_internal_coordinates)
@@ -198,19 +198,19 @@ class MainGSM(GSM):
         if print_level > 0:
             print('------------printing dqmaga---------------')
             for n in range(self.nnodes):
-                print(" {:5.3}".format(dqmaga[n]), end=' ')
+                print(f" {dqmaga[n]:5.3}", end=' ')
                 if (n+1) % 5 == 0:
                     print()
             print()
 
         if print_level > 1:
             for n in range(ncurrent):
-                print("dqmag[%i] =%1.2f" % (nlist[2*n], self.dqmaga[nlist[2*n]]))
-                print("printing ictan[%i]" % nlist[2*n])
+                print(f"dqmag[{nlist[2*n]}] ={self.dqmaga[nlist[2*n]]:1.2f}")
+                print(f"printing ictan[{nlist[2*n]}]")
                 print(self.ictan[nlist[2*n]].T)
         for i, tan in enumerate(ictan):
             if np.all(tan == 0.0):
-                print("tan %i of the tangents is 0" % i)
+                print(f"tan {i} of the tangents is 0")
                 raise RuntimeError
 
         return ictan, dqmaga
@@ -276,7 +276,7 @@ class MainGSM(GSM):
             iR = self.nR-1
             iP = self.nnodes-self.nP
             iN = self.nR
-            print(" adding node: %i between %i %i from %i" % (iN, iR, iP, iR))
+            print(f" adding node: {iN} between {iR} {iP} from {iR}")
             if self.nnodes - self.current_nnodes > 1:
                 stepsize = 1./float(self.nnodes-self.current_nnodes+1)
             else:
@@ -306,7 +306,7 @@ class MainGSM(GSM):
             self.optimizer[self.nR].DMAX = self.optimizer[self.nR-1].DMAX
             self.current_nnodes += 1
             self.nR += 1
-            print(" nn=%i,nR=%i" % (self.current_nnodes, self.nR))
+            print(f" nn={self.current_nnodes},nR={self.nR}")
             self.active[self.nR-1] = True
 
             # align center of mass  and rotation
@@ -328,7 +328,7 @@ class MainGSM(GSM):
             n1 = self.nnodes-self.nP
             n2 = self.nnodes-self.nP-1
             n3 = self.nR-1
-            print(" adding node: %i between %i %i from %i" % (n2, n1, n3, n1))
+            print(f" adding node: {n2} between {n1} {n3} from {n1}")
             if self.nnodes - self.current_nnodes > 1:
                 stepsize = 1./float(self.nnodes-self.current_nnodes+1)
             else:
@@ -346,7 +346,7 @@ class MainGSM(GSM):
             self.optimizer[n2].DMAX = self.optimizer[n1].DMAX
             self.current_nnodes += 1
             self.nP += 1
-            print(" nn=%i,nP=%i" % (self.current_nnodes, self.nP))
+            print(f" nn={self.current_nnodes},nP={self.nP}")
             self.active[-self.nP] = True
 
             # align center of mass  and rotation
@@ -384,10 +384,10 @@ class MainGSM(GSM):
             totaldqmag = np.sum(self.dqmaga[n0:self.nR-1])+np.sum(self.dqmaga[self.nnodes-self.nP+1:self.nnodes])
             if self.print_level > 0:
                 if i == 0:
-                    print(" totaldqmag (without inner): {:1.2}\n".format(totaldqmag))
+                    print(f" totaldqmag (without inner): {totaldqmag:1.2}\n")
                 print(" printing spacings dqmaga: ")
                 for n in range(self.nnodes):
-                    print(" {:2.3}".format(self.dqmaga[n]), end=' ')
+                    print(f" {self.dqmaga[n]:2.3}", end=' ')
                     if (n+1) % 5 == 0:
                         print()
                 print()
@@ -406,7 +406,7 @@ class MainGSM(GSM):
                     if i == 0:
                         print(" rpart: ")
                         for n in range(1, self.nnodes-1):
-                            print(" {:1.2}".format(rpart[n]), end=' ')
+                            print(f" {rpart[n]:1.2}", end=' ')
                             if (n) % 5 == 0:
                                 print()
                         print()
@@ -436,11 +436,11 @@ class MainGSM(GSM):
             disprms = float(np.linalg.norm(rpmove[n0+1:self.nnodes-1]))
             if self.print_level > 0:
                 for n in range(n0+1, self.nnodes-1):
-                    print(" disp[{}]: {:1.2f}".format(n, rpmove[n]), end=' ')
+                    print(f" disp[{n}]: {rpmove[n]:1.2f}", end=' ')
                     if (n) % 5 == 0:
                         print()
                 print()
-                print(" disprms: {:1.3}\n".format(disprms))
+                print(f" disprms: {disprms:1.3}\n")
 
             if disprms < 1e-2:
                 break
@@ -473,16 +473,16 @@ class MainGSM(GSM):
             else:
                 for nmove, ntan in zip(move_list, tan_list):
                     if rpmove[nmove] < 0:
-                        print('Moving {} along ictan[{}]'.format(nmove, ntan))
+                        print(f'Moving {nmove} along ictan[{ntan}]')
                         self.nodes[nmove].update_coordinate_basis(constraints=self.ictan[ntan])
                         constraint = self.nodes[nmove].constraints[:, 0]
                         dq0 = rpmove[nmove]*constraint
                         self.nodes[nmove].update_xyz(dq0, verbose=True)
 
-        print(" spacings (end ic_reparam, steps: {}/{}):".format(i+1, ic_reparam_steps), end=' ')
+        print(f" spacings (end ic_reparam, steps: {i+1}/{ic_reparam_steps}):", end=' ')
         for n in range(self.nnodes):
-            print(" {:1.2}".format(self.dqmaga[n]), end=' ')
-        print("  disprms: {:1.3}".format(disprms))
+            print(f" {self.dqmaga[n]:1.2}", end=' ')
+        print(f"  disprms: {disprms:1.3}")
 
         # TODO old GSM does this here
         # Failed = check_array(self.nnodes,self.dqmaga)
@@ -490,7 +490,7 @@ class MainGSM(GSM):
 
     def modify_TS_Hess(self):
         ''' Modifies Hessian using RP direction'''
-        print("modifying %i Hessian with RP" % self.TSnode)
+        print(f"modifying {self.TSnode} Hessian with RP")
 
         TSnode = self.TSnode
         # a variable to determine how many time since last modify
@@ -543,7 +543,7 @@ class MainGSM(GSM):
         a = abs(q0-qm1)
         b = abs(qp1-q0)
         c = 2*(Em1/a/(a+b) - E0/a/b + Ep1/b/(a+b))
-        print(" tHt %1.3f a: %1.1f b: %1.1f c: %1.3f" % tuple(np.asarray(v).item() for v in (tHt, a[0], b[0], c[0])))
+        print(" tHt {:1.3f} a: {:1.1f} b: {:1.1f} c: {:1.3f}".format(*tuple(np.asarray(v).item() for v in (tHt, a[0], b[0], c[0]))))
 
         ttt = np.outer(tan, tan)
 
@@ -566,7 +566,7 @@ class MainGSM(GSM):
         self.nodes[TSnode].newHess = 5
 
         if False:
-            print("newHess of node %i %i" % (TSnode, self.nodes[TSnode].newHess))
+            print(f"newHess of node {TSnode} {self.nodes[TSnode].newHess}")
             eigen, tmph = np.linalg.eigh(self.nodes[TSnode].Hessian)  # nicd,nicd
             print("eigenvalues of new Hess")
             print(eigen)
@@ -579,10 +579,10 @@ class MainGSM(GSM):
 
         if (self.find or self.climb) and self.energies[n] > self.energies[self.TSnode]*0.9 and n != tsnode:  #
             exsteps = 2
-            print(" multiplying steps for node %i by %i" % (n, exsteps))
+            print(f" multiplying steps for node {n} by {exsteps}")
         elif self.find and n == tsnode and self.energies[tsnode] > self.energies[tsnode-1]*1.1 and self.energies[tsnode] > self.energies[tsnode+1]*1.1:  # Can also try self.climb but i hate climbing image
             exsteps = 2
-            print(" multiplying steps for node %i by %i" % (n, exsteps))
+            print(f" multiplying steps for node {n} by {exsteps}")
         # elif not self.find and not self.climb and n==tsnode  and self.energies[tsnode]>self.energies[tsnode-1]*1.5 and self.energies[tsnode]>self.energies[tsnode+1]*1.5 and self.climber:
         #    exsteps=2
         #    print(" multiplying steps for node %i by %i" % (n,exsteps))
@@ -604,7 +604,7 @@ class MainGSM(GSM):
             if self.climb and n == self.TSnode:
                 opt_type = 'TS-SEAM'
         if not quiet:
-            print((" setting node %i opt_type to %s" % (n, opt_type)))
+            print((f" setting node {n} opt_type to {opt_type}"))
 
         # if isinstance(self.optimizer[n],beales_cg) and opt_type!="BEALES_CG":
         #    raise RuntimeError("This shouldn't happen")
@@ -742,7 +742,7 @@ class MainGSM(GSM):
             emax = float(max(energies))
             nmax = np.argmax(energies)
 
-        print(" emax and nmax in find peaks %3.4f,%i " % (emax, nmax))
+        print(f" emax and nmax in find peaks {emax:3.4f},{nmax} ")
 
         #check if any node after peak is less than 2 kcal below
         for n in maxnodes:
@@ -751,7 +751,7 @@ class MainGSM(GSM):
                 found = n
                 npeaks2 += 1
         npeaks = npeaks2
-        print(" found %i significant peak(s) TOL %3.2f" % (npeaks, ediff))
+        print(f" found {npeaks} significant peak(s) TOL {ediff:3.2f}")
 
         # handle dissociative case
         if rtype == "intermediate" and npeaks == 1:
@@ -782,8 +782,8 @@ class MainGSM(GSM):
         # => Check if intermediate exists
         # ALEX REMOVED CLIMB REQUIREMENT
         if self.has_intermediate(self.noise):
-            print("New pot min: {}".format(self.get_intermediate(self.noise)))
-            print("Old pot min: {}".format(self.pot_min))
+            print(f"New pot min: {self.get_intermediate(self.noise)}")
+            print(f"Old pot min: {self.pot_min}")
             if self.get_intermediate(self.noise) == self.pot_min:
                 self.endearly_counter += 1
             else:
@@ -810,14 +810,14 @@ class MainGSM(GSM):
         elif self.climber and self.climb:
             return (self.nodes[self.TSnode].gradrms < self.CONV_TOL and abs(ts_cgradq) < TS_conv and self.dE_iter < self.optimizer[self.TSnode].conv_Ediff*3)
         elif not self.climber and not self.finder:
-            print(" CONV_TOL=%.4f" % self.CONV_TOL)
+            print(f" CONV_TOL={self.CONV_TOL:.4f}")
             return all([self.optimizer[n].converged for n in range(1, self.nnodes-1)])
 
         return False
 
     def print_energies(self):
         for n in range(len(self.energies)):
-            print(" {:7.3f}".format(float(self.energies[n])), end=' ')
+            print(f" {float(self.energies[n]):7.3f}", end=' ')
         print()
 
     def get_intermediate(self, noise):
@@ -851,7 +851,7 @@ class MainGSM(GSM):
                     break
                 b += 1
             if ((rnoise > noise) and (pnoise > noise)):
-                print('Potential minimum at image %s' % i)
+                print(f'Potential minimum at image {i}')
                 potential_min.append(i)
 
         return potential_min
@@ -910,12 +910,12 @@ class MainGSM(GSM):
             print(" V_profile: ", end=' ')
             energies = self.energies
             for n in range(self.nnodes):
-                print(" {:7.3f}".format(float(energies[n])), end=' ')
+                print(f" {float(energies[n]):7.3f}", end=' ')
             print()
         if reparametrize:
             printcool("Reparametrizing")
             self.reparameterize(ic_reparam_steps=8)
-            self.xyz_writer('grown_string_{:03}.xyz'.format(self.ID), self.geometries, self.energies, self.gradrmss, self.dEs)
+            self.xyz_writer(f'grown_string_{self.ID:03}.xyz', self.geometries, self.energies, self.gradrmss, self.dEs)
 
 
         self.ictan, self.dqmaga = self.get_tangents(self.nodes)
@@ -956,7 +956,7 @@ class MainGSM(GSM):
         self.nodes = new_node_list
         self.optimizer = new_optimizers
         self.nnodes = len(self.nodes)
-        print(' New number of nodes %d' % self.nnodes)
+        print(f' New number of nodes {self.nnodes}')
         self.active = [True] * self.nnodes
         self.active[0] = False
         self.active[self.nnodes-1] = False
@@ -990,7 +990,7 @@ class MainGSM(GSM):
         self.nodes = new_node_list
         self.optimizer = new_optimizers
         self.nnodes = len(self.nodes)
-        print(' New number of nodes %d' % self.nnodes)
+        print(f' New number of nodes {self.nnodes}')
         self.active = [True] * self.nnodes
         self.active[0] = False
         self.active[self.nnodes-1] = False
@@ -1050,9 +1050,9 @@ class MainGSM(GSM):
         for i, j in couples:
             if first:
                 # Calculate the energy of the i, j
-                print("Calculating initial energy for node: {}".format(i))
+                print(f"Calculating initial energy for node: {i}")
                 self.nodes[i].energy
-                print("Calculating initial energy for node: {}".format(j))
+                print(f"Calculating initial energy for node: {j}")
                 self.nodes[j].energy
                 first = False
             elif j - i <= 1:
@@ -1064,7 +1064,7 @@ class MainGSM(GSM):
                     self.nodes[i].energy
                     i += 1
                 if i == j:
-                    print("Checking if energies match for wavefunction guesses from either direction for node: {}".format(i))
+                    print(f"Checking if energies match for wavefunction guesses from either direction for node: {i}")
 
                     options={'node_id':self.nodes[i].node_id}
                     self.nodes[i].PES.lot = type(self.nodes[i-1].PES.lot).copy(
@@ -1079,8 +1079,8 @@ class MainGSM(GSM):
                     self.nodes[i].PES.lot.node_id = i
                     self.nodes[i].PES.lot.hasRanForCurrentCoords = False
                     energy_backward = self.nodes[i].energy
-                    print("Forward direction energy: {}".format(energy_forward))
-                    print("Backward direction energy: {}".format(energy_backward))
+                    print(f"Forward direction energy: {energy_forward}")
+                    print(f"Backward direction energy: {energy_backward}")
                     if abs(energy_forward - energy_backward) < 0.1:
                         print("Energies match")
                     else:
@@ -1092,9 +1092,9 @@ class MainGSM(GSM):
                                     self.nodes[i-k].PES.lot, options, copy_wavefunction=True)
                                 self.nodes[i-k-1].PES.lot.node_id = i-k-1
                                 self.nodes[i-k -1].PES.lot.hasRanForCurrentCoords = False
-                                print("node_id {}".format(self.nodes[i+k].node_id))
-                                print("Calculating new initial energy for node: {}".format(i-k-1))
-                                print("New energy: {}".format(self.nodes[i-k-1].energy))
+                                print(f"node_id {self.nodes[i+k].node_id}")
+                                print(f"Calculating new initial energy for node: {i-k-1}")
+                                print(f"New energy: {self.nodes[i-k-1].energy}")
                         else:
                             for k in range(i+1):
                                 #lower energy is in forward direction, so do node i using i-1's wavefunction
@@ -1103,9 +1103,9 @@ class MainGSM(GSM):
                                     self.nodes[i+k-1].PES.lot, options, copy_wavefunction=True)
                                 self.nodes[i+k].PES.lot.node_id = i+k
                                 self.nodes[i+k].PES.lot.hasRanForCurrentCoords = False
-                                print("node_id {}".format(self.nodes[i+k].node_id))
-                                print("Calculating new initial energy for node: {}".format(i+k))
-                                print("New energy: {}".format(self.nodes[i+k].energy))
+                                print(f"node_id {self.nodes[i+k].node_id}")
+                                print(f"Calculating new initial energy for node: {i+k}")
+                                print(f"New energy: {self.nodes[i+k].energy}")
 
                      
                     
@@ -1114,12 +1114,12 @@ class MainGSM(GSM):
                 self.nodes[i].PES.lot = type(self.nodes[i-1].PES.lot).copy(
                     self.nodes[i-1].PES.lot, options, copy_wavefunction=True)
                 self.nodes[i].PES.lot.node_id = i
-                print("Calculating initial energy for node: {}".format(i))
+                print(f"Calculating initial energy for node: {i}")
                 self.nodes[i].energy
                 # Copy the orbital of j+1 to j
                 self.nodes[j].PES.lot = type(self.nodes[j+1].PES.lot).copy(
                     self.nodes[j+1].PES.lot, options, copy_wavefunction=True)
                 self.nodes[j].PES.lot.node_id = j
-                print("Calculating initial energy for node: {}".format(j))
+                print(f"Calculating initial energy for node: {j}")
                 self.nodes[j].energy
         return

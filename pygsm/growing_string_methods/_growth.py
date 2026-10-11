@@ -23,23 +23,18 @@ def grow_string(gsm, max_iters=30, max_opt_steps=3, nconstraints=1):
         if iteration > max_iters:
             print(' Ran out of iterations')
             return
-        printcool('Starting growth iteration %i' % iteration)
+        printcool(f'Starting growth iteration {iteration}')
         gsm.optimize_iteration(max_opt_steps)
         totalgrad, gradrms, _ = gsm.calc_optimization_metrics(gsm.nodes)
         gsm.xyz_writer(
-            'scratch/growth_iters_{:03}_{:03}.xyz'.format(gsm.ID, iteration),
+            f'scratch/growth_iters_{gsm.ID:03}_{iteration:03}.xyz',
             gsm.geometries,
             gsm.energies,
             gsm.gradrmss,
             gsm.dEs,
         )
         print(
-            ' gopt_iter: {:2} totalgrad: {:4.3} gradrms: {:5.4} max E: {:5.4}\n'.format(
-                iteration,
-                float(totalgrad),
-                float(gradrms),
-                float(gsm.emax),
-            )
+            f' gopt_iter: {iteration:2} totalgrad: {float(totalgrad):4.3} gradrms: {float(gradrms):5.4} max E: {float(gsm.emax):5.4}\n'
         )
 
         try:
@@ -52,7 +47,7 @@ def grow_string(gsm, max_iters=30, max_opt_steps=3, nconstraints=1):
                 print(' optimizing last node')
                 gsm.optimizer[gsm.nR - 1].conv_grms = gsm.CONV_TOL
                 print(gsm.optimizer[gsm.nR - 1].conv_grms)
-                path = os.path.join(os.getcwd(), 'scratch/{:03d}/{}'.format(gsm.ID, gsm.nR - 1))
+                path = os.path.join(os.getcwd(), f'scratch/{gsm.ID:03d}/{gsm.nR - 1}')
                 gsm.optimizer[gsm.nR - 1].optimize(
                     molecule=gsm.nodes[gsm.nR - 1],
                     refE=gsm.nodes[0].V0,

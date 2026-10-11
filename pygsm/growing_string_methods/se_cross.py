@@ -22,12 +22,12 @@ class SE_Cross(SE_GSM):
 
         self.nodes[0].gradrms = 0.
         self.nodes[0].V0 = self.nodes[0].energy
-        print(' Initial energy is {:1.4f}'.format(self.nodes[0].energy))
+        print(f' Initial energy is {self.nodes[0].energy:1.4f}')
         sys.stdout.flush()
 
         # stash bdist for node 0
         _, self.nodes[0].bdist = self.get_tangent(self.nodes[0], None, driving_coords=self.driving_coords)
-        print(" Initial bdist is %1.3f" % self.nodes[0].bdist)
+        print(f" Initial bdist is {self.nodes[0].bdist:1.3f}")
 
         # interpolate first node
         self.add_GSM_nodeR()
@@ -38,9 +38,9 @@ class SE_Cross(SE_GSM):
         print(' Warning last node still not fully optimized')
 
         if True:
-            path = os.path.join(os.getcwd(), 'scratch/{:03d}/{}'.format(self.ID, self.nR-1))
+            path = os.path.join(os.getcwd(), f'scratch/{self.ID:03d}/{self.nR-1}')
             # doing extra constrained penalty optimization for MECI
-            print(" extra constrained optimization for the nnR-1 = %d" % (self.nR-1))
+            print(" extra constrained optimization for the nnR-1 = %s" % (self.nR-1))
             self.optimizer[self.nR-1].conv_grms = self.options['CONV_TOL']*5
             ictan = self.get_tangent_xyz(self.nodes[self.nR-1].xyz, self.nodes[self.nR-2].xyz, self.newic.primitive_internal_coordinates)
             self.nodes[self.nR-1].PES.sigma = 1.5
@@ -73,7 +73,7 @@ class SE_Cross(SE_GSM):
                 path=path,
             )
 
-        self.xyz_writer('after_penalty_{:03}.xyz'.format(self.ID), self.geometries, self.energies, self.gradrmss, self.dEs)
+        self.xyz_writer(f'after_penalty_{self.ID:03}.xyz', self.geometries, self.energies, self.gradrmss, self.dEs)
         self.optimizer[self.nR].opt_cross = True
         self.nodes[0].V0 = self.nodes[0].PES.PES2.energy
         if rtype == 0:
@@ -81,7 +81,7 @@ class SE_Cross(SE_GSM):
             self.nodes[self.nR] = Molecule.copy_from_options(self.nodes[self.nR-1], new_node_id=self.nR)
             avg_pes = Avg_PES.create_pes_from(self.nodes[self.nR].PES)
             self.nodes[self.nR].PES = avg_pes
-            path = os.path.join(os.getcwd(), 'scratch/{:03d}/{}'.format(self.ID, self.nR))
+            path = os.path.join(os.getcwd(), f'scratch/{self.ID:03d}/{self.nR}')
             self.optimizer[self.nR].conv_grms = self.options['CONV_TOL']
             self.optimizer[self.nR].conv_gmax = 0.1  # self.options['CONV_gmax']
             self.optimizer[self.nR].conv_Ediff = self.options['CONV_Ediff']
@@ -110,8 +110,8 @@ class SE_Cross(SE_GSM):
             # TODO make unctonstrained "CROSSING" which checks for dE convergence
             self.nodes[self.nR] = Molecule.copy_from_options(self.nodes[self.nR-1], new_node_id=self.nR)
             self.nodes[self.nR].PES.sigma = 10.0
-            print(" sigma for node %d is %.3f" % (self.nR, self.nodes[self.nR].PES.sigma))
-            path = os.path.join(os.getcwd(), 'scratch/{:03d}/{}'.format(self.ID, self.nR))
+            print(f" sigma for node {self.nR} is {self.nodes[self.nR].PES.sigma:.3f}")
+            path = os.path.join(os.getcwd(), f'scratch/{self.ID:03d}/{self.nR}')
             self.optimizer[self.nR].opt_cross = True
             self.optimizer[self.nR].conv_grms = self.options['CONV_TOL']
             # self.optimizer[self.nR].conv_gmax = self.options['CONV_gmax']
@@ -125,7 +125,7 @@ class SE_Cross(SE_GSM):
                 verbose=True,
                 path=path,
             )
-        self.xyz_writer('grown_string_{:03}.xyz'.format(self.ID), self.geometries, self.energies, self.gradrmss, self.dEs)
+        self.xyz_writer(f'grown_string_{self.ID:03}.xyz', self.geometries, self.energies, self.gradrmss, self.dEs)
 
         if self.optimizer[self.nR].converged:
             self.nnodes = self.nR+1
@@ -146,17 +146,17 @@ class SE_Cross(SE_GSM):
             print(" V_profile (after reparam): ", end=' ')
             energies = self.energies
             for n in range(self.nnodes):
-                print(" {:7.3f}".format(float(energies[n])), end=' ')
+                print(f" {float(energies[n]):7.3f}", end=' ')
             print()
-            self.xyz_writer('grown_string1_{:03}.xyz'.format(self.ID), self.geometries, self.energies, self.gradrmss, self.dEs)
+            self.xyz_writer(f'grown_string1_{self.ID:03}.xyz', self.geometries, self.energies, self.gradrmss, self.dEs)
 
             deltaE = energies[-1] - energies[0]
             if deltaE > 20:
-                print(" MECI energy is too high %5.4f. Don't try to optimize pathway" % deltaE)
+                print(f" MECI energy is too high {deltaE:5.4f}. Don't try to optimize pathway")
                 print("Exiting early")
                 self.end_early = True
             else:
-                print(" deltaE s1-minimum and MECI %5.4f" % deltaE)
+                print(f" deltaE s1-minimum and MECI {deltaE:5.4f}")
                 try:
                     self.optimize_string(max_iter=max_iters, opt_steps=3, rtype=1)
                 except Exception as error:
@@ -179,7 +179,7 @@ class SE_Cross(SE_GSM):
         # condition2 = ((self.nodes[self.nR-1].bdist+0.1 > self.nodes[self.nR-2].bdist) and (1-self.BDIST_RATIO)*abs(self.nodes[0].bdist))
         if condition1:
             print(" Condition 1 satisfied")
-            print(" bdist current %1.3f" % abs(self.nodes[self.nR-1].bdist))
+            print(f" bdist current {abs(self.nodes[self.nR-1].bdist):1.3f}")
             print(" bdist target %1.3f" % (abs(self.nodes[0].bdist)*(1-self.BDIST_RATIO)))
             print(" Growth-phase over")
             isDone = True
@@ -201,4 +201,4 @@ class SE_Cross(SE_GSM):
         self.optimizer[nR].conv_grms = self.options['ADD_NODE_TOL']
         self.optimizer[nR].conv_gmax = 100.  # self.options['ADD_NODE_TOL'] # could use some multiplier times CONV_GMAX...
         self.optimizer[nR].conv_Ediff = 1000.  # 2.5
-        print(" conv_tol of node %d is %.4f" % (nR, self.optimizer[nR].conv_grms))
+        print(f" conv_tol of node {nR} is {self.optimizer[nR].conv_grms:.4f}")

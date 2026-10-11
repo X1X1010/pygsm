@@ -14,7 +14,7 @@ class block_tensor(object):
         self.cnorms=cnorms
 
     def __repr__(self):
-        lines= [" block matrix: # blocks = {}".format(self.num_blocks)]
+        lines= [f" block matrix: # blocks = {self.num_blocks}"]
         count=0
         for m in self.matlist:
             lines.append(str(m))

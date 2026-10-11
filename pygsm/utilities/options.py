@@ -51,7 +51,7 @@ class Option(object):
         """
 
         if self.required and self.value is None:
-            raise RuntimeError("Option %s is required" % self.key)
+            raise RuntimeError(f"Option {self.key} is required")
 
         return self.value
 
@@ -68,11 +68,9 @@ class Option(object):
             return
 
         if self.allowed_types and not any(isinstance(value, x) for x in self.allowed_types):
-            raise RuntimeError("Option %s must be one of allowed types: %s" % (
-                self.key, self.allowed_types))
+            raise RuntimeError(f"Option {self.key} must be one of allowed types: {self.allowed_types}")
         if self.allowed_values and value not in self.allowed_values:
-            raise RuntimeError("Option %s must be one of allowed values: %r" % (
-                self.key, self.allowed_values))
+            raise RuntimeError(f"Option {self.key} must be one of allowed values: {self.allowed_values!r}")
 
         self.value = value
 
@@ -81,12 +79,12 @@ class Option(object):
 
         s = ''
         s += 'Option:\n'
-        s += '  Key: %s\n' % self.key
-        s += '  Value: %s\n' % self.value
-        s += '  Required: %s\n' % self.required
-        s += '  Allowed Types: %s\n' % self.allowed_types
-        s += '  Allowed Values: %s\n' % self.allowed_values
-        s += '  Doc: %s\n' % self.doc
+        s += f'  Key: {self.key}\n'
+        s += f'  Value: {self.value}\n'
+        s += f'  Required: {self.required}\n'
+        s += f'  Allowed Types: {self.allowed_types}\n'
+        s += f'  Allowed Values: {self.allowed_values}\n'
+        s += f'  Doc: {self.doc}\n'
         s += '\n'
         return s
 
@@ -160,7 +158,7 @@ class Options(object):
         """
 
         if key not in self.options:
-            raise ValueError("Key %s is not in Options" % key)
+            raise ValueError(f"Key {key} is not in Options")
         return self.options[key]
 
     def __getitem__(
@@ -176,7 +174,7 @@ class Options(object):
         """
 
         if key not in self.options:
-            raise ValueError("Key %s is not in Options" % key)
+            raise ValueError(f"Key {key} is not in Options")
         return self.options[key].get_value()
 
     def __setitem__(
@@ -194,7 +192,7 @@ class Options(object):
         """
 
         if key not in self.options:
-            raise ValueError("Key %s is not in Options" % key)
+            raise ValueError(f"Key {key} is not in Options")
         return self.options[key].set_value(value)
 
     def set_values(
@@ -241,7 +239,7 @@ if __name__ == '__main__':
     options1 = Options()
     for k in range(500):
         options1.add_option(
-            key='size%d' % k,
+            key=f'size{k}',
             value=0,
             allowed_types=[int],
             allowed_values=[0, 1],

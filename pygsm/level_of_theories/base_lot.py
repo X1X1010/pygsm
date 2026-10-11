@@ -28,7 +28,7 @@ ELEMENT_TABLE = elements.ElementData()
       
 
 def copy_file(path1, path2):
-    print(" copying scr files\n cp -r {} {}".format(path1, path2))
+    print(f" copying scr files\n cp -r {path1} {path2}")
     if os.path.isdir(path1):
         shutil.copytree(path1, path2, dirs_exist_ok=True)
     else:
@@ -458,7 +458,7 @@ class Lot(object):
             return
         with open(self.energy_file_path, 'w') as f:
             for key, Energy in self.Energies.items():
-                f.write('{} {} {:9.7f} Hartree\n'.format(key[0], key[1], Energy.value))
+                f.write(f'{key[0]} {key[1]} {Energy.value:9.7f} Hartree\n')
 
     def run(self, geom, mult, ad_idx, runtype='gradient'):
         raise NotImplementedError

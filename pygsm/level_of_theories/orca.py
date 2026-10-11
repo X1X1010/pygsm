@@ -20,7 +20,7 @@ class Orca(Lot):
             inpstring += 'thresh 1e-11\n tcut 1e-13 \n directresetfreq 1 \n SOSCFStart 0.00033\nend\n'
             # inpstring += '%scf\nMaxIter 300\nend\n'
             inpstring += '\n%maxcore 1000\n\n'
-            inpstring += '%pal\nnproc {}\nend\n\n'.format(self.nproc)
+            inpstring += f'%pal\nnproc {self.nproc}\nend\n\n'
         else:
             inpstring = ''
             with open(self.lot_inp_file) as lot_inp:
@@ -28,13 +28,13 @@ class Orca(Lot):
             for line in lot_inp_lines:
                 inpstring += line
 
-        inpstring += '\n*xyz {} {}\n'.format(self.charge, multiplicity)
+        inpstring += f'\n*xyz {self.charge} {multiplicity}\n'
         for coord in geom:
             for i in coord:
                 inpstring += str(i)+' '
             inpstring += '\n'
         inpstring += '*'
-        tempfilename = 'tempORCAinp_{}'.format(multiplicity)
+        tempfilename = f'tempORCAinp_{multiplicity}'
         tempfile = open(tempfilename, 'w')
         tempfile.write(inpstring)
         tempfile.close()
@@ -63,9 +63,9 @@ class Orca(Lot):
             # runscr = '/tmp/'+user+'/'+orcascr
             runscr = '/tmp/'+pbsID+'/'+orcascr
 
-        os.system('mkdir -p {}'.format(runscr))
-        os.system('mv {} {}/'.format(tempfilename, runscr))
-        cmd = 'cd {}; {} {} > {}/{}.log; cd {}'.format(runscr, path2orca, tempfilename, runscr, tempfilename, cwd)
+        os.system(f'mkdir -p {runscr}')
+        os.system(f'mv {tempfilename} {runscr}/')
+        cmd = f'cd {runscr}; {path2orca} {tempfilename} > {runscr}/{tempfilename}.log; cd {cwd}'
         os.system(cmd)
 
         # parse output
@@ -74,7 +74,7 @@ class Orca(Lot):
         return
 
     def parse(self, multiplicity, runscr, tempfilename):
-        engradpath = runscr+'/{}.engrad'.format(tempfilename)
+        engradpath = runscr+f'/{tempfilename}.engrad'
         with open(engradpath) as engradfile:
             engradlines = engradfile.readlines()
 

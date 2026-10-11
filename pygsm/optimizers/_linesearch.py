@@ -86,7 +86,7 @@ def backtrack(nconstraints, x, fx, g, d, step, xp, constraint_step, parameters, 
             # now g is the gradient of f(xk + step * d)
             dg = np.dot(gc.T, d)
             if dg < parameters['wolfe'] * dginit:
-                print(" [INFO] dg = %r < parameters.wolfe * dginit = %r" % (dg, parameters['wolfe'] * dginit))
+                print(" [INFO] dg = {!r} < parameters.wolfe * dginit = {!r}".format(dg, parameters['wolfe'] * dginit))
                 print(" [INFO] not satisfy wolf condition.")
                 width = inc
                 print(" increasing step to step %1.5f" % (step*width))
@@ -109,7 +109,7 @@ def backtrack(nconstraints, x, fx, g, d, step, xp, constraint_step, parameters, 
             print(' [INFO] the linesearch step is too small')
             return result
         if step >= parameters['max_step'] and width >= 1.:  # otherwise step will decrease next step
-            print(' [INFO] the linesearch step is too large, returning with step {}'.format(step))
+            print(f' [INFO] the linesearch step is too large, returning with step {step}')
             result = {'status': 0, 'fx': fx, 'g': g, 'step': step, 'x': x, 'molecule': molecule}
             return result
 
@@ -162,7 +162,7 @@ def double_golden_section(x, xyz1, xyz7, f1, f7, molecule):
     f3 = molecule.PES.get_energy(xyz3)
     f5 = molecule.PES.get_energy(xyz5)
     f6 = molecule.PES.get_energy(xyz6)
-    print(" Initial Double Golden Section %5.4f %5.4f %5.4f %5.4f %5.4f %5.4f %5.4f kcal/mol" % (f1-refE, f2-refE, f3-refE, f4-refE, f5-refE, f6-refE, f7-refE))
+    print(f" Initial Double Golden Section {f1-refE:5.4f} {f2-refE:5.4f} {f3-refE:5.4f} {f4-refE:5.4f} {f5-refE:5.4f} {f6-refE:5.4f} {f7-refE:5.4f} kcal/mol")
     l = [f1, f2, f3, f4, f5, f6, f7]
     sys.stdout.flush()
 
@@ -224,7 +224,7 @@ def double_golden_section(x, xyz1, xyz7, f1, f7, molecule):
         xyz3 = xyz1 + (xyz4 - xyz1)/z
         f2 = molecule.PES.get_energy(xyz2)
         f3 = molecule.PES.get_energy(xyz3)
-    print(" Rearranged Canonical Golden Section f1: %5.4f f2: %5.4f f3: %5.4f f4: %5.4f " % (f1-refE, f2-refE, f3-refE, f4-refE))
+    print(f" Rearranged Canonical Golden Section f1: {f1-refE:5.4f} f2: {f2-refE:5.4f} f3: {f3-refE:5.4f} f4: {f4-refE:5.4f} ")
 
     TOLF = 0.1  # kcal/mol
     TOLC = 1.e-3
@@ -242,7 +242,7 @@ def double_golden_section(x, xyz1, xyz7, f1, f7, molecule):
         xyz3 = xyz1 + (xyz4-xyz1)/z
         f2 = molecule.PES.get_energy(xyz2)
         f3 = molecule.PES.get_energy(xyz3)
-        print("f2: %5.4f f3: %5.4f" % (f2-refE, f3-refE))
+        print(f"f2: {f2-refE:5.4f} f3: {f3-refE:5.4f}")
         print(abs(f2-f3))
         dxyz = np.linalg.norm(xyz2.flatten()-xyz3.flatten())
         print(dxyz)
@@ -306,7 +306,7 @@ def golden_section(f, x1, x4, maximize=False, TOLC=0.1, TOLF=0.1):
         x3 = x1 + (x4-x1)/z
         f2 = sign*f(x2)
         f3 = sign*f(x3)
-        print("f2: %5.4f f3: %5.4f" % (sign*(f2-refE), sign*(f3-refE)))
+        print(f"f2: {sign*(f2-refE):5.4f} f3: {sign*(f3-refE):5.4f}")
         print(abs(f2-f3))
         dx = np.linalg.norm(x2.flatten()-x3.flatten())
         print(dx)

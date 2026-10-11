@@ -15,7 +15,7 @@ class block_matrix(object):
         self.cnorms = cnorms
 
     def __repr__(self):
-        lines = [" block matrix: # blocks = {}".format(self.num_blocks)]
+        lines = [f" block matrix: # blocks = {self.num_blocks}"]
         count = 0
         for m in self.matlist:
             lines.append(str(m))
@@ -299,9 +299,9 @@ class block_matrix(object):
             for c in BM.cnorms.T:
                 if any(c[sc:ec] != 0.):
                     num_c += 1
-                    print('block %d mag %.4f' % (i, np.linalg.norm(c[sc:ec])))
+                    print(f'block {i} mag {np.linalg.norm(c[sc:ec]):.4f}')
                     print(c[sc:ec])
-                    print('num_c=%d' % num_c)
+                    print(f'num_c={num_c}')
             ans.append(orthogonalize(block, num_c))
             sc = ec
         return block_matrix(ans, BM.cnorms)

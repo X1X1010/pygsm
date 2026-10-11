@@ -40,7 +40,7 @@ class MyG(nx.Graph):
 
     def AStr(self):
         """ Return a string of atoms, which serves as a rudimentary 'fingerprint' : '99,100,103,151' . """
-        return ','.join(['%i' % i for i in self.L()])
+        return ','.join([f'{i}' for i in self.L()])
 
     def e(self):
         """ Return an array of the elements.  For instance ['H' 'C' 'C' 'H']. """
@@ -50,7 +50,7 @@ class MyG(nx.Graph):
     def ef(self):
         """ Create an Empirical Formula """
         Formula = list(self.e())
-        return ''.join([('%s%i' % (k, Formula.count(k)) if Formula.count(k) > 1 else '%s' % k) for k in sorted(set(Formula))])
+        return ''.join([(f'{k}{Formula.count(k)}' if Formula.count(k) > 1 else f'{k}') for k in sorted(set(Formula))])
 
     def x(self):
         """ Get a list of the coordinates. """

@@ -401,8 +401,8 @@ class base_optimizer(object):
 
         norm_dg = np.linalg.norm(molecule.difference_gradient)
         if self.options['print_level'] > 0:
-            print(" norm_dg is %1.4f" % norm_dg)
-            print(" dE is %1.4f" % molecule.difference_energy)
+            print(f" norm_dg is {norm_dg:1.4f}")
+            print(f" dE is {molecule.difference_energy:1.4f}")
 
         dq = -molecule.difference_energy/units.KCAL_MOL_PER_AU/norm_dg
         if dq < self.DMAX/5:
@@ -423,7 +423,7 @@ class base_optimizer(object):
         dq = g[n, 0]/SCALE
         # dq = np.dot(g.T,molecule.constraints)*molecule.constraints
 
-        print(" walking up the %i coordinate = %1.4f" % (n, dq))
+        print(f" walking up the {n} coordinate = {dq:1.4f}")
         if abs(dq) > self.options['MAXAD']/SCALEW:
             dq = np.sign(dq)*self.options['MAXAD']/SCALE
         return dq
@@ -498,7 +498,7 @@ class base_optimizer(object):
             SCALE = 10.0
 
         if self.options['print_level'] > 1:
-            print("new_hess %i" % molecule.newHess)
+            print(f"new_hess {molecule.newHess}")
 
         if self.options['print_level'] > 1:
             print("constraints")
@@ -579,7 +579,7 @@ class base_optimizer(object):
         print(" nneg", self.nneg)
         # Max overlap metrics
         path_overlap, maxoln = self.maxol_w_Hess(overlap[0:4])
-        print(" t/ol %i: %3.2f" % (maxoln, path_overlap))
+        print(f" t/ol {maxoln}: {path_overlap:3.2f}")
 
         # => set lamda1 scale factor <=#
         lambda1 = self.set_lambda1('TS', eigen, maxoln)
@@ -592,7 +592,7 @@ class base_optimizer(object):
             # => grad in eigenvector basis <= #
             gqe = np.dot(tmph, g)
             path_overlap_e_g = gqe[maxoln]
-            print(' gtse: {:1.4f} '.format(path_overlap_e_g[0]))
+            print(f' gtse: {path_overlap_e_g[0]:1.4f} ')
             # save gtse in memory ...
             self.gtse = abs(path_overlap_e_g[0])
             # => calculate eigenvector step <=#
@@ -673,7 +673,7 @@ class base_optimizer(object):
         if self.options['print_level'] > 1:
             print("Hdx")
             print(Hdx.T)
-            print("dgtdx: %1.8f dxHdx: %1.8f dgdg" % (dgtdx, dxHdx))
+            print(f"dgtdx: {dgtdx:1.8f} dxHdx: {dxHdx:1.8f} dgdg")
             print("dgdg")
             print(dgdg)
 

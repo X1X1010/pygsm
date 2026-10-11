@@ -68,7 +68,7 @@ class beales_cg(base_optimizer):
         update_hess = False
 
         for ostep in range(opt_steps):
-            print(" On opt step {} ".format(ostep+1))
+            print(f" On opt step {ostep+1} ")
 
             if update_hess and self.options['update_hess_in_bg']:
                 if opt_type != 'TS':
@@ -98,11 +98,11 @@ class beales_cg(base_optimizer):
 
             # normalize the direction
             stepsize = np.linalg.norm(d)
-            print(" stepsize = %1.2f" % stepsize)
+            print(f" stepsize = {stepsize:1.2f}")
             d = d/stepsize  # normalize
             if stepsize > self.DMAX:
                 stepsize = self.DMAX
-                print(" reducing step, new step = %1.2f" % stepsize)
+                print(f" reducing step, new step = {stepsize:1.2f}")
 
             # store
             xp = x.copy()
@@ -141,11 +141,11 @@ class beales_cg(base_optimizer):
                     self.options['DMAX'] = ls['step']
                 elif ls['step'] <= self.DMIN:
                     self.options['DMAX'] = self.DMIN
-                    print(" Decreasing DMAX to {}".format(self.DMIN))
+                    print(f" Decreasing DMAX to {self.DMIN}")
 
             # dE
             dEstep = fx - fxp
-            print(" dEstep=%5.4f" % dEstep)
+            print(f" dEstep={dEstep:5.4f}")
 
             # revert to the previous point
             if ls['status'] < 0 or dEstep > 0.:
@@ -178,7 +178,7 @@ class beales_cg(base_optimizer):
             if ostep % xyzframerate == 0:
                 geoms.append(molecule.geometry)
                 energies.append(molecule.energy-refE)
-                manage_xyz.write_xyzs_w_comments('opt_{}.xyz'.format(molecule.node_id), geoms, energies, scale=1.)
+                manage_xyz.write_xyzs_w_comments(f'opt_{molecule.node_id}.xyz', geoms, energies, scale=1.)
 
             # save variables for update Hessian!
             if not molecule.coord_obj.__class__.__name__ == 'CartesianCoordinates' or self.options['update_hess_in_bg']:
@@ -189,8 +189,8 @@ class beales_cg(base_optimizer):
                 raise NotImplementedError(" ef not implemented for CART")
 
             if self.options['print_level'] > 0:
-                print(" Opt step: %d E: %5.4f gradrms: %1.5f ss: %1.3f DMAX: %1.3f" % (ostep+1, fx-refE, molecule.gradrms, step, self.options['DMAX']))
-            self.buf.write(u' Opt step: %d E: %5.4f gradrms: %1.5f ss: %1.3f DMAX: %1.3f\n' % (ostep+1, fx-refE, molecule.gradrms, step, self.options['DMAX']))
+                print(" Opt step: {} E: {:5.4f} gradrms: {:1.5f} ss: {:1.3f} DMAX: {:1.3f}".format(ostep+1, fx-refE, molecule.gradrms, step, self.options['DMAX']))
+            self.buf.write(u' Opt step: {} E: {:5.4f} gradrms: {:1.5f} ss: {:1.3f} DMAX: {:1.3f}\n'.format(ostep+1, fx-refE, molecule.gradrms, step, self.options['DMAX']))
 
             # gmax = np.max(g)/ANGSTROM_TO_AU/units.KCAL_MOL_PER_AU
             # print "current gradrms= %r au" % gradrms
@@ -204,7 +204,7 @@ class beales_cg(base_optimizer):
             molecule.gradrms = np.sqrt(np.dot(g.T, g)/n)
             gmax = float(np.max(g))
             disp = float(np.linalg.norm((xyz-xyzp).flatten()))
-            print(" gmax %5.4f disp %5.4f Ediff %5.4f gradrms %5.4f\n" % (gmax, disp, dEstep, molecule.gradrms))
+            print(f" gmax {gmax:5.4f} disp {disp:5.4f} Ediff {dEstep:5.4f} gradrms {molecule.gradrms:5.4f}\n")
 
             self.converged = False
             if self.opt_cross and abs(dE) < self.conv_dE and molecule.gradrms < self.conv_grms and abs(gmax) < self.conv_gmax and abs(dEstep) < self.conv_Ediff and abs(disp) < self.conv_disp and ls['status'] == 0:
@@ -217,7 +217,7 @@ class beales_cg(base_optimizer):
                 if ostep % xyzframerate != 0:
                     geoms.append(molecule.geometry)
                     energies.append(molecule.energy-refE)
-                    manage_xyz.write_xyzs_w_comments('opt_{}.xyz'.format(molecule.node_id), geoms, energies, scale=1.)
+                    manage_xyz.write_xyzs_w_comments(f'opt_{molecule.node_id}.xyz', geoms, energies, scale=1.)
                 break
 
             #update DLC  --> this changes q, g, Hint
@@ -234,7 +234,7 @@ class beales_cg(base_optimizer):
                     fx = molecule.energy
                     dE = molecule.difference_energy
                     if dE != 1000.:
-                        print(" difference energy is %5.4f" % dE)
+                        print(f" difference energy is {dE:5.4f}")
                     g = molecule.gradient.copy()
                     if nconstraints > 0:
                         g = g - np.dot(g.T, molecule.constraints)*molecule.constraints

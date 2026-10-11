@@ -161,7 +161,7 @@ class PrimitiveInternalCoordinates(InternalCoordinates):
             mst = sorted(list(nx.minimum_spanning_edges(dgraph, data=False)))
             for edge in mst:
                 if edge not in list(self.topology.edges()):
-                    print("Adding %s from minimum spanning tree" % str(edge))
+                    print(f"Adding {str(edge)} from minimum spanning tree")
                     self.topology.add_edge(edge[0], edge[1])
                     noncov.append(edge)
         else:
@@ -477,7 +477,7 @@ class PrimitiveInternalCoordinates(InternalCoordinates):
             # Print only summary if too many
             lines = []
         for k, v in list(typedict.items()):
-            lines.append("%s : %i" % (k, v))
+            lines.append(f"{k} : {v}")
         return '\n'.join(lines)
 
     def __eq__(self, other):
@@ -601,13 +601,13 @@ class PrimitiveInternalCoordinates(InternalCoordinates):
     def printRotations(self, xyz):
         rotNorms = self.getRotatorNorms()
         if len(rotNorms) > 0:
-            print("Rotator Norms: ", " ".join(["% .4f" % i for i in rotNorms]))
+            print("Rotator Norms: ", " ".join([f"{i: .4f}" for i in rotNorms]))
         rotDots = self.getRotatorDots()
         if len(rotDots) > 0 and np.max(rotDots) > 1e-5:
-            print("Rotator Dots : ", " ".join(["% .4f" % i for i in rotDots]))
+            print("Rotator Dots : ", " ".join([f"{i: .4f}" for i in rotDots]))
         linAngs = [ic.value(xyz) for ic in self.Internals if type(ic) is LinearAngle]
         if len(linAngs) > 0:
-            print("Linear Angles: ", " ".join(["% .4f" % i for i in linAngs]))
+            print("Linear Angles: ", " ".join([f"{i: .4f}" for i in linAngs]))
 
     def derivatives(self, xyz):
         self.calculate(xyz)
@@ -704,7 +704,7 @@ class PrimitiveInternalCoordinates(InternalCoordinates):
         if cPrim in self.cPrims:
             iPrim = self.cPrims.index(cPrim)
             if np.abs(cVal - self.cVals[iPrim]) > 1e-6:
-                print("Updating constraint value to %.4e" % cVal)
+                print(f"Updating constraint value to {cVal:.4e}")
             self.cVals[iPrim] = cVal
         else:
             if cPrim not in self.Internals:
@@ -788,7 +788,7 @@ class PrimitiveInternalCoordinates(InternalCoordinates):
                     mst = sorted(list(nx.minimum_spanning_edges(dgraph, data=False)))
                     for edge in mst:
                         if edge not in list(self.topology.edges()):
-                            print("Adding %s from minimum spanning tree" % str(edge))
+                            print(f"Adding {str(edge)} from minimum spanning tree")
                             self.topology.add_edge(edge[0], edge[1])
                             noncov.append(edge)
 
@@ -986,7 +986,7 @@ class PrimitiveInternalCoordinates(InternalCoordinates):
         self.prim_only_block_info = [info for info in self.block_info if info[-1] != 'hyb']
 
         print(" Done making primitives")
-        print(" Made a total of {} primitives".format(len(self.Internals)))
+        print(f" Made a total of {len(self.Internals)} primitives")
         # print(self.Internals)
         # print(" block info")
         # print(self.block_info)
@@ -1147,7 +1147,7 @@ class PrimitiveInternalCoordinates(InternalCoordinates):
             elif c.isAngular:
                 factor = 180.0/np.pi
             # if np.abs(diff*factor) > thre:
-            out_lines.append("%-30s  % 10.5f  % 10.5f  % 10.5f\n" % (str(c), current*factor, reference*factor, diff*factor))
+            out_lines.append(f"{str(c):<30}  {current*factor: 10.5f}  {reference*factor: 10.5f}  {diff*factor: 10.5f}\n")
         if len(out_lines) > 0:
             print(header)
             print('\n'.join(out_lines))
@@ -1419,7 +1419,7 @@ class PrimitiveInternalCoordinates(InternalCoordinates):
 
         # Can make this faster if only check primitive indices
         # Need the primitive internal coordinates -- not the Cartesian internal coordinates
-        print(" Number of primitives before {}".format(len(self.Internals)))
+        print(f" Number of primitives before {len(self.Internals)}")
         # print(' block info before')
         # print(self.block_info)
 
@@ -1456,13 +1456,13 @@ class PrimitiveInternalCoordinates(InternalCoordinates):
                 # Dont check Cartesians
                 if type(i) not in [CartesianX, CartesianY, CartesianZ]:
                     if i not in self.Internals[sp1:ep1]:
-                        print("Adding prim {} that is in Other to Internals".format(i))
+                        print(f"Adding prim {i} that is in Other to Internals")
                         self.append_prim_to_block(i, count)
             count += 1
 
         # print(self.Internals)
         # print(len(self.Internals))
-        print(" Number of primitives after {}".format(len(self.Internals)))
+        print(f" Number of primitives after {len(self.Internals)}")
         # print(' block info after')
         # print(self.block_info)
 
@@ -1475,7 +1475,7 @@ class PrimitiveInternalCoordinates(InternalCoordinates):
         for dc in driving_coord_prims:
             if type(dc) != Distance:  # Already handled in topology
                 if dc not in self.Internals:
-                    print("Adding driving coord prim {} to Internals".format(dc))
+                    print(f"Adding driving coord prim {dc} to Internals")
                     self.append_prim_to_block(dc)
 
 

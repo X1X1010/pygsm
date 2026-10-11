@@ -79,7 +79,7 @@ if __name__ == '__main__':
     conversions = dict(locals())
     for key, val in conversions.items():
         if key[0] != '_':
-            print((" Conversion: % 22s, Value: %11.11E" % (key, val)))
+            print(f" Conversion: {key:>22}, Value: {val:11.11E}")
 
 
 units = {
@@ -91,5 +91,5 @@ units = {
 }
 for k in list(units.keys()):
     v = units[k]
-    mobj = re.match('(\S+)_per_(\S+)', k)
-    units['%s_per_%s' % (mobj.group(2), mobj.group(1))] = 1.0 / v
+    mobj = re.match(r'(\S+)_per_(\S+)', k)
+    units[f'{mobj.group(2)}_per_{mobj.group(1)}'] = 1.0 / v

@@ -160,19 +160,14 @@ def write_molden_geoms(
     with open(filename, 'w') as f:
         f.write("[Molden Format]\n[Geometries] (XYZ)\n")
         for geom in geoms:
-            f.write('%d\n\n' % len(geom))
+            f.write(f'{len(geom)}\n\n')
             for atom in geom:
-                f.write('%-2s %14.6f %14.6f %14.6f\n' % (
-                    atom[0],
-                    atom[1],
-                    atom[2],
-                    atom[3],
-                ))
+                f.write(f'{atom[0]:<2} {atom[1]:14.6f} {atom[2]:14.6f} {atom[3]:14.6f}\n')
         f.write("[GEOCONV]\n")
         f.write('energy\n')
         V0 = energies[0]
         for energy in energies:
-            f.write('{}\n'.format(energy-V0))
+            f.write(f'{energy-V0}\n')
         f.write("max-force\n")
         for grad in gradrms:
             f.write(f"{grad:.6f}\n")
@@ -205,15 +200,10 @@ def write_xyz(
 
     """
     fh = open(filename, 'w')
-    fh.write('%d\n' % len(geom))
-    fh.write('{}\n'.format(comment))
+    fh.write(f'{len(geom)}\n')
+    fh.write(f'{comment}\n')
     for atom in geom:
-        fh.write('%-2s %14.6f %14.6f %14.6f\n' % (
-            atom[0],
-            scale*atom[1],
-            scale*atom[2],
-            scale*atom[3],
-        ))
+        fh.write(f'{atom[0]:<2} {scale*atom[1]:14.6f} {scale*atom[2]:14.6f} {scale*atom[3]:14.6f}\n')
 
 
 def write_xyzs(
@@ -233,14 +223,9 @@ def write_xyzs(
 
     fh = open(filename, 'w')
     for geom in geoms:
-        fh.write('%d\n\n' % len(geom))
+        fh.write(f'{len(geom)}\n\n')
         for atom in geom:
-            fh.write('%-2s %14.6f %14.6f %14.6f\n' % (
-                atom[0],
-                scale*atom[1],
-                scale*atom[2],
-                scale*atom[3],
-            ))
+            fh.write(f'{atom[0]:<2} {scale*atom[1]:14.6f} {scale*atom[2]:14.6f} {scale*atom[3]:14.6f}\n')
 
 
 def write_std_multixyz(
@@ -252,7 +237,7 @@ def write_std_multixyz(
 ):
     with open(filename, 'w') as f:
         for E, geom in zip(energies, geoms):
-            f.write('%d\n' % len(geom))
+            f.write(f'{len(geom)}\n')
             # Energies are already in kcal/mol (see level_of_theories/base_lot.py
             # get_energy, which returns Hartree * KCAL_MOL_PER_AU). Write them in
             # that native unit with an explicit label so the output is a clean,
@@ -260,14 +245,9 @@ def write_std_multixyz(
             # Previously this multiplied E by KJ_MOL_TO_AU, which treated a
             # kcal/mol value as if it were kJ/mol and produced a garbled
             # AU-scaled number (see ZimmermanGroup/pyGSM#65).
-            f.write('%.6f kcal/mol\n' % E)
+            f.write(f'{E:.6f} kcal/mol\n')
             for atom in geom:
-                f.write('%-2s %14.6f %14.6f %14.6f\n' % (
-                    atom[0],
-                    atom[1],
-                    atom[2],
-                    atom[3],
-                ))
+                f.write(f'{atom[0]:<2} {atom[1]:14.6f} {atom[2]:14.6f} {atom[3]:14.6f}\n')
 
 
 def write_amber_xyz(
@@ -278,10 +258,10 @@ def write_amber_xyz(
     count = 0
     fh = open(filename, 'w')
     fh.write("default name\n")
-    fh.write('  %d\n' % len(geom))
+    fh.write(f'  {len(geom)}\n')
     for line in geom:
         for elem in line[1:]:
-            fh.write(" {:11.7f}".format(float(elem)))
+            fh.write(f" {float(elem):11.7f}")
             count += 1
         if count % 6 == 0:
             fh.write("\n")
@@ -305,15 +285,10 @@ def write_xyzs_w_comments(
 
     fh = open(filename, 'w')
     for geom, comment in zip(geoms, comments):
-        fh.write('%d\n' % len(geom))
-        fh.write('%s\n' % comment)
+        fh.write(f'{len(geom)}\n')
+        fh.write(f'{comment}\n')
         for atom in geom:
-            fh.write('%-2s %14.6f %14.6f %14.6f\n' % (
-                atom[0],
-                scale*atom[1],
-                scale*atom[2],
-                scale*atom[3],
-            ))
+            fh.write(f'{atom[0]:<2} {scale*atom[1]:14.6f} {scale*atom[2]:14.6f} {scale*atom[3]:14.6f}\n')
 
 
 def xyz_to_np(
@@ -407,22 +382,13 @@ def write_fms90(
 
     fh = open(filename, 'w')
     fh.write('UNITS=BOHR\n')
-    fh.write('%d\n' % len(geomx))
+    fh.write(f'{len(geomx)}\n')
     for atom in geomx:
-        fh.write('%-2s %14.6f %14.6f %14.6f\n' % (
-            atom[0],
-            atom[1],
-            atom[2],
-            atom[3],
-        ))
+        fh.write(f'{atom[0]:<2} {atom[1]:14.6f} {atom[2]:14.6f} {atom[3]:14.6f}\n')
     if geomp:
         fh.write('# momenta\n')
         for atom in geomp:
-            fh.write('  %14.6f %14.6f %14.6f\n' % (
-                atom[1],
-                atom[2],
-                atom[3],
-            ))
+            fh.write(f'  {atom[1]:14.6f} {atom[2]:14.6f} {atom[3]:14.6f}\n')
 
 
 XYZ_WRITERS = {

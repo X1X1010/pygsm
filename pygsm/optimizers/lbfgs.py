@@ -107,7 +107,7 @@ class lbfgs(base_optimizer):
                 self.lm.append(iterationData(0.0, s_prim.flatten(), y_prim.flatten()))
 
         for ostep in range(opt_steps):
-            print(" On opt step {} ".format(ostep+1))
+            print(f" On opt step {ostep+1} ")
 
             SCALE = self.options['SCALEQN']
             if molecule.newHess > 0:
@@ -140,11 +140,11 @@ class lbfgs(base_optimizer):
 
             # normalize the direction
             actual_step = np.linalg.norm(d)
-            print(" actual_step= %1.5f" % actual_step)
+            print(f" actual_step= {actual_step:1.5f}")
             d = d/actual_step  # normalize
             if actual_step > self.DMAX:
                 step = self.DMAX
-                print(" reducing step, new step = %1.5f" % step)
+                print(f" reducing step, new step = {step:1.5f}")
             else:
                 step = actual_step
 
@@ -177,15 +177,15 @@ class lbfgs(base_optimizer):
             dEpre = np.dot(gc.T, dq)*units.KCAL_MOL_PER_AU
             constraint_energy = np.dot(gp.T, constraint_steps)*units.KCAL_MOL_PER_AU
             if opt_type not in ['UNCONSTRAINED', 'ICTAN']:
-                print("constraint_energy: %1.4f" % np.asarray(constraint_energy).item())
+                print(f"constraint_energy: {np.asarray(constraint_energy).item():1.4f}")
             dEpre += constraint_energy
 
             # if abs(dEpre)<0.05:
             #    dEpre = np.sign(dEpre)*0.05
             ratio = dEstep/dEpre
-            print(" dEstep=%5.4f" % dEstep)
-            print(" dEpre=%5.4f" % np.asarray(dEpre).item())
-            print(" ratio=%5.4f" % np.asarray(ratio).item())
+            print(f" dEstep={dEstep:5.4f}")
+            print(f" dEpre={np.asarray(dEpre).item():5.4f}")
+            print(f" ratio={np.asarray(ratio).item():5.4f}")
 
             # revert to the privious point
             if ls['status'] < 0 or (ratio < 0. and opt_type != 'CLIMB'):
@@ -235,7 +235,7 @@ class lbfgs(base_optimizer):
                 if opt_type == "CLIMB":
                     if self.SCALE_CLIMB < 10. and opt_type == 'CLIMB':
                         self.SCALE_CLIMB += 1.
-                        print('SCALING CLIMB BY {}'.format(self.SCALE_CLIMB))
+                        print(f'SCALING CLIMB BY {self.SCALE_CLIMB}')
             elif ratio > 0.3:
                 molecule.newHess -= 1
                 if opt_type == "CLIMB":
@@ -250,7 +250,7 @@ class lbfgs(base_optimizer):
 
             dE = molecule.difference_energy
             if dE < 100.:
-                print(" difference energy is %5.4f" % dE)
+                print(f" difference energy is {dE:5.4f}")
             molecule.gradrms = np.sqrt(np.dot(gc.T, gc)/num_coords)
 
             # control step size  NEW FEB 2020
@@ -270,7 +270,7 @@ class lbfgs(base_optimizer):
                             self.DMAX = ls['step']
                         elif ls['step'] <= self.DMIN:
                             self.DMAX = self.DMIN
-                            print(" Decreasing DMAX to {}".format(self.DMIN))
+                            print(f" Decreasing DMAX to {self.DMIN}")
                     elif ratio > 0.85 and ratio < 1.1 and actual_step > self.DMAX and dgradrms < -0.00005:
                         print(" HERE increasing DMAX")
                         self.DMAX *= 1.1
@@ -282,15 +282,15 @@ class lbfgs(base_optimizer):
             if ostep % xyzframerate == 0:
                 geoms.append(molecule.geometry)
                 energies.append(molecule.energy-refE)
-                manage_xyz.write_xyzs_w_comments('{}/opt_{}.xyz'.format(path, molecule.node_id), geoms, energies, scale=1.)
+                manage_xyz.write_xyzs_w_comments(f'{path}/opt_{molecule.node_id}.xyz', geoms, energies, scale=1.)
 
             if self.options['print_level'] > 0:
-                print(" Node: %d Opt step: %d E: %5.4f predE: %5.4f ratio: %1.3f gradrms: %1.5f ss: %1.3f DMAX: %1.3f" % (molecule.node_id, ostep+1, fx-refE, np.asarray(dEpre).item(), np.asarray(ratio).item(), np.asarray(molecule.gradrms).item(), step, self.DMAX))
-            self.buf.write(u' Node: %d Opt step: %d E: %5.4f predE: %5.4f ratio: %1.3f gradrms: %1.5f ss: %1.3f DMAX: %1.3f\n' % (molecule.node_id, ostep+1, fx-refE, np.asarray(dEpre).item(), np.asarray(ratio).item(), np.asarray(molecule.gradrms).item(), step, self.DMAX))
+                print(f" Node: {molecule.node_id} Opt step: {ostep+1} E: {fx-refE:5.4f} predE: {np.asarray(dEpre).item():5.4f} ratio: {np.asarray(ratio).item():1.3f} gradrms: {np.asarray(molecule.gradrms).item():1.5f} ss: {step:1.3f} DMAX: {self.DMAX:1.3f}")
+            self.buf.write(f' Node: {molecule.node_id} Opt step: {ostep+1} E: {fx-refE:5.4f} predE: {np.asarray(dEpre).item():5.4f} ratio: {np.asarray(ratio).item():1.3f} gradrms: {np.asarray(molecule.gradrms).item():1.5f} ss: {step:1.3f} DMAX: {self.DMAX:1.3f}\n')
 
             gmax = float(np.max(np.absolute(gc)))
             disp = float(np.linalg.norm((xyz-self.xyzp).flatten()))
-            print(" gmax %5.4f disp %5.4f dEstep %5.4f gradrms %5.4f\n" % (gmax, disp, dEstep, np.asarray(molecule.gradrms).item()))
+            print(f" gmax {gmax:5.4f} disp {disp:5.4f} dEstep {dEstep:5.4f} gradrms {np.asarray(molecule.gradrms).item():5.4f}\n")
             self.converged = False
             if self.opt_cross and abs(dE) < self.conv_dE and molecule.gradrms < self.conv_grms and abs(gmax) < self.conv_gmax and abs(dEstep) < self.conv_Ediff and abs(disp) < self.conv_disp and ls['status'] == 0:
 
@@ -315,7 +315,7 @@ class lbfgs(base_optimizer):
                 if ostep % xyzframerate != 0:
                     geoms.append(molecule.geometry)
                     energies.append(molecule.energy-refE)
-                    manage_xyz.write_xyzs_w_comments('{}/opt_{}.xyz'.format(path, molecule.node_id), geoms, energies, scale=1.)
+                    manage_xyz.write_xyzs_w_comments(f'{path}/opt_{molecule.node_id}.xyz', geoms, energies, scale=1.)
                 break
             # print " ########## DONE WITH TOTAL STEP #########"
 

@@ -17,15 +17,15 @@ class DFTB(Lot):
     def __init__(self, options):
         super(DFTB, self).__init__(options)
         os.system('rm -f dftb_jobs.txt')
-        print(" making folder scratch/{}".format(self.node_id))
-        os.system('mkdir -p scratch/{}'.format(self.node_id))
-        os.system('cp {} scratch/{}'.format(self.lot_inp_file, self.node_id))
+        print(f" making folder scratch/{self.node_id}")
+        os.system(f'mkdir -p scratch/{self.node_id}')
+        os.system(f'cp {self.lot_inp_file} scratch/{self.node_id}')
 
     def run(self, geom):
         owd = os.getcwd()
-        manage_xyz.write_xyz('scratch/{}/tmp.xyz'.format(self.node_id), geom, scale=1.0)
-        os.system('./xyz2gen scratch/{}/tmp.xyz'.format(self.node_id))
-        os.chdir('scratch/{}'.format(self.node_id))
+        manage_xyz.write_xyz(f'scratch/{self.node_id}/tmp.xyz', geom, scale=1.0)
+        os.system(f'./xyz2gen scratch/{self.node_id}/tmp.xyz')
+        os.chdir(f'scratch/{self.node_id}')
         os.system('pwd')
         cmd = "dftb+"
         proc = subprocess.Popen(cmd,

@@ -60,13 +60,13 @@ class File_Options(object):
         else:
             val = default
         if type(allowed) is list:
-            self.Documentation[key] += " Allowed values are %s" % str(allowed)
+            self.Documentation[key] += f" Allowed values are {str(allowed)}"
             if val not in allowed:
-                raise Exception("Tried to set option \x1b[1;91m%s\x1b[0m to \x1b[94m%s\x1b[0m but it's not allowed (choose from \x1b[92m%s\x1b[0m)" % (key, str(val), str(allowed)))
+                raise Exception(f"Tried to set option \x1b[1;91m{key}\x1b[0m to \x1b[94m{str(val)}\x1b[0m but it's not allowed (choose from \x1b[92m{str(allowed)}\x1b[0m)")
         if typ is bool and type(val) == int:
             val = bool(val)
         if val is not None and type(val) is not typ:
-            raise Exception("Tried to set option \x1b[1;91m%s\x1b[0m to \x1b[94m%s\x1b[0m but it's not the right type (%s required)" % (key, str(val), str(typ)))
+            raise Exception(f"Tried to set option \x1b[1;91m{key}\x1b[0m to \x1b[94m{str(val)}\x1b[0m but it's not the right type ({str(typ)} required)")
         if depend and not clash:
             if key in self.InactiveOptions:
                 del self.InactiveOptions[key]

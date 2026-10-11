@@ -63,21 +63,21 @@ class DE_GSM(MainGSM):
     def set_active(self, nR, nP):
         # print(" Here is active:",self.active)
         if nR != nP and self.growth_direction == 0:
-            print((" setting active nodes to %i and %i" % (nR, nP)))
+            print((f" setting active nodes to {nR} and {nP}"))
         elif self.growth_direction == 1:
-            print((" setting active node to %i " % nR))
+            print((f" setting active node to {nR} "))
         elif self.growth_direction == 2:
-            print((" setting active node to %i " % nP))
+            print((f" setting active node to {nP} "))
         else:
-            print((" setting active node to %i " % nR))
+            print((f" setting active node to {nR} "))
 
         for i in range(self.nnodes):
             if self.nodes[i] is not None:
                 self.optimizer[i].conv_grms = self.CONV_TOL*2.
         self.optimizer[nR].conv_grms = self.options['ADD_NODE_TOL']
         self.optimizer[nP].conv_grms = self.options['ADD_NODE_TOL']
-        print(" conv_tol of node %d is %.4f" % (nR, self.optimizer[nR].conv_grms))
-        print(" conv_tol of node %d is %.4f" % (nP, self.optimizer[nP].conv_grms))
+        print(f" conv_tol of node {nR} is {self.optimizer[nR].conv_grms:.4f}")
+        print(f" conv_tol of node {nP} is {self.optimizer[nP].conv_grms:.4f}")
         self.active[nR] = True
         self.active[nP] = True
         if self.growth_direction == 1:
@@ -102,11 +102,11 @@ class DE_GSM(MainGSM):
         if self.nodes[self.nR-1].gradrms < self.gaddmax and self.growth_direction != 2:
             if self.nodes[self.nR] is None:
                 self.add_GSM_nodeR()
-                print(" getting energy for node %d: %5.4f" % (self.nR-1, self.nodes[self.nR-1].energy - self.nodes[0].V0))
+                print(f" getting energy for node {self.nR-1}: {self.nodes[self.nR-1].energy - self.nodes[0].V0:5.4f}")
         if self.nodes[self.nnodes-self.nP].gradrms < self.gaddmax and self.growth_direction != 1:
             if self.nodes[-self.nP-1] is None:
                 self.add_GSM_nodeP()
-                print(" getting energy for node %d: %5.4f" % (self.nnodes-self.nP, self.nodes[-self.nP].energy - self.nodes[0].V0))
+                print(f" getting energy for node {self.nnodes-self.nP}: {self.nodes[-self.nP].energy - self.nodes[0].V0:5.4f}")
         return
 
     def make_tan_list(self):
@@ -169,9 +169,9 @@ class DE_GSM(MainGSM):
         self.nodes[0].gradrms = 0.
         if self.growth_direction != 1:
             self.nodes[-1].gradrms = 0.
-            print(" Energy of the end points are %4.3f, %4.3f" % (self.nodes[0].energy, self.nodes[-1].energy))
-            print(" relative E %4.3f, %4.3f" % (0.0, self.nodes[-1].energy-self.nodes[0].energy))
+            print(f" Energy of the end points are {self.nodes[0].energy:4.3f}, {self.nodes[-1].energy:4.3f}")
+            print(f" relative E {0.0:4.3f}, {self.nodes[-1].energy-self.nodes[0].energy:4.3f}")
         else:
-            print(" Energy of end points are %4.3f " % self.nodes[0].energy)
+            print(f" Energy of end points are {self.nodes[0].energy:4.3f} ")
             # self.nodes[-1].energy = self.nodes[0].energy
             # self.nodes[-1].gradrms = 0.

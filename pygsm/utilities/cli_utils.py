@@ -28,11 +28,11 @@ def get_driving_coord_prim(dc):
 
 def plot(fx, x, title):
     plt.figure(1)
-    plt.title("String {:04d}".format(title))
+    plt.title(f"String {title:04d}")
     plt.plot(x, fx, color='b', label='Energy', linewidth=2, marker='o', markersize=12)
     plt.xlabel('Node Number')
     plt.ylabel('Energy (kcal/mol)')
     plt.legend(loc='best')
-    plt.savefig('{:04d}_string.png'.format(title), dpi=600)
+    plt.savefig(f'{title:04d}_string.png', dpi=600)
 
 

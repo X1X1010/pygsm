@@ -62,7 +62,7 @@ class ASELoT(Lot):
             module = importlib.import_module(module_name)
         except ModuleNotFoundError:
             raise LoTError(
-                "ASE-calculator's module is not found: {}".format(class_name))
+                f"ASE-calculator's module is not found: {class_name}")
 
         # class of the calculator
         if hasattr(module, class_name):
@@ -70,7 +70,7 @@ class ASELoT(Lot):
             assert issubclass(calc_class, Calculator)
         else:
             raise LoTError(
-                "ASE-calculator's class ({}) not found in module {}".format(class_name, module_name))
+                f"ASE-calculator's class ({class_name}) not found in module {module_name}")
 
         # make sure there is no calculator in the options
         _ = kwargs.pop("calculator", None)

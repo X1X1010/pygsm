@@ -35,8 +35,8 @@ class Molpro(Lot):
     def write_input_file(self, tempfilename):
         # TODO gopro needs a number
         tempfile = open(tempfilename, 'w')
-        tempfile.write(' file,2,mp_{:04d}_{:04d}\n'.format(self.ID, self.node_id))
-        tempfile.write(' memory,{},m\n'.format(self.memory))
+        tempfile.write(f' file,2,mp_{self.ID:04d}_{self.node_id:04d}\n')
+        tempfile.write(f' memory,{self.memory},m\n')
         tempfile.write(' symmetry,nosym\n')
         tempfile.write(' orient,noorient\n\n')
         tempfile.write(' geometry={\n')
@@ -53,33 +53,33 @@ class Molpro(Lot):
         triplets = self.search_tuple(self.states, 3)
         len_triplets = len(triplets)
 
-        tempfile.write(' basis={}\n\n'.format(self.basis))
+        tempfile.write(f' basis={self.basis}\n\n')
 
         # do singlets
         if len_singlets != 0:
             tempfile.write(' {multi\n')
             tempfile.write(' direct\n')
-            tempfile.write(' closed,{}\n'.format(self.closed))
-            tempfile.write(' occ,{}\n'.format(self.occ))
-            tempfile.write(' wf,{},1,0\n'.format(self.n_electrons))
+            tempfile.write(f' closed,{self.closed}\n')
+            tempfile.write(f' occ,{self.occ}\n')
+            tempfile.write(f' wf,{self.n_electrons},1,0\n')
             # this can be made the len of singlets
-            tempfile.write(' state,{}\n'.format(self.n_states))
+            tempfile.write(f' state,{self.n_states}\n')
 
             for state in self.gradient_states:
                 s = state[1]
                 print("running grad state ", s)
                 grad_name = "510"+str(s)+".1"
-                tempfile.write(' CPMCSCF,GRAD,{}.1,record={}\n'.format(s+1, grad_name))
+                tempfile.write(f' CPMCSCF,GRAD,{s+1}.1,record={grad_name}\n')
 
             # TODO this can only do coupling if states is 2, want to generalize to 3 states
             if self.coupling_states:
-                tempfile.write('CPMCSCF,NACM,{}.1,{}.1,record=5200.1\n'.format(self.coupling_states[0], self.coupling_states[1]))
+                tempfile.write(f'CPMCSCF,NACM,{self.coupling_states[0]}.1,{self.coupling_states[1]}.1,record=5200.1\n')
             tempfile.write(' }\n')
 
             for state in self.gradient_states:
                 s = state[1]
                 grad_name = "510"+str(s)+".1"
-                tempfile.write('Force;SAMC,{};varsav\n'.format(grad_name))
+                tempfile.write(f'Force;SAMC,{grad_name};varsav\n')
             if self.coupling_states:
                 tempfile.write('Force;SAMC,5200.1;varsav\n')
 
@@ -87,22 +87,22 @@ class Molpro(Lot):
             tempfile.write(' {multi\n')
             nclosed = self.nocc
             nocc = nclosed+self.nactive
-            tempfile.write(' closed,{}\n'.format(nclosed))
-            tempfile.write(' occ,{}\n'.format(nocc))
-            tempfile.write(' wf,{},1,2\n'.format(self.n_electrons))
+            tempfile.write(f' closed,{nclosed}\n')
+            tempfile.write(f' occ,{nocc}\n')
+            tempfile.write(f' wf,{self.n_electrons},1,2\n')
             # nstates = len(self.states)
-            tempfile.write(' state,{}\n'.format(len_triplets))
+            tempfile.write(f' state,{len_triplets}\n')
 
             for state in triplets:
                 s = state[1]
                 grad_name = "511"+str(s)+".1"
-                tempfile.write(' CPMCSCF,GRAD,{}.1,record={}\n'.format(s+1, grad_name))
+                tempfile.write(f' CPMCSCF,GRAD,{s+1}.1,record={grad_name}\n')
             tempfile.write(' }\n')
 
             for s in triplets:
                 s = state[1]
                 grad_name = "511"+str(s)+".1"
-                tempfile.write('Force;SAMC,{};varsav\n'.format(grad_name))
+                tempfile.write(f'Force;SAMC,{grad_name};varsav\n')
 
         tempfile.close()
 
@@ -113,7 +113,7 @@ class Molpro(Lot):
         self.Gradients = {}
         self.Energies = {}
         self.Couplings = {}
-        tempfilename = 'scratch/{}/gopro.com'.format(self.node_id)
+        tempfilename = f'scratch/{self.node_id}/gopro.com'
         try:
             scratch = os.environ['SLURM_LOCAL_SCRATCH']
             args = ['-W', 'scratch', '-n', str(self.nproc), tempfilename, '-d', scratch]
@@ -128,7 +128,7 @@ class Molpro(Lot):
         # Run Process
         command = ['molpro']
         command.extend(args)
-        output = subprocess.Popen(command, stdout=open('scratch/{}/gopro.out'.format(self.node_id), 'w'), stderr=subprocess.PIPE).communicate()
+        output = subprocess.Popen(command, stdout=open(f'scratch/{self.node_id}/gopro.out', 'w'), stderr=subprocess.PIPE).communicate()
         print(output[0])
 
         # Parse
@@ -140,7 +140,7 @@ class Molpro(Lot):
 
     def parse(self):
         # Now read the output
-        tempfileout = 'scratch/{}/gopro.out'.format(self.node_id)
+        tempfileout = f'scratch/{self.node_id}/gopro.out'
         pattern = re.compile(r'MCSCF STATE \d.1 Energy \s* ([-+]?[0-9]*\.?[0-9]+)')
         tmp = []
         for i, line in enumerate(open(tempfileout)):
@@ -190,7 +190,7 @@ class Molpro(Lot):
         # print(" old node id = ",self.node_id)
         node_id = options.get('node_id', 1)
         if node_id != lot.node_id and copy_wavefunction:
-            cmd = "cp scratch/mp_{:04d}_{:04d} scratch/mp_{:04d}_{:04d}".format(lot.ID, lot.node_id, lot.ID, node_id)
+            cmd = f"cp scratch/mp_{lot.ID:04d}_{lot.node_id:04d} scratch/mp_{lot.ID:04d}_{node_id:04d}"
             print(cmd)
             os.system(cmd)
         return cls(lot.options.copy().set_values(options))

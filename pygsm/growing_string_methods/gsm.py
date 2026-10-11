@@ -408,7 +408,7 @@ class GSM(object):
             ictan, bdist = GSM.get_tangent(nodeR, None, driving_coords=driving_coords)
 
             if bdist < BDISTMIN:
-                print("bdist too small %.3f" % bdist)
+                print(f"bdist too small {bdist:.3f}")
                 return None
             new_node = Molecule.copy_from_options(nodeR, new_node_id=node_id)
             new_node.update_coordinate_basis(constraints=ictan)
@@ -423,10 +423,10 @@ class GSM(object):
             dqmag = sign*(DQMAG_MIN+minmax*a)
             if dqmag > DQMAG_MAX:
                 dqmag = DQMAG_MAX
-            print(" dqmag: %4.3f from bdist: %4.3f" % (dqmag, bdist))
+            print(f" dqmag: {dqmag:4.3f} from bdist: {bdist:4.3f}")
 
             dq0 = dqmag*constraint
-            print(" dq0[constraint]: %1.3f" % dqmag)
+            print(f" dq0[constraint]: {dqmag:1.3f}")
 
             new_node.update_xyz(dq0)
             new_node.bdist = bdist
@@ -436,11 +436,11 @@ class GSM(object):
             nodeR.update_coordinate_basis(constraints=ictan)
             constraint = nodeR.constraints[:, 0]
             dqmag = np.linalg.norm(ictan)
-            print(" dqmag: %1.3f" % dqmag)
+            print(f" dqmag: {dqmag:1.3f}")
             # sign=-1
             sign = 1.
             dqmag *= (sign*stepsize)
-            print(" scaled dqmag: %1.3f" % dqmag)
+            print(f" scaled dqmag: {dqmag:1.3f}")
 
             dq0 = dqmag*constraint
             old_xyz = nodeR.xyz.copy()
@@ -459,11 +459,11 @@ class GSM(object):
         constraint = nodeR.constraints[:, 0]
         prim_constraint = block_matrix.dot(Vecs, constraint)
         dqmag = np.dot(prim_constraint.T, ictan)
-        print(" dqmag: %1.3f" % dqmag)
+        print(f" dqmag: {dqmag:1.3f}")
         # sign=-1
         sign = 1.
         dqmag *= (sign*stepsize)
-        print(" scaled dqmag: %1.3f" % dqmag)
+        print(f" scaled dqmag: {dqmag:1.3f}")
 
         dq0 = dqmag*constraint
         old_xyz = nodeR.xyz.copy()
@@ -535,7 +535,7 @@ class GSM(object):
         '''
 
         if node2 is not None and node1.node_id != node2.node_id:
-            print(" getting tangent from between %i %i pointing towards %i" % (node2.node_id, node1.node_id, node2.node_id))
+            print(f" getting tangent from between {node2.node_id} {node1.node_id} pointing towards {node2.node_id}")
             assert node2 != None, 'node n2 is None'
 
             PMDiff = np.zeros(node2.num_primitives)
@@ -590,7 +590,7 @@ class GSM(object):
                     if current_d > d0:
                         bdist += np.dot(ictan[prim_idx], ictan[prim_idx])
                     if print_level > 0:
-                        print(" bond %s target (less than): %4.3f current d: %4.3f diff: %4.3f " % ((i[1], i[2]), d0, current_d, np.asarray(ictan[prim_idx]).item()))
+                        print(f" bond {(i[1], i[2])} target (less than): {d0:4.3f} current d: {current_d:4.3f} diff: {np.asarray(ictan[prim_idx]).item():4.3f} ")
 
                 elif "BREAK" in i:
                     # order indices to avoid duplicate bonds
@@ -613,7 +613,7 @@ class GSM(object):
                         bdist += np.dot(ictan[prim_idx], ictan[prim_idx])
 
                     if print_level > 0:
-                        print(" bond %s target (greater than): %4.3f, current d: %4.3f diff: %4.3f " % ((i[1], i[2]), d0, current_d, np.asarray(ictan[prim_idx]).item()))
+                        print(f" bond {(i[1], i[2])} target (greater than): {d0:4.3f}, current d: {current_d:4.3f} diff: {np.asarray(ictan[prim_idx]).item():4.3f} ")
                 elif "ANGLE" in i:
 
                     if i[1] < i[3]:
@@ -627,7 +627,7 @@ class GSM(object):
                     ang_diff = anglet*np.pi/180. - ang_value
                     # print(" angle: %s is index %i " %(angle,ang_idx))
                     if print_level > 0:
-                        print((" anglev: %4.3f align to %4.3f diff(rad): %4.3f" % (ang_value, anglet, ang_diff)))
+                        print((f" anglev: {ang_value:4.3f} align to {anglet:4.3f} diff(rad): {ang_diff:4.3f}"))
                     ictan[prim_idx] = -ang_diff
                     # TODO need to come up with an adist
                     # if abs(ang_diff)>0.1:
@@ -652,7 +652,7 @@ class GSM(object):
                     if tor_diff*np.pi/180. > 0.1 or tor_diff*np.pi/180. < 0.1:
                         bdist += np.dot(ictan[prim_idx], ictan[prim_idx])
                     if print_level > 0:
-                        print((" current torv: %4.3f align to %4.3f diff(deg): %4.3f" % (torv*180./np.pi, tort, tor_diff)))
+                        print((f" current torv: {torv*180./np.pi:4.3f} align to {tort:4.3f} diff(deg): {tor_diff:4.3f}"))
 
                 elif "OOP" in i:
                     index = [i[1]-1, i[2]-1, i[3]-1, i[4]-1]
@@ -670,7 +670,7 @@ class GSM(object):
                     if oop_diff*np.pi/180. > 0.1 or oop_diff*np.pi/180. < 0.1:
                         bdist += np.dot(ictan[prim_idx], ictan[prim_idx])
                     if print_level > 0:
-                        print((" current oopv: %4.3f align to %4.3f diff(deg): %4.3f" % (oopv*180./np.pi, oopt, oop_diff)))
+                        print((f" current oopv: {oopv*180./np.pi:4.3f} align to {oopt:4.3f} diff(deg): {oop_diff:4.3f}"))
 
             bdist = np.sqrt(bdist)
             if np.all(ictan == 0.0):
@@ -721,12 +721,12 @@ class GSM(object):
         if print_level > 1:
             print('------------printing ictan[:]-------------')
             for n in range(n0+1, nnodes):
-                print("ictan[%i]" % n)
+                print(f"ictan[{n}]")
                 print(ictan[n].T)
         if print_level > 0:
             print('------------printing dqmaga---------------')
             for n in range(n0+1, nnodes):
-                print(" {:5.4}".format(dqmaga[n]), end='')
+                print(f" {dqmaga[n]:5.4}", end='')
                 if (n) % 5 == 0:
                     print()
             print()
@@ -790,7 +790,7 @@ class GSM(object):
                     else:
                         f1 = 1 - dEmax/(dEmax+dEmin+0.00000001)
 
-                    print(' 3 way tangent ({}): f1:{:3.2}'.format(n, f1))
+                    print(f' 3 way tangent ({n}): f1:{f1:3.2}')
 
                     t1, _ = GSM.get_tangent(nodes[intic_n], nodes[newic_n])
                     t2, _ = GSM.get_tangent(nodes[newic_n], nodes[int2ic_n])
@@ -851,7 +851,7 @@ class GSM(object):
                 h1dqmag = np.sum(dqmaga[:TSnode+1])
                 h2dqmag = np.sum(dqmaga[TSnode+1:nnodes])
                 if print_level > 0:
-                    print(" h1dqmag, h2dqmag: %3.2f %3.2f" % (h1dqmag, h2dqmag))
+                    print(f" h1dqmag, h2dqmag: {h1dqmag:3.2f} {h2dqmag:3.2f}")
                 progress_gained[:TSnode] = dqmaga[:TSnode]/h1dqmag
                 progress_gained[TSnode+1:] = dqmaga[TSnode+1:]/h2dqmag
                 progress[:TSnode] = np.cumsum(progress_gained[:TSnode])
@@ -879,24 +879,24 @@ class GSM(object):
             if print_level > 1:
                 print(" ideal progress gained per step", end=' ')
                 for n in range(nnodes):
-                    print(" step [{}]: {:1.3f}".format(n, ideal_progress_gained[n]), end=' ')
+                    print(f" step [{n}]: {ideal_progress_gained[n]:1.3f}", end=' ')
                 print()
                 print(" path progress                 ", end=' ')
                 for n in range(nnodes):
-                    print(" step [{}]: {:1.3f}".format(n, progress_gained[n]), end=' ')
+                    print(f" step [{n}]: {progress_gained[n]:1.3f}", end=' ')
                 print()
                 print(" difference                    ", end=' ')
                 for n in range(nnodes):
-                    print(" step [{}]: {:1.3f}".format(n, difference[n]), end=' ')
+                    print(f" step [{n}]: {difference[n]:1.3f}", end=' ')
                 print()
                 print(" deltadqs                      ", end=' ')
                 for n in range(nnodes):
-                    print(" step [{}]: {:1.3f}".format(n, deltadqs[n]), end=' ')
+                    print(f" step [{n}]: {deltadqs[n]:1.3f}", end=' ')
                 print()
 
             # disprms = np.linalg.norm(deltadqs)/np.sqrt(nnodes-1)
             disprms = np.linalg.norm(deltadqs)/np.sqrt(nnodes-1)
-            print(" disprms: {:1.3}\n".format(disprms))
+            print(f" disprms: {disprms:1.3}\n")
 
             if disprms < 0.02:
                 break
@@ -939,13 +939,13 @@ class GSM(object):
                     for n in chain(range(1, TSnode), range(TSnode+1, nnodes-1)):
                         if deltadqs[n] < 0:
                             # print(f" Moving node {n} along tan[{n}] this much {deltadqs[n]}")
-                            print(" Moving node {} along tan[{}] this much {}".format(n, n, deltadqs[n]))
+                            print(f" Moving node {n} along tan[{n}] this much {deltadqs[n]}")
                             nodes[n].update_coordinate_basis(ictan[n])
                             constraint = nodes[n].constraints[:, 0]
                             dq = deltadqs[n]*constraint
                             nodes[n].update_xyz(dq, verbose=(print_level > 1))
                         elif deltadqs[n] > 0:
-                            print(" Moving node {} along tan[{}] this much {}".format(n, n+1, deltadqs[n]))
+                            print(f" Moving node {n} along tan[{n+1}] this much {deltadqs[n]}")
                             nodes[n].update_coordinate_basis(ictan[n+1])
                             constraint = nodes[n].constraints[:, 0]
                             dq = deltadqs[n]*constraint
@@ -983,13 +983,13 @@ class GSM(object):
                     for n in range(1, nnodes-1):
                         if deltadqs[n] < 0:
                             # print(f" Moving node {n} along tan[{n}] this much {deltadqs[n]}")
-                            print(" Moving node {} along tan[{}] this much {}".format(n, n, deltadqs[n]))
+                            print(f" Moving node {n} along tan[{n}] this much {deltadqs[n]}")
                             nodes[n].update_coordinate_basis(ictan[n])
                             constraint = nodes[n].constraints[:, 0]
                             dq = deltadqs[n]*constraint
                             nodes[n].update_xyz(dq, verbose=(print_level > 1))
                         elif deltadqs[n] > 0:
-                            print(" Moving node {} along tan[{}] this much {}".format(n, n+1, deltadqs[n]))
+                            print(f" Moving node {n} along tan[{n+1}] this much {deltadqs[n]}")
                             nodes[n].update_coordinate_basis(ictan[n+1])
                             constraint = nodes[n].constraints[:, 0]
                             dq = deltadqs[n]*constraint
@@ -1000,7 +1000,7 @@ class GSM(object):
             h1dqmag = np.sum(dqmaga[:TSnode+1])
             h2dqmag = np.sum(dqmaga[TSnode+1:nnodes])
             if print_level > 0:
-                print(" h1dqmag, h2dqmag: %3.2f %3.2f" % (h1dqmag, h2dqmag))
+                print(f" h1dqmag, h2dqmag: {h1dqmag:3.2f} {h2dqmag:3.2f}")
             progress_gained[:TSnode] = dqmaga[:TSnode]/h1dqmag
             progress_gained[TSnode+1:] = dqmaga[TSnode+1:]/h2dqmag
             progress[:TSnode] = np.cumsum(progress_gained[:TSnode])
@@ -1014,25 +1014,25 @@ class GSM(object):
         if print_level > 0:
             print(" ideal progress gained per step", end=' ')
             for n in range(nnodes):
-                print(" step [{}]: {:1.3f}".format(n, ideal_progress_gained[n]), end=' ')
+                print(f" step [{n}]: {ideal_progress_gained[n]:1.3f}", end=' ')
             print()
             print(" original path progress        ", end=' ')
             for n in range(nnodes):
-                print(" step [{}]: {:1.3f}".format(n, orig_progress_gained[n]), end=' ')
+                print(f" step [{n}]: {orig_progress_gained[n]:1.3f}", end=' ')
             print()
             print(" reparameterized path progress ", end=' ')
             for n in range(nnodes):
-                print(" step [{}]: {:1.3f}".format(n, progress_gained[n]), end=' ')
+                print(f" step [{n}]: {progress_gained[n]:1.3f}", end=' ')
             print()
 
         print(" spacings (begin ic_reparam, steps", end=' ')
         for n in range(nnodes):
-            print(" {:1.2}".format(orig_dqmaga[n]), end=' ')
+            print(f" {orig_dqmaga[n]:1.2}", end=' ')
         print()
-        print(" spacings (end ic_reparam, steps: {}/{}):".format(i+1, ic_reparam_steps), end=' ')
+        print(f" spacings (end ic_reparam, steps: {i+1}/{ic_reparam_steps}):", end=' ')
         for n in range(nnodes):
-            print(" {:1.2}".format(dqmaga[n]), end=' ')
-        print("\n  disprms: {:1.3}".format(disprms))
+            print(f" {dqmaga[n]:1.2}", end=' ')
+        print(f"\n  disprms: {disprms:1.3}")
 
         return
 
