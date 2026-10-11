@@ -1,4 +1,3 @@
-import multiprocessing as mp
 import os
 from itertools import chain
 
@@ -13,7 +12,7 @@ from pygsm.utilities.output import printcool
 
 from ._growth import grow_string as _grow_string
 from ._optimization import optimize_string as _optimize_string
-from ._shared import worker
+from ._shared import map_method
 from .gsm import GSM
 
 #######################################################################################
@@ -47,17 +46,14 @@ class MainGSM(GSM):
                         self.nodes[n].coord_basis = Vecs
 
             else:
-                pool = mp.Pool(self.mp_cores)
-                Vecs = pool.map(
-                    worker,
+                Vecs = map_method(
                     (
                         (self.newic.coord_obj, 'build_dlc', self.nodes[n].xyz, self.ictan[n])
                         for n in range(1, self.nnodes - 1)
                         if self.nodes[n] is not None
                     ),
+                    self.mp_cores,
                 )
-                pool.close()
-                pool.join()
 
                 i = 0
                 for n in range(1, self.nnodes - 1):
@@ -74,17 +70,14 @@ class MainGSM(GSM):
                             Vecs = self.newic.coord_obj.build_dlc(self.nodes[n].xyz, self.ictan[n])
                             self.nodes[n].coord_basis = Vecs
                 else:
-                    pool = mp.Pool(self.mp_cores)
-                    Vecs = pool.map(
-                        worker,
+                    Vecs = map_method(
                         (
                             (self.newic.coord_obj, 'build_dlc', self.nodes[n].xyz, self.ictan[n])
                             for n in range(1, self.nnodes - 1)
                             if n != TSnode
                         ),
+                        self.mp_cores,
                     )
-                    pool.close()
-                    pool.join()
                     for i, n in enumerate(chain(range(1, TSnode), range(TSnode + 1, self.nnodes - 1))):
                         self.nodes[n].coord_basis = Vecs[i]
 
@@ -98,16 +91,13 @@ class MainGSM(GSM):
                     for n in range(1, self.nnodes - 1):
                         Vecs.append(self.newic.coord_obj.build_dlc(self.nodes[n].xyz, self.ictan[n]))
                 elif self.mp_cores > 1:
-                    pool = mp.Pool(self.mp_cores)
-                    Vecs = pool.map(
-                        worker,
+                    Vecs = map_method(
                         (
                             (self.newic.coord_obj, 'build_dlc', self.nodes[n].xyz, self.ictan[n])
                             for n in range(1, self.nnodes - 1)
                         ),
+                        self.mp_cores,
                     )
-                    pool.close()
-                    pool.join()
                 for n, node in enumerate(self.nodes[1 : self.nnodes - 1]):
                     node.coord_basis = Vecs[n]
 
@@ -465,17 +455,14 @@ class MainGSM(GSM):
             tan_list = self.make_tan_list()
 
             if self.mp_cores > 1:
-                pool = mp.Pool(self.mp_cores)
-                Vecs = pool.map(
-                    worker,
+                Vecs = map_method(
                     (
                         (self.nodes[0].coord_obj, 'build_dlc', self.nodes[n].xyz, self.ictan[ntan])
                         for n, ntan in zip(move_list, tan_list)
                         if rpmove[n] < 0
                     ),
+                    self.mp_cores,
                 )
-                pool.close()
-                pool.join()
 
                 i = 0
                 for n in move_list:
@@ -484,9 +471,7 @@ class MainGSM(GSM):
                         i += 1
 
                 # move the positions
-                pool = mp.Pool(self.mp_cores)
-                newXyzs = pool.map(
-                    worker,
+                newXyzs = map_method(
                     (
                         (
                             self.nodes[n].coord_obj,
@@ -497,9 +482,8 @@ class MainGSM(GSM):
                         for n in move_list
                         if rpmove[n] < 0
                     ),
+                    self.mp_cores,
                 )
-                pool.close()
-                pool.join()
                 i = 0
                 for n in move_list:
                     if rpmove[n] < 0:

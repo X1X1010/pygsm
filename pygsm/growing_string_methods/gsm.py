@@ -1,5 +1,4 @@
 import math
-import multiprocessing as mp
 import os
 from collections import Counter
 from copy import copy
@@ -13,7 +12,7 @@ from pygsm.potential_energy_surfaces import Penalty_PES
 from pygsm.utilities import options, output
 from pygsm.utilities.manage_xyz import write_molden_geoms
 
-from ._shared import worker
+from ._shared import map_method
 
 #######################################################################################
 #### This class contains the main constructor, object properties and staticmethods ####
@@ -749,16 +748,13 @@ class GSM:
                         ictan[n] if deltadqs[n] < 0 else ictan[n + 1]
                         for n in chain(range(1, TSnode), range(TSnode + 1, nnodes - 1))
                     ]  # + [ ictan[n] if deltadqs[n]<0 else ictan[n+1] for n in range(TSnode+1,nnodes-1)]
-                    pool = mp.Pool(NUM_CORE)
-                    Vecs = pool.map(
-                        worker,
+                    Vecs = map_method(
                         (
                             (nodes[0].coord_obj, 'build_dlc', node.xyz, tan)
                             for node, tan in zip(nodes[1:TSnode] + nodes[TSnode + 1 : nnodes - 1], tans)
                         ),
+                        NUM_CORE,
                     )
-                    pool.close()
-                    pool.join()
                     for n, node in enumerate(nodes[1:TSnode] + nodes[TSnode + 1 : nnodes - 1]):
                         node.coord_basis = Vecs[n]
 
@@ -767,16 +763,13 @@ class GSM:
                         deltadqs[n] * nodes[n].constraints[:, 0]
                         for n in chain(range(1, TSnode), range(TSnode + 1, nnodes - 1))
                     ]
-                    pool = mp.Pool(NUM_CORE)
-                    newXyzs = pool.map(
-                        worker,
+                    newXyzs = map_method(
                         (
                             (node.coord_obj, 'newCartesian', node.xyz, dq)
                             for node, dq in zip(nodes[1:TSnode] + nodes[TSnode + 1 : nnodes - 1], dqs)
                         ),
+                        NUM_CORE,
                     )
-                    pool.close()
-                    pool.join()
                     for n, node in enumerate(nodes[1:TSnode] + nodes[TSnode + 1 : nnodes - 1]):
                         node.xyz = newXyzs[n]
                 else:
@@ -808,30 +801,24 @@ class GSM:
                 if NUM_CORE > 1:
                     # Update the coordinate basis
                     tans = [ictan[n] if deltadqs[n] < 0 else ictan[n + 1] for n in range(1, nnodes - 1)]
-                    pool = mp.Pool(NUM_CORE)
-                    Vecs = pool.map(
-                        worker,
+                    Vecs = map_method(
                         (
                             (nodes[0].coord_obj, 'build_dlc', node.xyz, tan)
                             for node, tan in zip(nodes[1 : nnodes - 1], tans)
                         ),
+                        NUM_CORE,
                     )
-                    pool.close()
-                    pool.join()
                     for n, node in enumerate(nodes[1 : nnodes - 1]):
                         node.coord_basis = Vecs[n]
                     # move the positions
                     dqs = [deltadqs[n] * nodes[n].constraints[:, 0] for n in range(1, nnodes - 1)]
-                    pool = mp.Pool(NUM_CORE)
-                    newXyzs = pool.map(
-                        worker,
+                    newXyzs = map_method(
                         (
                             (node.coord_obj, 'newCartesian', node.xyz, dq)
                             for node, dq in zip(nodes[1 : nnodes - 1], dqs)
                         ),
+                        NUM_CORE,
                     )
-                    pool.close()
-                    pool.join()
                     for n, node in enumerate(nodes[1 : nnodes - 1]):
                         node.xyz = newXyzs[n]
                 else:

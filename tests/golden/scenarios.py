@@ -243,7 +243,9 @@ def _gsm_result(gsm, counter):
     }
 
 
-def _de_gsm(method='ef', climb=True, optimize_endpoints=False, num_nodes=9, max_gsm_steps=20, coordinate_type='TRIC'):
+def _de_gsm(
+    method='ef', climb=True, optimize_endpoints=False, num_nodes=9, max_gsm_steps=20, coordinate_type='TRIC', mp_cores=1
+):
     from pygsm.growing_string_methods import DE_GSM
     from pygsm.molecule import Molecule
 
@@ -282,7 +284,7 @@ def _de_gsm(method='ef', climb=True, optimize_endpoints=False, num_nodes=9, max_
             optimizer=opt,
             ID=0,
             print_level=1,
-            mp_cores=1,
+            mp_cores=mp_cores,
             interp_method='DLC',
         )
         if optimize_endpoints:
@@ -305,6 +307,11 @@ def degsm_ef_noclimb():
 
 def degsm_lbfgs_climb():
     return _de_gsm('lbfgs', climb=True)
+
+
+def degsm_ef_mp2():
+    """Parallel node updates (mp_cores=2); differs from serial by design."""
+    return _de_gsm('ef', climb=True, mp_cores=2, max_gsm_steps=10)
 
 
 def degsm_ef_dlc():
@@ -495,6 +502,7 @@ SCENARIOS = {
         degsm_ef_noclimb,
         degsm_lbfgs_climb,
         degsm_ef_dlc,
+        degsm_ef_mp2,
         segsm_ef,
         mecp_penalty_ethylene,
         cli_de_gsm,
