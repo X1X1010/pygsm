@@ -8,7 +8,12 @@ from pathlib import Path
 
 import numpy as np
 
-from pygsm.coordinate_systems import DelocalizedInternalCoordinates, Distance, PrimitiveInternalCoordinates, Topology
+from pygsm.coordinate_systems import (
+    DelocalizedInternalCoordinates,
+    Distance,
+    PrimitiveInternalCoordinates,
+    build_topology,
+)
 from pygsm.coordinate_systems.primitive_internals import get_driving_coord_prim
 from pygsm.growing_string_methods import DE_GSM, SE_GSM, SE_Cross
 from pygsm.molecule import Molecule
@@ -84,7 +89,7 @@ def _build_topology_data(inpfileq: dict, geoms):
         assert inpfileq['coordinate_type'] == 'TRIC', "won't work (currently) with other coordinate systems"
         print(prim_indices)
 
-    top1 = Topology.build_topology(
+    top1 = build_topology(
         xyz1,
         atoms,
         hybrid_indices=hybrid_indices,
@@ -97,7 +102,7 @@ def _build_topology_data(inpfileq: dict, geoms):
     driving_coord_prims = []
     if inpfileq['gsm_type'] == 'DE_GSM':
         xyz2 = manage_xyz.xyz_to_np(geoms[-1])
-        top2 = Topology.build_topology(
+        top2 = build_topology(
             xyz2,
             atoms,
             hybrid_indices=hybrid_indices,

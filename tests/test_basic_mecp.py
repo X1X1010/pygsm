@@ -8,7 +8,7 @@ from pygsm.coordinate_systems.delocalized_coordinates import (
     DelocalizedInternalCoordinates,
 )
 from pygsm.coordinate_systems.primitive_internals import PrimitiveInternalCoordinates
-from pygsm.coordinate_systems.topology import Topology
+from pygsm.coordinate_systems.topology import build_topology
 from pygsm.level_of_theories.xtb_lot import xTB_lot
 from pygsm.molecule.molecule import Molecule
 from pygsm.optimizers import eigenvector_follow
@@ -57,7 +57,7 @@ def test_basic_penalty_opt():
     ELEMENT_TABLE = elements.ElementData()
     atoms = [ELEMENT_TABLE.from_symbol(atom) for atom in atom_symbols]
     xyz1 = manage_xyz.xyz_to_np(geom)
-    top1 = Topology.build_topology(
+    top1 = build_topology(
         xyz1,
         atoms,
         bondlistfile=None,

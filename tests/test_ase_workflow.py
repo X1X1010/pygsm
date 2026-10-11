@@ -7,7 +7,7 @@ pytest.importorskip('ase')
 
 from ase.calculators.morse import MorsePotential
 
-from pygsm.coordinate_systems import DelocalizedInternalCoordinates, Topology
+from pygsm.coordinate_systems import DelocalizedInternalCoordinates, build_topology
 from pygsm.growing_string_methods import GSM
 from pygsm.level_of_theories.ase import ASELoT
 from pygsm.molecule import Molecule
@@ -58,7 +58,7 @@ def test_topology_builds_expected_bonds_for_ethene():
     geom = _load_ethene_geom()
     xyz = manage_xyz.xyz_to_np(geom)
     atoms = _build_atom_list(geom)
-    topology = Topology.build_topology(xyz, atoms)
+    topology = build_topology(xyz, atoms)
 
     assert topology.number_of_nodes() == 6
     assert topology.number_of_edges() == 5
@@ -75,10 +75,10 @@ def test_topology_handles_fragmented_and_hybrid_indices():
     atoms = [element_table.from_symbol(atom[0]) for atom in geom]
     xyz = manage_xyz.xyz_to_np(geom)
 
-    fragmented = Topology.build_topology(xyz, atoms)
+    fragmented = build_topology(xyz, atoms)
     assert fragmented.number_of_edges() == 2
 
-    hybrid = Topology.build_topology(xyz, atoms, hybrid_indices=[1, 2])
+    hybrid = build_topology(xyz, atoms, hybrid_indices=[1, 2])
     assert set(hybrid.nodes()) == {0, 3}
 
 

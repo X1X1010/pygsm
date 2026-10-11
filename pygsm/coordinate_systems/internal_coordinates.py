@@ -1,7 +1,6 @@
 #!/usr/bin/env python
 
 # standard library imports
-import time
 
 # third party
 from collections import OrderedDict
@@ -12,7 +11,9 @@ from pygsm.utilities import block_matrix, elements, options, output
 
 ELEMENT_TABLE = elements.ElementData()
 
-CacheWarning = False
+# Warn once per process when a B-matrix cache grows suspiciously large.
+_CACHE_WARNING_ISSUED = False
+_CACHE_WARNING_SIZE = 1000
 
 
 class InternalCoordinates:
@@ -117,23 +118,23 @@ class InternalCoordinates:
         Given Cartesian coordinates xyz, return the Wilson B-matrix
         given by dq_i/dx_j where x is flattened (i.e. x1, y1, z1, x2, y2, z2)
         """
-        global CacheWarning
-        t0 = time.time()
-        xhash = hash(xyz.tostring())
-        time.time() - t0
+        xhash = hash(xyz.tobytes())
         if xhash in self.stored_wilsonB:
-            ans = self.stored_wilsonB[xhash]
-            return ans
-        WilsonB = []
+            return self.stored_wilsonB[xhash]
         Der = self.derivatives(xyz)
-        for i in range(Der.shape[0]):
-            WilsonB.append(Der[i].flatten())
-        self.stored_wilsonB[xhash] = np.array(WilsonB)
-        if len(self.stored_wilsonB) > 1000 and not CacheWarning:
-            output.logger.warning('\x1b[91mWarning: more than 100 B-matrices stored, memory leaks likely\x1b[0m')
-            CacheWarning = True
-        ans = np.array(WilsonB)
-        return ans
+        WilsonB = [Der[i].flatten() for i in range(Der.shape[0])]
+        self._store_wilsonB(xhash, np.array(WilsonB))
+        return np.array(WilsonB)
+
+    def _store_wilsonB(self, xhash, Bmat):
+        """Cache a B-matrix under the hash of its geometry, warning once if the cache grows large."""
+        global _CACHE_WARNING_ISSUED
+        self.stored_wilsonB[xhash] = Bmat
+        if len(self.stored_wilsonB) > _CACHE_WARNING_SIZE and not _CACHE_WARNING_ISSUED:
+            output.logger.warning(
+                f'\x1b[91mWarning: more than {_CACHE_WARNING_SIZE} B-matrices stored, memory leaks likely\x1b[0m'
+            )
+            _CACHE_WARNING_ISSUED = True
 
     def GMatrix(self, xyz, u=None):
         """

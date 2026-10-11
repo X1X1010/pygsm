@@ -2,7 +2,7 @@
 Regression tests for pyGSM issue #47: molecular fragments whose atom indices
 are interleaved (not grouped into contiguous per-fragment ranges).
 
-These build PrimitiveInternalCoordinates directly (Topology.build_topology ->
+These build PrimitiveInternalCoordinates directly (build_topology ->
 PrimitiveInternalCoordinates.from_options), without any electronic structure
 level of theory, following the lightweight construction pattern used in
 test_basic_mecp.py.
@@ -14,7 +14,7 @@ import numpy as np
 import pytest
 
 from pygsm.coordinate_systems.primitive_internals import PrimitiveInternalCoordinates
-from pygsm.coordinate_systems.topology import Topology
+from pygsm.coordinate_systems.topology import build_topology
 from pygsm.utilities import block_matrix, elements
 
 ELEMENT_TABLE = elements.ElementData()
@@ -40,7 +40,7 @@ def _build_two_diatomics(perm):
 
 
 def _build_primitives(xyz, atoms):
-    topology = Topology.build_topology(xyz, atoms, bondlistfile=None)
+    topology = build_topology(xyz, atoms, bondlistfile=None)
     return PrimitiveInternalCoordinates.from_options(
         xyz=xyz,
         atoms=atoms,

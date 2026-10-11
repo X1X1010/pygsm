@@ -14,7 +14,7 @@ from .slots import (
     TranslationY,
     TranslationZ,
 )
-from .topology import MyG, Topology
+from .topology import MolGraph, build_topology
 
 __all__ = [
     'Angle',
@@ -23,14 +23,14 @@ __all__ = [
     'Dihedral',
     'Distance',
     'InternalCoordinates',
-    'MyG',
+    'MolGraph',
     'OutOfPlane',
     'PrimitiveInternalCoordinates',
     'RotationA',
     'RotationB',
     'RotationC',
-    'Topology',
     'TranslationX',
     'TranslationY',
     'TranslationZ',
+    'build_topology',
 ]

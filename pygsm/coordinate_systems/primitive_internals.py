@@ -1,6 +1,5 @@
 # standard library imports
 import itertools
-import time
 from collections import OrderedDict, defaultdict
 from copy import copy, deepcopy
 
@@ -10,7 +9,7 @@ import numpy as np
 from scipy.linalg import block_diag
 
 # local application imports
-from pygsm.utilities import block_matrix, block_tensor, output
+from pygsm.utilities import block_matrix, block_tensor
 
 from .internal_coordinates import InternalCoordinates
 from .slots import (
@@ -29,9 +28,7 @@ from .slots import (
     TranslationY,
     TranslationZ,
 )
-from .topology import MyG, Topology
-
-CacheWarning = False
+from .topology import MolGraph, build_topology, distance_matrix
 
 
 def _merge_block_windows(raw_blocks):
@@ -94,12 +91,12 @@ class PrimitiveInternalCoordinates(InternalCoordinates):
                 print(
                     " Warning it's better to build the topology before calling PrimitiveInternals\n Only the most basic option is enabled here \n You get better control of the topology by controlling extra bonds, angles etc."
                 )
-                self.topology = Topology.build_topology(xyz, self.atoms)
+                self.topology = build_topology(xyz, self.atoms)
                 print(' done making topology')
 
             self.fragments = [self.topology.subgraph(c).copy() for c in nx.connected_components(self.topology)]
             for g in self.fragments:
-                g.__class__ = MyG
+                g.__class__ = MolGraph
 
             # ALEX CHANGE for lines 86-91
             self.get_hybrid_indices(xyz)
@@ -120,7 +117,7 @@ class PrimitiveInternalCoordinates(InternalCoordinates):
         newPrims.atoms = newPrims.options['atoms']
         newPrims.fragments = [Prims.topology.subgraph(c).copy() for c in nx.connected_components(Prims.topology)]
         for g in newPrims.fragments:
-            g.__class__ = MyG
+            g.__class__ = MolGraph
 
         return newPrims
 
@@ -130,13 +127,9 @@ class PrimitiveInternalCoordinates(InternalCoordinates):
         Given Cartesian coordinates xyz, return the Wilson B-matrix
         given by dq_i/dx_j where x is flattened (i.e. x1, y1, z1, x2, y2, z2)
         """
-        global CacheWarning
-        t0 = time.time()
         xhash = hash(xyz.tobytes())
-        time.time() - t0
         if xhash in self.stored_wilsonB:
-            ans = self.stored_wilsonB[xhash]
-            return ans
+            return self.stored_wilsonB[xhash]
         xyz = xyz.reshape(-1, 3)
 
         Blist = []
@@ -148,18 +141,11 @@ class PrimitiveInternalCoordinates(InternalCoordinates):
             Blist.append(np.array([p.derivative(xyz[sa:ea, :], start_idx=sa).flatten() for p in self.Internals[sp:ep]]))
 
         ans = block_matrix(Blist)
-
-        self.stored_wilsonB[xhash] = ans
-        if len(self.stored_wilsonB) > 1000 and not CacheWarning:
-            output.logger.warning('\x1b[91mWarning: more than 100 B-matrices stored, memory leaks likely\x1b[0m')
-            CacheWarning = True
+        self._store_wilsonB(xhash, ans)
         return ans
 
     def GMatrix(self, xyz):
-        time.time()
         Bmat = self.wilsonB(xyz)
-        time.time()
-
         return block_matrix.dot(Bmat, block_matrix.transpose(Bmat))
 
     def GInverse_EIG(self, xyz):
@@ -330,31 +316,26 @@ class PrimitiveInternalCoordinates(InternalCoordinates):
         # 9/2019 CRA what is the difference in performace/stability for SVD vs regular inverse?
         return self.GInverse_EIG(xyz)
 
-    def add(self, dof, verbose=False):
+    @staticmethod
+    def _add_to(internals, dof, verbose):
+        """Append ``dof`` unless an equal primitive is present (Cartesians are always appended)."""
         if isinstance(dof, (CartesianX, CartesianY, CartesianZ)):
             if verbose:
                 print((' adding ', dof))
-            self.Internals.append(dof)
-        elif dof not in self.Internals:
+            internals.append(dof)
+            return None
+        if dof not in internals:
             if verbose:
                 print((' adding ', dof))
-            self.Internals.append(dof)
+            internals.append(dof)
             return True
-        else:
-            return False
+        return False
+
+    def add(self, dof, verbose=False):
+        return self._add_to(self.Internals, dof, verbose)
 
     def tmp_add(self, dof, verbose=False):
-        if isinstance(dof, (CartesianX, CartesianY, CartesianZ)):
-            if verbose:
-                print((' adding ', dof))
-            self.tmp_Internals.append(dof)
-        elif dof not in self.tmp_Internals:
-            if verbose:
-                print((' adding ', dof))
-            self.tmp_Internals.append(dof)
-            return True
-        else:
-            return False
+        return self._add_to(self.tmp_Internals, dof, verbose)
 
     def dof_index(self, indice_tuple, dtype='Distance'):
         if dtype == 'Distance':
@@ -374,21 +355,21 @@ class PrimitiveInternalCoordinates(InternalCoordinates):
             raise NotImplementedError
         return self.Internals.index(prim)
 
-    def delete(self, dof):
+    @staticmethod
+    def _delete_from(internals, dof):
+        """Remove every primitive equal to ``dof``; return whether any was found."""
         found = False
-        for ii in range(len(self.Internals))[::-1]:
-            if dof == self.Internals[ii]:
-                del self.Internals[ii]
+        for ii in range(len(internals))[::-1]:
+            if dof == internals[ii]:
+                del internals[ii]
                 found = True
         return found
 
+    def delete(self, dof):
+        return self._delete_from(self.Internals, dof)
+
     def tmp_delete(self, dof):
-        found = False
-        for ii in range(len(self.tmp_Internals))[::-1]:
-            if dof == self.tmp_Internals[ii]:
-                del self.tmp_Internals[ii]
-                found = True
-        return found
+        return self._delete_from(self.tmp_Internals, dof)
 
     def addConstraint(self, cPrim, cVal=None, xyz=None):
         if cVal is None and xyz is None:
@@ -488,7 +469,7 @@ class PrimitiveInternalCoordinates(InternalCoordinates):
                 if connect:
                     # Connect all non-bonded fragments together
                     # Make a distance matrix mapping atom pairs to interatomic distances
-                    AtomIterator, dxij = Topology.distance_matrix(xyz, pbc=False)
+                    AtomIterator, dxij = distance_matrix(xyz, pbc=False)
                     D = {}
                     for i, j in zip(AtomIterator, dxij[0]):
                         assert i[0] < i[1]

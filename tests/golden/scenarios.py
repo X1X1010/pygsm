@@ -79,10 +79,10 @@ def _coord_flags(coordinate_type):
 
 
 def _union_topology(xyz1, xyz2, atoms):
-    from pygsm.coordinate_systems import Topology
+    from pygsm.coordinate_systems import build_topology
 
-    top1 = Topology.build_topology(xyz=xyz1, atoms=atoms)
-    top2 = Topology.build_topology(xyz=xyz2, atoms=atoms)
+    top1 = build_topology(xyz=xyz1, atoms=atoms)
+    top2 = build_topology(xyz=xyz2, atoms=atoms)
     for bond in top2.edges():
         if bond in top1.edges() or (bond[1], bond[0]) in top1.edges():
             continue
@@ -328,7 +328,7 @@ def segsm_ef():
         DelocalizedInternalCoordinates,
         Distance,
         PrimitiveInternalCoordinates,
-        Topology,
+        build_topology,
     )
     from pygsm.growing_string_methods import SE_GSM
     from pygsm.level_of_theories.ase import ASELoT
@@ -341,7 +341,7 @@ def segsm_ef():
     xyz1 = _xyz(geom)
     driving = [['ADD', 4, 12], ['ADD', 1, 11]]
     with _quiet():
-        top = Topology.build_topology(xyz1, atoms)
+        top = build_topology(xyz1, atoms)
         for dc in driving:
             a, b = sorted((dc[1] - 1, dc[2] - 1))
             prim = Distance(a, b)
@@ -403,7 +403,7 @@ def _two_state_lot_class():
 
 
 def mecp_penalty_ethylene():
-    from pygsm.coordinate_systems import DelocalizedInternalCoordinates, PrimitiveInternalCoordinates, Topology
+    from pygsm.coordinate_systems import DelocalizedInternalCoordinates, PrimitiveInternalCoordinates, build_topology
     from pygsm.molecule import Molecule
     from pygsm.potential_energy_surfaces import PES, Penalty_PES
     from pygsm.utilities import manage_xyz
@@ -426,7 +426,7 @@ def mecp_penalty_ethylene():
         pes1 = PES.from_options(lot=lot, multiplicity=1, ad_idx=0)
         pes2 = PES.from_options(lot=lot, multiplicity=3, ad_idx=0)
         pes = Penalty_PES(PES1=pes1, PES2=pes2, lot=lot, sigma=3.5)
-        top = Topology.build_topology(xyz, atoms)
+        top = build_topology(xyz, atoms)
         flags = _coord_flags('TRIC')
         p1 = PrimitiveInternalCoordinates.from_options(xyz=xyz, atoms=atoms, topology=top, **flags)
         dlc = DelocalizedInternalCoordinates.from_options(xyz=xyz, atoms=atoms, primitives=p1, **flags)

@@ -14,7 +14,7 @@ except ModuleNotFoundError:
 from pygsm.cli import cleanup_scratch, post_processing
 from pygsm.coordinate_systems.delocalized_coordinates import DelocalizedInternalCoordinates
 from pygsm.coordinate_systems.primitive_internals import PrimitiveInternalCoordinates
-from pygsm.coordinate_systems.topology import Topology
+from pygsm.coordinate_systems.topology import build_topology
 from pygsm.growing_string_methods import DE_GSM
 from pygsm.level_of_theories.ase import ASELoT
 from pygsm.molecule import Molecule
@@ -69,8 +69,8 @@ def minimal_wrapper_de_gsm(
     element_table = ElementData()
     elements = [element_table.from_symbol(sym) for sym in atoms_reactant.get_chemical_symbols()]
 
-    topology_reactant = Topology.build_topology(xyz=atoms_reactant.get_positions(), atoms=elements)
-    topology_product = Topology.build_topology(xyz=atoms_product.get_positions(), atoms=elements)
+    topology_reactant = build_topology(xyz=atoms_reactant.get_positions(), atoms=elements)
+    topology_product = build_topology(xyz=atoms_product.get_positions(), atoms=elements)
 
     # Union of bonds
     # debated if needed here or not
