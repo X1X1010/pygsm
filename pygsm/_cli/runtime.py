@@ -353,12 +353,12 @@ def main(argv: Sequence[str] | None = None):
         logger.error(f' GSM stopped: {error} (--max-gsm-iters); the last string is in string_{gsm.ID:03d}.xyz')
         raise SystemExit(1) from error
     if inpfileq['gsm_type'] == 'SE_Cross':
-        post_processing(gsm, analyze_ICs=inpfileq['dont_analyze_ICs'], have_TS=False)
+        post_processing(gsm, analyze_ICs=inpfileq['analyze_ICs'], have_TS=False)
         manage_xyz.write_xyz(f'meci_{gsm.ID:03d}.xyz', gsm.nodes[gsm.nR].geometry)
         if not gsm.end_early:
             manage_xyz.write_xyz(f'TSnode_{gsm.ID:03d}.xyz', gsm.nodes[gsm.TSnode].geometry)
     else:
-        post_processing(gsm, analyze_ICs=inpfileq['dont_analyze_ICs'], have_TS=True)
+        post_processing(gsm, analyze_ICs=inpfileq['analyze_ICs'], have_TS=True)
         manage_xyz.write_xyz(f'TSnode_{gsm.ID:03d}.xyz', gsm.nodes[gsm.TSnode].geometry)
 
 
@@ -397,10 +397,19 @@ def read_isomers_file(isomers_file):
     return driving_coordinates
 
 
-def post_processing(gsm, analyze_ICs=False, have_TS=True):
+def _write_ic_data(gsm, header: str, node_indices) -> None:
+    """Write the primitive internal coordinates of the given nodes to IC_data_<ID>.txt, one per line."""
+    columns = [gsm.nodes[0].primitive_internal_coordinates]
+    columns += [gsm.nodes[n].primitive_internal_values for n in node_indices]
+    with open(f'IC_data_{gsm.ID:03d}.txt', 'w') as handle:
+        handle.write(header + '\n')
+        for record in zip(*columns):
+            handle.write('\t'.join(str(v) for v in record) + '\n')
+
+
+def post_processing(gsm, analyze_ICs=True, have_TS=True):
     plot(fx=gsm.energies, x=range(len(gsm.energies)), title=gsm.ID)
 
-    internals = [gsm.nodes[0].primitive_internal_coordinates]
     if have_TS:
         minnodeR = np.argmin(gsm.energies[: gsm.TSnode])
         ts_energy = gsm.energies[gsm.TSnode] - gsm.energies[minnodeR]
@@ -408,25 +417,16 @@ def post_processing(gsm, analyze_ICs=False, have_TS=True):
         logger.info(f' absolute energy TS node {gsm.nodes[gsm.TSnode].energy:5.4f}')
         minnodeP = gsm.TSnode + np.argmin(gsm.energies[gsm.TSnode :])
         logger.info(f' min reactant node: {minnodeR} min product node {minnodeP} TS node is {gsm.TSnode}')
-
-        internals.append(gsm.nodes[minnodeR].primitive_internal_values)
-        internals.append(gsm.nodes[gsm.TSnode].primitive_internal_values)
-        internals.append(gsm.nodes[minnodeP].primitive_internal_values)
-        with open(f'IC_data_{gsm.ID:03d}.txt', 'w') as handle:
-            handle.write(f'Internals \t minnodeR: {minnodeR} \t TSnode: {gsm.TSnode} \t minnodeP: {minnodeP}\n')
-            for record in zip(*internals):
-                handle.write('\t'.join(str(v) for v in record))
+        if analyze_ICs:
+            header = f'Internals \t minnodeR: {minnodeR} \t TSnode: {gsm.TSnode} \t minnodeP: {minnodeP}'
+            _write_ic_data(gsm, header, (minnodeR, gsm.TSnode, minnodeP))
     else:
         minnodeR = 0
         minnodeP = gsm.nR
         logger.info(f' absolute energy end node {gsm.nodes[gsm.nR].energy:5.4f}')
         logger.info(f' difference energy end node {gsm.nodes[gsm.nR].difference_energy:5.4f}')
-        internals.append(gsm.nodes[minnodeR].primitive_internal_values)
-        internals.append(gsm.nodes[minnodeP].primitive_internal_values)
-        with open(f'IC_data_{gsm.ID:03d}.txt', 'w') as handle:
-            handle.write(f'Internals \t Beginning: {minnodeR} \t End: {minnodeP}')
-            for record in zip(*internals):
-                handle.write('\t'.join(str(v) for v in record))
+        if analyze_ICs:
+            _write_ic_data(gsm, f'Internals \t Beginning: {minnodeR} \t End: {minnodeP}', (minnodeR, minnodeP))
 
     delta_e = gsm.energies[minnodeP] - gsm.energies[minnodeR]
     logger.info(f' Delta E is {delta_e:5.4f}')
