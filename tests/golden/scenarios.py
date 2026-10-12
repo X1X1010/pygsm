@@ -52,20 +52,20 @@ class CallCounter:
 
 
 def _da_geoms():
-    from pygsm.utilities import manage_xyz
+    from pygsm.utils import manage_xyz
 
     return manage_xyz.read_xyzs(str(DATA_DIR / 'diels_alder.xyz'))
 
 
 def _atoms_of(geom):
-    from pygsm.utilities import elements, manage_xyz
+    from pygsm.utils import elements, manage_xyz
 
     table = elements.ElementData()
     return [table.from_symbol(sym) for sym in manage_xyz.get_atoms(geom)]
 
 
 def _xyz(geom):
-    from pygsm.utilities import manage_xyz
+    from pygsm.utils import manage_xyz
 
     return manage_xyz.xyz_to_np(geom)
 
@@ -79,7 +79,7 @@ def _coord_flags(coordinate_type):
 
 
 def _union_topology(xyz1, xyz2, atoms):
-    from pygsm.coordinate_systems import build_topology
+    from pygsm.coords import build_topology
 
     top1 = build_topology(xyz=xyz1, atoms=atoms)
     top2 = build_topology(xyz=xyz2, atoms=atoms)
@@ -94,7 +94,7 @@ def _union_topology(xyz1, xyz2, atoms):
 
 
 def _union_dlc(xyz1, xyz2, atoms, coordinate_type):
-    from pygsm.coordinate_systems import DelocalizedInternalCoordinates, PrimitiveInternalCoordinates
+    from pygsm.coords import DelocalizedInternalCoordinates, PrimitiveInternalCoordinates
 
     flags = _coord_flags(coordinate_type)
     top = _union_topology(xyz1, xyz2, atoms)
@@ -106,7 +106,7 @@ def _union_dlc(xyz1, xyz2, atoms, coordinate_type):
 
 
 def _dense(m):
-    from pygsm.utilities import block_matrix
+    from pygsm.utils import block_matrix
 
     return np.asarray(block_matrix.full_matrix(m)) if isinstance(m, block_matrix) else np.asarray(m)
 
@@ -173,9 +173,9 @@ def coords_tric_interleaved():
 
 
 def _molecule(geom, xyz2=None, coordinate_type='TRIC', form_hessian=True, counter=None, calc=None):
-    from pygsm.level_of_theories.ase import ASELoT
+    from pygsm.lot.ase import ASELoT
     from pygsm.molecule import Molecule
-    from pygsm.potential_energy_surfaces import PES
+    from pygsm.pes import PES
 
     atoms = _atoms_of(geom)
     xyz1 = _xyz(geom)
@@ -245,7 +245,7 @@ def _gsm_result(gsm, counter):
 def _de_gsm(
     method='ef', climb=True, optimize_endpoints=False, num_nodes=9, max_gsm_steps=20, coordinate_type='TRIC', mp_cores=1
 ):
-    from pygsm.growing_string_methods import DEGSM
+    from pygsm.gsm import DEGSM
     from pygsm.molecule import Molecule
 
     counter = CallCounter()
@@ -318,16 +318,16 @@ def degsm_ef_dlc():
 
 
 def segsm_ef():
-    from pygsm.coordinate_systems import (
+    from pygsm.coords import (
         DelocalizedInternalCoordinates,
         Distance,
         PrimitiveInternalCoordinates,
         build_topology,
     )
-    from pygsm.growing_string_methods import SEGSM
-    from pygsm.level_of_theories.ase import ASELoT
+    from pygsm.gsm import SEGSM
+    from pygsm.lot.ase import ASELoT
     from pygsm.molecule import Molecule
-    from pygsm.potential_energy_surfaces import PES
+    from pygsm.pes import PES
 
     counter = CallCounter()
     geom = _da_geoms()[0]
@@ -378,7 +378,7 @@ def segsm_ef():
 def _two_state_lot_class():
     from ase import units
 
-    from pygsm.level_of_theories.ase import ASELoT, xyz_to_ase
+    from pygsm.lot.ase import ASELoT, xyz_to_ase
 
     class TwoStateTBLite(ASELoT):
         """Test-only LoT: one tblite calculator per multiplicity."""
@@ -395,10 +395,10 @@ def _two_state_lot_class():
 
 
 def mecp_penalty_ethylene():
-    from pygsm.coordinate_systems import DelocalizedInternalCoordinates, PrimitiveInternalCoordinates, build_topology
+    from pygsm.coords import DelocalizedInternalCoordinates, PrimitiveInternalCoordinates, build_topology
     from pygsm.molecule import Molecule
-    from pygsm.potential_energy_surfaces import PES, PenaltyPES
-    from pygsm.utilities import manage_xyz
+    from pygsm.pes import PES, PenaltyPES
+    from pygsm.utils import manage_xyz
 
     geom = manage_xyz.read_xyzs(str(DATA_DIR / 'ethylene.xyz'))[0]
     xyz = _xyz(geom)
@@ -440,7 +440,7 @@ def mecp_penalty_ethylene():
 
 def _cli(argv, result_file='TSnode_000.xyz'):
     from pygsm.cli import main
-    from pygsm.utilities import manage_xyz
+    from pygsm.utils import manage_xyz
 
     with _quiet():
         main(argv)

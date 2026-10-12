@@ -7,19 +7,19 @@ from collections.abc import Sequence
 
 import numpy as np
 
-from pygsm.coordinate_systems import (
+from pygsm.coords import (
     DelocalizedInternalCoordinates,
     Distance,
     PrimitiveInternalCoordinates,
     build_topology,
 )
-from pygsm.coordinate_systems.primitive_internals import get_driving_coord_prim
-from pygsm.growing_string_methods import DEGSM, SEGSM, SECross
+from pygsm.coords.primitives import get_driving_coord_prim
+from pygsm.gsm import DEGSM, SEGSM, SECross
 from pygsm.molecule import Molecule
-from pygsm.potential_energy_surfaces import PenaltyPES
-from pygsm.utilities import elements, manage_xyz, output
-from pygsm.utilities.cli_utils import plot
-from pygsm.utilities.manage_xyz import XYZ_WRITERS
+from pygsm.pes import PenaltyPES
+from pygsm.utils import elements, manage_xyz, output
+from pygsm.utils.cli_utils import plot
+from pygsm.utils.manage_xyz import XYZ_WRITERS
 
 from .arguments import parse_arguments
 from .factory import choose_optimizer, choose_pes, create_lot

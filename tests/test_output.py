@@ -2,7 +2,7 @@ import logging
 
 import pytest
 
-from pygsm.utilities import output
+from pygsm.utils import output
 
 
 def _remove_installed_handler():
@@ -22,7 +22,7 @@ def restore_logger():
 
 
 def test_library_is_silent_without_setup(capsys, restore_logger):
-    logging.getLogger('pygsm.growing_string_methods.gsm').warning('not shown')
+    logging.getLogger('pygsm.gsm.base').warning('not shown')
     captured = capsys.readouterr()
     assert captured.out == ''
     assert captured.err == ''

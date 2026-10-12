@@ -1,8 +1,8 @@
-from ._linesearch import NoLineSearch, backtrack
 from .beales_cg import BealesCG
-from .conjugate_gradient import ConjugateGradient
-from .eigenvector_follow import EigenvectorFollow
+from .cg import ConjugateGradient
+from .ef import EigenvectorFollow
 from .lbfgs import LBFGS
+from .linesearch import NoLineSearch, backtrack
 
 __all__ = [
     'LBFGS',

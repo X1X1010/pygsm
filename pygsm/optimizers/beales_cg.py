@@ -8,11 +8,11 @@ from typing import TYPE_CHECKING
 
 import numpy as np
 
-from ..coordinate_systems import CartesianCoordinates
-from ..utilities import block_matrix
+from ..coords import CartesianCoordinates
+from ..utils import block_matrix
 
 # local application imports
-from .base_optimizer import BaseOptimizer
+from .base import BaseOptimizer
 
 logger = logging.getLogger(__name__)
 

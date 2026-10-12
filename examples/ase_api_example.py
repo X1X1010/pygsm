@@ -10,12 +10,12 @@ from pathlib import Path
 import ase.io
 from ase.calculators.morse import MorsePotential
 
-from pygsm.coordinate_systems import DelocalizedInternalCoordinates
-from pygsm.level_of_theories.ase import ASELoT
+from pygsm.coords import DelocalizedInternalCoordinates
+from pygsm.lot.ase import ASELoT
 from pygsm.molecule import Molecule
 from pygsm.optimizers import EigenvectorFollow
-from pygsm.potential_energy_surfaces import PES
-from pygsm.utilities import elements, manage_xyz, output
+from pygsm.pes import PES
+from pygsm.utils import elements, manage_xyz, output
 
 
 def optimize(atoms, calculator, opt_steps=500):

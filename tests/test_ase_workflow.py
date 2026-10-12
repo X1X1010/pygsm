@@ -7,13 +7,13 @@ pytest.importorskip('ase')
 
 from ase.calculators.morse import MorsePotential
 
-from pygsm.coordinate_systems import DelocalizedInternalCoordinates, build_topology
-from pygsm.growing_string_methods import GSM
-from pygsm.level_of_theories.ase import ASELoT
+from pygsm.coords import DelocalizedInternalCoordinates, build_topology
+from pygsm.gsm import GSM
+from pygsm.lot.ase import ASELoT
 from pygsm.molecule import Molecule
 from pygsm.optimizers import EigenvectorFollow
-from pygsm.potential_energy_surfaces import PES
-from pygsm.utilities import elements, manage_xyz
+from pygsm.pes import PES
+from pygsm.utils import elements, manage_xyz
 
 DATA_DIR = Path(__file__).resolve().parent / 'data'
 

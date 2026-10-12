@@ -1,6 +1,6 @@
 import numpy as np
 
-from pygsm.coordinate_systems.slots import Rotator
+from pygsm.coords.slots import Rotator
 
 
 def test_reset_behaves_like_a_fresh_rotator():

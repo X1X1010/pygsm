@@ -4,17 +4,17 @@ import pytest
 
 pytest.importorskip('tblite')
 
-from pygsm.coordinate_systems.delocalized_coordinates import (
+from pygsm.coords.dlc import (
     DelocalizedInternalCoordinates,
 )
-from pygsm.coordinate_systems.primitive_internals import PrimitiveInternalCoordinates
-from pygsm.coordinate_systems.topology import build_topology
-from pygsm.level_of_theories.xtb_lot import XTBLoT
+from pygsm.coords.primitives import PrimitiveInternalCoordinates
+from pygsm.coords.topology import build_topology
+from pygsm.lot.xtb import XTBLoT
 from pygsm.molecule.molecule import Molecule
 from pygsm.optimizers import EigenvectorFollow
-from pygsm.potential_energy_surfaces.penalty_pes import PenaltyPES
-from pygsm.potential_energy_surfaces.pes import PES
-from pygsm.utilities import elements, manage_xyz, output
+from pygsm.pes.penalty import PenaltyPES
+from pygsm.pes.pes import PES
+from pygsm.utils import elements, manage_xyz, output
 
 
 def test_basic_penalty_opt():

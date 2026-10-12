@@ -9,8 +9,8 @@ from time import time
 
 import numpy as np
 
-from pygsm.coordinate_systems import CartesianCoordinates
-from pygsm.utilities import block_matrix, elements, manage_xyz, units
+from pygsm.coords import CartesianCoordinates
+from pygsm.utils import block_matrix, elements, manage_xyz, units
 
 from ._helpers import copy_geometry_inputs, copy_pes, load_geometry_inputs, validate_geometry_inputs
 

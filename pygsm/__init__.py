@@ -4,7 +4,7 @@ try:
     from ._version import __version__
 except ImportError:  # running from a source tree that was never installed
     __version__ = 'unknown'
-from .coordinate_systems import (
+from .coords import (
     Angle,
     CartesianCoordinates,
     DelocalizedInternalCoordinates,
@@ -22,10 +22,12 @@ from .coordinate_systems import (
     TranslationZ,
     build_topology,
 )
-from .growing_string_methods import DEGSM, GSM, SEGSM, MainGSM, SECross
+from .gsm import DEGSM, GSM, SEGSM, MainGSM, SECross
+from .lot import ASELoT, Lot, XTBLoT
 from .molecule import Molecule
 from .optimizers import LBFGS, BealesCG, ConjugateGradient, EigenvectorFollow, NoLineSearch, backtrack
-from .potential_energy_surfaces import PES, AvgPES, PenaltyPES
+from .pes import PES, AvgPES, PenaltyPES
+from .utils.output import setup_logging
 
 __all__ = [
     'DEGSM',
@@ -33,6 +35,7 @@ __all__ = [
     'LBFGS',
     'PES',
     'SEGSM',
+    'ASELoT',
     'Angle',
     'AvgPES',
     'BealesCG',
@@ -43,6 +46,7 @@ __all__ = [
     'Distance',
     'EigenvectorFollow',
     'InternalCoordinates',
+    'Lot',
     'MainGSM',
     'MolGraph',
     'Molecule',
@@ -57,7 +61,9 @@ __all__ = [
     'TranslationX',
     'TranslationY',
     'TranslationZ',
+    'XTBLoT',
     '__version__',
     'backtrack',
     'build_topology',
+    'setup_logging',
 ]

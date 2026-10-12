@@ -35,12 +35,12 @@ gsm -xyzfile reactant.xyz -mode SE_GSM -isomers isomers.txt -package ase \
 
 ## Python API
 ```python
-from pygsm.growing_string_methods import DEGSM
-from pygsm.level_of_theories.ase import ASELoT
+from pygsm.gsm import DEGSM
+from pygsm.lot.ase import ASELoT
 from pygsm.molecule import Molecule
 from pygsm.optimizers import EigenvectorFollow
-from pygsm.potential_energy_surfaces import PES
-from pygsm.utilities import output
+from pygsm.pes import PES
+from pygsm.utils import output
 
 output.setup_logging()                      # pygsm logs; it prints nothing unless you ask
 lot = ASELoT(calculator=calc, geom=geom)    # any ASE calculator

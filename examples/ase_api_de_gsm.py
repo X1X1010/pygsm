@@ -13,14 +13,14 @@ from pathlib import Path
 import ase.io
 from ase import Atoms
 
-from pygsm.coordinate_systems import DelocalizedInternalCoordinates, PrimitiveInternalCoordinates, build_topology
-from pygsm.growing_string_methods import DEGSM
-from pygsm.level_of_theories.ase import ASELoT
+from pygsm.coords import DelocalizedInternalCoordinates, PrimitiveInternalCoordinates, build_topology
+from pygsm.gsm import DEGSM
+from pygsm.lot.ase import ASELoT
 from pygsm.molecule import Molecule
 from pygsm.optimizers import LBFGS, EigenvectorFollow
-from pygsm.potential_energy_surfaces import PES
-from pygsm.utilities import output
-from pygsm.utilities.elements import ElementData
+from pygsm.pes import PES
+from pygsm.utils import output
+from pygsm.utils.elements import ElementData
 
 # go_gsm(rtype=...): 0 no climbing image, 1 climbing image, 2 climbing image + exact TS search
 CLIMB_ONLY = 1

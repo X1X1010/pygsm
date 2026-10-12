@@ -13,9 +13,9 @@ from collections import Counter
 import numpy as np
 import pytest
 
-from pygsm.coordinate_systems.primitive_internals import PrimitiveInternalCoordinates
-from pygsm.coordinate_systems.topology import build_topology
-from pygsm.utilities import block_matrix, elements
+from pygsm.coords.primitives import PrimitiveInternalCoordinates
+from pygsm.coords.topology import build_topology
+from pygsm.utils import block_matrix, elements
 
 ELEMENT_TABLE = elements.ElementData()
 
@@ -187,7 +187,7 @@ def test_rotator_derivatives_interleaved_match_finite_difference():
     Wilson B rows must match finite differences away from the reference
     geometry (the derivatives once used a contiguous atom range for the
     reference coordinates)."""
-    from pygsm.coordinate_systems import RotationA, RotationB, RotationC
+    from pygsm.coords import RotationA, RotationB, RotationC
 
     bent = np.array([[0.0, 0.0, 0.0], [1.0, 0.0, 0.0], [-0.3, 0.95, 0.0]])
     base_xyz = np.vstack([bent, bent + np.array([10.0, 0.0, 0.0])])  # A = 0,1,2 ; B = 3,4,5 (O-H-H)

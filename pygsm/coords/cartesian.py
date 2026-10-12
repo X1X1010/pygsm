@@ -1,0 +1,43 @@
+import numpy as np
+
+from .base import InternalCoordinates
+from .primitives import PrimitiveInternalCoordinates
+from .slots import CartesianX, CartesianY, CartesianZ
+
+
+class CartesianCoordinates(InternalCoordinates):
+    """
+    Cartesian coordinate system, written as a kind of internal coordinate class.
+    This one does not support constraints, because that requires adding some
+    primitive internal coordinates.
+
+    Parameters: see :class:`InternalCoordinates`.
+    """
+
+    def __init__(self, xyz, atoms, **kwargs):
+        super().__init__(xyz, atoms, **kwargs)
+        self.Internals = []
+        self.cPrims = []
+        self.cVals = []
+        self.natoms = len(self.atoms)
+        # Cartesian primitives only: skip topology and internal primitives
+        self.Prims = PrimitiveInternalCoordinates(**{**self.get_params(), 'form_topology': False})
+
+        for i in range(self.natoms):
+            self.Prims.add(CartesianX(i, w=1.0))
+            self.Prims.add(CartesianY(i, w=1.0))
+            self.Prims.add(CartesianZ(i, w=1.0))
+
+        self.Vecs = np.eye(3 * self.natoms)
+
+    def guess_hessian(self, xyz: np.ndarray):
+        return 0.5 * np.eye(xyz.size)
+
+    def calcGrad(self, xyz: np.ndarray, gradx: np.ndarray):
+        return gradx
+
+    def newCartesian(self, xyz: np.ndarray, dq: np.ndarray, verbose: bool = True):
+        return xyz + dq.reshape(-1, 3)
+
+    def calculate(self, coords: np.ndarray):
+        return coords

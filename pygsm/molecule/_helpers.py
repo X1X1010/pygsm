@@ -7,7 +7,7 @@ import os
 
 import numpy as np
 
-from pygsm.utilities import manage_xyz
+from pygsm.utils import manage_xyz
 
 logger = logging.getLogger(__name__)
 

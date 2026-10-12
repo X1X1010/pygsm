@@ -4,10 +4,10 @@ from __future__ import annotations
 
 import json
 
-from pygsm.level_of_theories.ase import ASELoT
-from pygsm.level_of_theories.xtb_lot import XTBLoT
+from pygsm.lot.ase import ASELoT
+from pygsm.lot.xtb import XTBLoT
 from pygsm.optimizers import LBFGS, BealesCG, ConjugateGradient, EigenvectorFollow
-from pygsm.potential_energy_surfaces import PES, AvgPES, PenaltyPES
+from pygsm.pes import PES, AvgPES, PenaltyPES
 
 
 def create_lot(inpfileq: dict, geom):

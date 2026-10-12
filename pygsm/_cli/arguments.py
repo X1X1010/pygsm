@@ -8,7 +8,7 @@ import os
 import textwrap
 from collections.abc import Sequence
 
-from pygsm.utilities import output
+from pygsm.utils import output
 
 logger = logging.getLogger(__name__)
 
