@@ -149,9 +149,8 @@ class MainGSM(GrowthMixin, OptimizationMixin, GSM):
                     xyzframerate=1,
                 )
 
-        # FIXME: 'SE-GSM' (hyphen) never matches the SE_GSM class, so this block never runs.
-        # Enabling it changes SE-GSM results; kept as is to preserve behaviour.
-        if self.__class__.__name__ == 'SE-GSM' and self.done_growing:
+        # SE-GSM: the last node is not optimised in the optimisation phase; relax it if it is not a minimum
+        if not self.is_double_ended and not self.is_crossing_search and self.done_growing:
             fp = self.find_peaks('opting')
             if (
                 self.energies[self.nnodes - 1] > self.energies[self.nnodes - 2]
@@ -163,7 +162,7 @@ class MainGSM(GrowthMixin, OptimizationMixin, GSM):
                     molecule=self.nodes[self.nnodes - 1],
                     refE=refE,
                     opt_type='UNCONSTRAINED',
-                    opt_steps=osteps,
+                    opt_steps=opt_steps,
                     ictan=None,
                 )
 
