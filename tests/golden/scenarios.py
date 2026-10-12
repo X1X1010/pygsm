@@ -451,9 +451,9 @@ def _cli(argv, result_file='TSnode_000.xyz'):
 def cli_de_gsm():
     xyz = str(DATA_DIR / 'diels_alder.xyz')
     return _cli([
-        '-xyzfile', xyz, '-mode', 'DE_GSM', '-package', 'ase',
+        '--xyzfile', xyz, '--mode', 'DE_GSM', '--package', 'ase',
         '--ase-class', 'tblite.ase.TBLite', '--ase-kwargs', '{"method": "GFN2-xTB", "verbosity": 0}',
-        '-num_nodes', '9', '-max_gsm_iters', '15', '-reactant_geom_fixed', '-product_geom_fixed',
+        '--num-nodes', '9', '--max-gsm-iters', '15', '--reactant-geom-fixed', '--product-geom-fixed',
     ])  # fmt: skip
 
 
@@ -461,8 +461,8 @@ def cli_de_gsm_xtb():
     """DE-GSM through the native tblite-backed xTB level of theory."""
     xyz = str(DATA_DIR / 'diels_alder.xyz')
     return _cli([
-        '-xyzfile', xyz, '-mode', 'DE_GSM', '-package', 'xTB',
-        '-num_nodes', '9', '-max_gsm_iters', '15', '-reactant_geom_fixed', '-product_geom_fixed',
+        '--xyzfile', xyz, '--mode', 'DE_GSM', '--package', 'xTB',
+        '--num-nodes', '9', '--max-gsm-iters', '15', '--reactant-geom-fixed', '--product-geom-fixed',
     ])  # fmt: skip
 
 
@@ -470,9 +470,9 @@ def cli_se_gsm():
     xyz = str(DATA_DIR / 'diels_alder.xyz')
     Path('isomers.txt').write_text('ADD 4 12\nADD 1 11\n')
     return _cli([
-        '-xyzfile', xyz, '-mode', 'SE_GSM', '-isomers', 'isomers.txt', '-package', 'ase',
+        '--xyzfile', xyz, '--mode', 'SE_GSM', '--isomers', 'isomers.txt', '--package', 'ase',
         '--ase-class', 'tblite.ase.TBLite', '--ase-kwargs', '{"method": "GFN2-xTB", "verbosity": 0}',
-        '-num_nodes', '30', '-max_gsm_iters', '15',
+        '--num-nodes', '30', '--max-gsm-iters', '15',
     ])  # fmt: skip
 
 
@@ -482,8 +482,8 @@ def cli_se_cross():
     Path('isomers.txt').write_text('TORSION 2 1 4 5 90.0\n')
     return _cli(
         [
-            '-xyzfile', xyz, '-mode', 'SE_Cross', '-isomers', 'isomers.txt', '-package', 'xTB',
-            '-multiplicity', '1', '3', '-adiabatic_index', '0', '0', '-num_nodes', '20', '-max_gsm_iters', '15',
+            '--xyzfile', xyz, '--mode', 'SE_Cross', '--isomers', 'isomers.txt', '--package', 'xTB',
+            '--multiplicity', '1', '3', '--adiabatic-index', '0', '0', '--num-nodes', '20', '--max-gsm-iters', '15',
         ],
         result_file='meci_000.xyz',
     )  # fmt: skip

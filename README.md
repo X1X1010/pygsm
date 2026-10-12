@@ -17,21 +17,23 @@ Extras: `ase` (any ASE calculator as the level of theory), `xtb` (GFN-xTB via tb
 
 ## Command line
 ```
-gsm -xyzfile reaction.xyz -mode DE_GSM -package xTB -num_nodes 11
-gsm -xyzfile reactant.xyz -mode SE_GSM -isomers isomers.txt -package ase \
+gsm --xyzfile reaction.xyz --mode DE_GSM --package xTB --num-nodes 11
+gsm --xyzfile reactant.xyz -m SE_GSM -i isomers.txt -p ase \
     --ase-class tblite.ase.TBLite --ase-kwargs '{"method": "GFN2-xTB"}'
 ```
-`gsm --help` lists all options. A run writes, to the working directory (`<ID>` is `-ID`, default `000`):
+`gsm --help` lists all options; `-m`, `-p`, `-n` and `-i` are short for `--mode`, `--package`,
+`--num-nodes` and `--isomers`. The old single-dash spellings (`-num_nodes`, `-CONV_TOL`, ...) still
+work but are deprecated. A run writes, to the working directory (`<ID>` is `--id`, default `000`):
 
 | file | content |
 |---|---|
-| `string_<ID>.xyz` | the string (Molden format), updated every iteration; restart with `-restart_file` |
+| `string_<ID>.xyz` | the string (Molden format), updated every iteration; restart with `--restart-file` |
 | `grown_string_<ID>.xyz` | the string at the end of growth (SE-GSM, SE-Cross) |
 | `TSnode_<ID>.xyz` / `meci_<ID>.xyz` | highest-energy node / MECI |
 | `IC_data_<ID>.txt` | internal coordinates of the minima and TS |
 | `string_<ID>.png` | energy profile (needs the `plot` extra) |
 
-`-log_level DEBUG` adds the per-step diagnostics to the log.
+`--log-level DEBUG` adds the per-step diagnostics to the log.
 
 ## Python API
 ```python

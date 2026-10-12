@@ -15,15 +15,15 @@ def test_parse_arguments_handles_cli_defaults():
     config = parse_arguments(
         verbose=False,
         argv=[
-            '-xyzfile',
+            '--xyzfile',
             str(DATA_DIR / 'ethylene.xyz'),
-            '-mode',
+            '--mode',
             'SE_GSM',
-            '-package',
+            '--package',
             'ase',
             '--ase-class',
             'ase.calculators.morse.MorsePotential',
-            '-nproc',
+            '--nproc',
             '4',
         ],
     )
@@ -31,6 +31,25 @@ def test_parse_arguments_handles_cli_defaults():
     assert config['EST_Package'] == 'ase'
     assert config['gsm_type'] == 'SE_GSM'
     assert config['nproc'] == 4
+
+
+def test_short_options_and_legacy_single_dash_spellings():
+    base = [
+        '--xyzfile',
+        str(DATA_DIR / 'ethylene.xyz'),
+        '-p',
+        'ase',
+        '--ase-class',
+        'ase.calculators.morse.MorsePotential',
+    ]
+    short = parse_arguments(verbose=False, argv=[*base, '-m', 'SE_GSM', '-n', '7', '-i', 'isomers.txt'])
+    assert (short['gsm_type'], short['num_nodes'], short['isomers_file']) == ('SE_GSM', 7, 'isomers.txt')
+
+    with pytest.warns(FutureWarning, match='-num_nodes -> --num-nodes'):
+        legacy = parse_arguments(
+            verbose=False, argv=[*base, '-mode', 'SE_GSM', '-num_nodes', '7', '-CONV_TOL=0.001', '-ID', '3']
+        )
+    assert (legacy['gsm_type'], legacy['num_nodes'], legacy['CONV_TOL'], legacy['ID']) == ('SE_GSM', 7, 0.001, 3)
 
 
 def test_python_module_cli_help_smoke():
