@@ -58,12 +58,10 @@ class SEGSM(MainGSM):
                 if self.pastts == 1:  # normal over the hill
                     self.add_GSM_nodeR(1)
                     self.add_last_node(2)
-                elif self.pastts == 2 or self.pastts == 3:  # when cgrad is positive
+                elif self.pastts in (2, 3):  # 2: constraint gradient positive, 3: product bonds formed
                     self.add_last_node(1)
                     if self.nodes[self.nR - 1].gradrms > 5.0 * self.options.CONV_TOL:
                         self.add_last_node(1)
-                elif self.pastts == 3:  # product detected by bonding
-                    self.add_last_node(1)
             except (IndexError, RuntimeError, ValueError) as error:
                 logger.warning(f'Failed to add last node, continuing: {error}')
                 # probably need to make sure last node is optimized
