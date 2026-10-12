@@ -16,14 +16,90 @@ Extras: `ase` (any ASE calculator as the level of theory), `xtb` (GFN-xTB via tb
 `plot` (string energy plot in the CLI), `test`, and `dev` (ruff, pre-commit, coverage).
 
 ## Command line
+The `gsm` command runs DE-GSM, SE-GSM or SE-Cross on an xyz file:
 ```
-gsm --xyzfile reaction.xyz --mode DE_GSM --package xTB --num-nodes 11
-gsm --xyzfile reactant.xyz -m SE_GSM -i isomers.txt -p ase \
+# DE-GSM: reaction.xyz holds the reactant and product frames
+gsm --xyzfile reaction.xyz -m DE_GSM -p xTB
+
+# SE-GSM: drive the reactant along the coordinates in isomers.txt
+gsm --xyzfile reactant.xyz -m SE_GSM -i isomers.txt -p xTB
+
+# any ASE calculator as the level of theory
+gsm --xyzfile reaction.xyz -m DE_GSM -p ase \
     --ase-class tblite.ase.TBLite --ase-kwargs '{"method": "GFN2-xTB"}'
+
+# SE-Cross: singlet/triplet crossing (MECI/MESX) on a penalty surface
+gsm --xyzfile reactant.xyz -m SE_Cross -i isomers.txt -p xTB --multiplicity 1 3 --adiabatic-index 0 0
+
+# restart from the string written by an earlier run
+gsm --xyzfile reaction.xyz -m DE_GSM -p xTB --restart-file string_000.xyz
 ```
-`gsm --help` lists all options; `-m`, `-p`, `-n` and `-i` are short for `--mode`, `--package`,
+Options use `--kebab-case`; `-m`, `-p`, `-n` and `-i` are short for `--mode`, `--package`,
 `--num-nodes` and `--isomers`. The old single-dash spellings (`-num_nodes`, `-CONV_TOL`, ...) still
-work but are deprecated. A run writes, to the working directory (`<ID>` is `--id`, default `000`):
+work but print a deprecation warning. `gsm --help` lists every option; the main ones are:
+
+| option | default | meaning |
+|---|---|---|
+| **input** | | |
+| `--xyzfile FILE` | required | xyz file: reactant and product frames (DE-GSM) or the reactant (SE modes) |
+| `-m`, `--mode` | required | `DE_GSM`, `SE_GSM` or `SE_Cross` |
+| `-i`, `--isomers FILE` | | driving coordinates (SE modes; format below) |
+| `--charge N` | 0 | total charge |
+| `--multiplicity M ...` | 1 | spin multiplicity of each state |
+| `--adiabatic-index I ...` | 0 | adiabatic index of each state (0-based) |
+| `--pes-type` | `PES` | `PES`, `Avg_PES` or `Penalty_PES` (two states; SE-Cross always uses `Penalty_PES`) |
+| `--sigma S` | 1.0 | strength of the energy-gap penalty for `Penalty_PES` |
+| **level of theory** | | |
+| `-p`, `--package` | `xTB` | `xTB` (GFN-xTB via tblite) or `ase` |
+| `--xtb-hamiltonian` | `GFN2-xTB` | `GFN2-xTB`, `GFN1-xTB` or `IPEA1-xTB` |
+| `--xtb-accuracy`, `--xtb-electronic-temperature` | 1.0, 300 K | tblite settings |
+| `--solvent NAME` | none | ALPB implicit solvent (xTB only) |
+| `--ase-class PATH`, `--ase-kwargs JSON` | | ASE calculator class and its keyword arguments (`-p ase`) |
+| **string** | | |
+| `-n`, `--num-nodes N` | 9 DE-GSM, 20 SE | number of nodes |
+| `--coordinate-type` | `TRIC` | `TRIC`, `DLC` or `HDLC` |
+| `--max-gsm-iters N` | 100 | growth and optimisation iterations |
+| `--max-opt-steps N` | 3 DE-GSM, 20 SE | node optimisation steps per iteration |
+| `--conv-tol X` | 0.0005 | node gradrms convergence |
+| `--add-node-tol X` | 0.01 | gradrms at which the frontier node is good enough to add the next one |
+| `--conv-gmax`, `--conv-ediff`, `--conv-de` | 100, 100, 1.0 | max-gradient, energy-change and state-gap convergence |
+| `--growth-direction` | 0 | DE-GSM: 0 grow from both ends, 1 from the reactant, 2 from the product |
+| `--dqmag-max`, `--bdist-ratio` | 0.8, 0.5 | SE growth: max step along the driving coordinates; when growth is complete |
+| `--reactant-geom-fixed`, `--product-geom-fixed` | off | don't pre-optimise the end points |
+| `--mp-cores N` | 1 | processes for parallel node updates |
+| **TS search** | | |
+| *(default)* | | climbing image, then the exact TS search (needs `eigenvector_follow`; other optimizers fall back to climbing only) |
+| `--only-climb` | | climbing image only |
+| `--no-climb` | | neither |
+| `--optimize-meci`, `--optimize-mesx` | | crossing searches (with `--pes-type Penalty_PES`) |
+| **optimizer** | | |
+| `--optimizer` | `eigenvector_follow` | `eigenvector_follow`, `lbfgs` (large systems), `conjugate_gradient` or `beales_cg` |
+| `--linesearch` | `NoLineSearch` | `NoLineSearch` or `backtrack` |
+| `--dmax X` | 0.1 | initial step size |
+| **restart** | | |
+| `--restart-file FILE` | | string to start from instead of growing one (e.g. `string_000.xyz`) |
+| `--reparametrize` | off | redistribute the restart string's nodes evenly first |
+| `--start-climb-immediately` | off | start climbing straight away on restart |
+| **output** | | |
+| `--id N` | 0 | string id used in the output file names |
+| `--log-level` | `INFO` | `DEBUG` adds the per-step diagnostics; `WARNING` shows problems only |
+| `--xyz-output-format` | `molden` | `molden` (energies, gradients) or `multixyz` |
+| `--only-drive` | off | only build the interpolated string (no optimisation) and write `interpolated.xyz` |
+
+Less common options (`--force-file`, frozen/hybrid/fragment index files, `--bonds-file`, print
+levels) are described in `gsm --help`; index files are 0-based.
+
+**Driving coordinates** (`-i`): one per line, atoms numbered from 1 as in the xyz file:
+`ADD a b [d]` forms the a-b bond, `BREAK a b [d]` breaks it (target distance `d` in Angstrom,
+optional; the default comes from van der Waals radii), and `ANGLE a b c deg`, `TORSION a b c d deg`
+and `OOP a b c d deg` drive an angle, dihedral or out-of-plane angle to a target in degrees.
+The file has no comment syntax. For example, to form two bonds:
+```
+ADD 4 12
+ADD 1 11
+```
+
+**Output**: a run writes, to the working directory (`<ID>` is `--id` as 3 digits, default `000`):
 
 | file | content |
 |---|---|
@@ -33,7 +109,8 @@ work but are deprecated. A run writes, to the working directory (`<ID>` is `--id
 | `IC_data_<ID>.txt` | internal coordinates of the minima and TS |
 | `string_<ID>.png` | energy profile (needs the `plot` extra) |
 
-`--log-level DEBUG` adds the per-step diagnostics to the log.
+If DE-GSM cannot finish growing the string within `--max-gsm-iters`, `gsm` stops with an error
+(exit status 1) and the partial string stays in `string_<ID>.xyz`.
 
 ## Python API
 ```python
