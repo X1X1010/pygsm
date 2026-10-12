@@ -58,6 +58,40 @@ def test_num_nodes_default_depends_on_mode(mode, nodes):
     assert config['num_nodes'] == nodes
 
 
+def test_dont_analyze_ics_flag():
+    argv = ['--xyzfile', str(DATA_DIR / 'ethylene.xyz'), '-m', 'DE_GSM']
+    assert parse_arguments(verbose=False, argv=argv)['analyze_ICs'] is True
+    assert parse_arguments(verbose=False, argv=[*argv, '--dont-analyze-ics'])['analyze_ICs'] is False
+
+
+@pytest.mark.parametrize('analyze', [True, False])
+def test_post_processing_ic_data(tmp_path, monkeypatch, analyze):
+    from types import SimpleNamespace
+
+    from pygsm.cli import post_processing
+
+    monkeypatch.chdir(tmp_path)
+    monkeypatch.setattr('pygsm._cli.runtime.plot', lambda **kwargs: None)
+    energies = [0.0, 5.0, 12.0, 3.0, -4.0]
+    nodes = [
+        SimpleNamespace(
+            primitive_internal_coordinates=['bond 1-2', 'angle 1-2-3'],
+            primitive_internal_values=[1.0 + n, 2.0 + n],
+            energy=e,
+        )
+        for n, e in enumerate(energies)
+    ]
+    gsm = SimpleNamespace(ID=0, nodes=nodes, energies=energies, TSnode=2)
+    post_processing(gsm, analyze_ICs=analyze, have_TS=True)
+
+    path = tmp_path / 'IC_data_000.txt'
+    assert path.exists() is analyze
+    if analyze:
+        lines = path.read_text().splitlines()
+        assert lines[0].startswith('Internals')
+        assert lines[1:] == ['bond 1-2\t1.0\t3.0\t5.0', 'angle 1-2-3\t2.0\t4.0\t6.0']
+
+
 def test_python_module_cli_help_smoke():
     result = subprocess.run(
         [sys.executable, '-m', 'pygsm.cli', '--help'],

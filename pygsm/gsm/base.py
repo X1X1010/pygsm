@@ -63,7 +63,7 @@ class GSM:
     BDIST_RATIO : single-ended growth is complete once bdist drops below
         ``(1 - BDIST_RATIO)`` of its initial value.
     ID : string id used in file names.
-    interp_method : interpolation/reparametrisation method, ``'DLC'`` or ``'Geodesic'``.
+    interp_method : interpolation/reparametrisation method; only ``'DLC'`` is implemented.
     noise : energy noise used when checking for intermediates.
     output_dir : directory for string files (latest string as a restart checkpoint,
         grown string); None writes no files.
@@ -100,7 +100,7 @@ class GSM:
         output_dir: str | None = None,
     ):
         check_choice('growth_direction', growth_direction, (0, 1, 2))
-        check_choice('interp_method', interp_method, ('Geodesic', 'DLC'))
+        check_choice('interp_method', interp_method, ('DLC',))
         self.nnodes: int = nnodes
         self.nodes: list[Molecule] = [None for _ in range(self.nnodes)]
         self.nodes[0] = reactant

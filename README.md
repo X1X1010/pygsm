@@ -85,9 +85,13 @@ work but print a deprecation warning. `gsm --help` lists every option; the main 
 | `--log-level` | `INFO` | `DEBUG` adds the per-step diagnostics; `WARNING` shows problems only |
 | `--xyz-output-format` | `molden` | `molden` (energies, gradients) or `multixyz` |
 | `--only-drive` | off | only build the interpolated string (no optimisation) and write `interpolated.xyz` |
+| `--dont-analyze-ics` | off | don't write `IC_data_<ID>.txt` |
 
-Less common options (`--force-file`, frozen/hybrid/fragment index files, `--bonds-file`, print
-levels) are described in `gsm --help`; index files are 0-based.
+`--restraint-file` holds atoms near their input positions with harmonic restraints (one
+`atom k` per line, k in kcal/mol/A^2) and `--force-file` applies constant forces between atom pairs
+(one `atom1 atom2 force` per line, in au). These and the other less common options (frozen/hybrid/
+fragment index files, `--bonds-file`, print levels) are described in `gsm --help`; atom indices in
+all these files are 0-based.
 
 **Driving coordinates** (`-i`): one per line, atoms numbered from 1 as in the xyz file:
 `ADD a b [d]` forms the a-b bond, `BREAK a b [d]` breaks it (target distance `d` in Angstrom,

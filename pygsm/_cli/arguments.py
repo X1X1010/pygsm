@@ -32,13 +32,16 @@ def _build_parser() -> argparse.ArgumentParser:
     parser.add_argument(
         '-m',
         '--mode',
-        default='DE_GSM',
-        help='GSM Type (default: %(default)s)',
+        help='growing string method',
         choices=['DE_GSM', 'SE_GSM', 'SE_Cross'],
         type=str,
         required=True,
     )
-    parser.add_argument('--only-drive', action='store_true', help='')
+    parser.add_argument(
+        '--only-drive',
+        action='store_true',
+        help='only build the interpolated string (no optimisation); writes interpolated.xyz',
+    )
     parser.add_argument(
         '-p',
         '--package',
@@ -62,7 +65,7 @@ def _build_parser() -> argparse.ArgumentParser:
         '--pes-type',
         type=str,
         default='PES',
-        help='Potential energy surface (default: %(default)s)',
+        help='potential energy surface; Avg_PES and Penalty_PES need two states (default: %(default)s)',
         choices=['PES', 'Avg_PES', 'Penalty_PES'],
     )
     parser.add_argument(
@@ -70,23 +73,36 @@ def _build_parser() -> argparse.ArgumentParser:
         nargs='*',
         type=int,
         default=[0],
-        help='Adiabatic index (default: %(default)s)',
+        help='adiabatic index of each state, 0-based (default: %(default)s)',
         required=False,
     )
-    parser.add_argument('--multiplicity', nargs='*', type=int, default=[1], help='Multiplicity (default: %(default)s)')
+    parser.add_argument(
+        '--multiplicity',
+        nargs='*',
+        type=int,
+        default=[1],
+        help='spin multiplicity of each state (default: %(default)s)',
+    )
     parser.add_argument(
         '--force-file',
         type=str,
         default=None,
-        help='Constant force between atoms in AU,e.g. [(1,2,0.1214)]. Negative is tensile, positive is compresive',
+        help='file of constant forces, one "atom1 atom2 force" per line (0-based atoms, force in au; negative is tensile, positive compressive)',
     )
-    parser.add_argument('--restraint-file', type=str, default=None, help='Harmonic translational restraints')
+    parser.add_argument(
+        '--restraint-file',
+        type=str,
+        default=None,
+        help='file of harmonic position restraints, one "atom k" per line (0-based atom, k in kcal/mol/A^2) '
+        'holding the atom near its input position',
+    )
     parser.add_argument(
         '--optimizer',
         type=str,
         default='eigenvector_follow',
-        help='The optimizer object. (default: %(default)s Recommend LBFGS for large molecules >1000 atoms)',
-        required=False,
+        choices=['eigenvector_follow', 'lbfgs', 'conjugate_gradient', 'beales_cg'],
+        help='node optimizer; only eigenvector_follow does the exact TS search, lbfgs suits large systems '
+        '(default: %(default)s)',
     )
     parser.add_argument(
         '--opt-print-level',
@@ -122,14 +138,18 @@ def _build_parser() -> argparse.ArgumentParser:
         '--xtb-electronic-temperature', type=float, default=300.0, help='xTB electronic temperature', required=False
     )
     parser.add_argument(
-        '--xyz-output-format', type=str, default='molden', help='Format of the produced XYZ files', required=False
+        '--xyz-output-format',
+        type=str,
+        default='molden',
+        choices=['molden', 'multixyz'],
+        help='format of the string files (default: %(default)s)',
     )
     parser.add_argument('--solvent', type=str, help='Solvent to use (xTB calculations only)', required=False)
     parser.add_argument(
         '--linesearch',
         type=str,
         default='NoLineSearch',
-        help='default: %(default)s',
+        help='line search of the node optimizer (default: %(default)s)',
         choices=['NoLineSearch', 'backtrack'],
     )
     parser.add_argument(
@@ -143,7 +163,7 @@ def _build_parser() -> argparse.ArgumentParser:
         '--add-node-tol',
         type=float,
         default=0.01,
-        help='Convergence tolerance for adding new node (default: %(default)s)',
+        help='gradrms at which the frontier node is converged enough to add the next one (default: %(default)s)',
         required=False,
     )
     parser.add_argument(
@@ -207,8 +227,9 @@ def _build_parser() -> argparse.ArgumentParser:
     )
     parser.add_argument(
         '--dont-analyze-ics',
+        dest='analyze_ics',
         action='store_false',
-        help="Don't post-print the internal coordinates primitives and values",
+        help="don't write IC_data_<ID>.txt (internal coordinates of the minima and the TS)",
     )
     parser.add_argument(
         '--hybrid-coord-idx-file',
@@ -223,11 +244,21 @@ def _build_parser() -> argparse.ArgumentParser:
         help='A filename containing a list of  indices to be frozen. 0-Based indexed',
     )
     parser.add_argument(
-        '--conv-ediff', default=100.0, type=float, help='Energy difference convergence of optimization.'
+        '--conv-ediff',
+        default=100.0,
+        type=float,
+        help='energy-change convergence of the node optimisations (default: %(default)s)',
     )
-    parser.add_argument('--conv-de', default=1.0, type=float, help='State difference energy convergence')
-    parser.add_argument('--conv-gmax', default=100.0, type=float, help='Max grad rms threshold')
-    parser.add_argument('--dmax', default=0.1, type=float, help='')
+    parser.add_argument(
+        '--conv-de',
+        default=1.0,
+        type=float,
+        help='state energy-gap convergence for crossing searches (default: %(default)s)',
+    )
+    parser.add_argument(
+        '--conv-gmax', default=100.0, type=float, help='max-gradient convergence (default: %(default)s)'
+    )
+    parser.add_argument('--dmax', default=0.1, type=float, help='initial optimizer step size (default: %(default)s)')
     parser.add_argument(
         '--sigma', default=1.0, type=float, help='The strength of the difference energy penalty in Penalty_PES'
     )
@@ -235,7 +266,12 @@ def _build_parser() -> argparse.ArgumentParser:
         '--prim-idx-file', type=str, help='A filename containing a list of indices to define fragments. 0-Based indexed'
     )
     parser.add_argument('--reparametrize', action='store_true', help='Reparametrize restart string equally along path')
-    parser.add_argument('--interp-method', default='DLC', type=str, help='')
+    parser.add_argument(
+        '--interp-method',
+        default='DLC',
+        choices=['DLC'],
+        help='interpolation and reparametrisation method (only DLC is implemented)',
+    )
     parser.add_argument('--bonds-file', type=str, help='A file which contains the bond indices (0-based)')
     parser.add_argument(
         '--start-climb-immediately', action='store_true', help='Start climbing immediately when restarting.'
@@ -394,7 +430,7 @@ def parse_arguments(verbose: bool = True, argv: Sequence[str] | None = None):
         'interp_method': args.interp_method,
         'only_drive': args.only_drive,
         'reparametrize': args.reparametrize,
-        'dont_analyze_ICs': args.dont_analyze_ics,
+        'analyze_ICs': args.analyze_ics,
         'start_climb_immediately': args.start_climb_immediately,
         'ase_class': args.ase_class,
         'ase_kwargs': args.ase_kwargs,
