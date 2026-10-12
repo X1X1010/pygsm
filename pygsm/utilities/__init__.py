@@ -5,7 +5,6 @@ __all__ = [
     'elements',
     'manage_xyz',
     'math_utils',
-    'nifty',
     'output',
     'units',
 ]
