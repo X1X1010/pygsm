@@ -14,7 +14,7 @@ from pygsm.coords import (
     build_topology,
 )
 from pygsm.coords.primitives import get_driving_coord_prim
-from pygsm.gsm import DEGSM, SEGSM, SECross
+from pygsm.gsm import DEGSM, SEGSM, GrowthError, SECross
 from pygsm.molecule import Molecule
 from pygsm.pes import PenaltyPES
 from pygsm.utils import elements, manage_xyz, output
@@ -347,7 +347,11 @@ def main(argv: Sequence[str] | None = None):
             start_climb_immediately=inpfileq['start_climb_immediately'],
         )
 
-    gsm.go_gsm(inpfileq['max_gsm_iters'], inpfileq['max_opt_steps'], _resolve_rtype(inpfileq))
+    try:
+        gsm.go_gsm(inpfileq['max_gsm_iters'], inpfileq['max_opt_steps'], _resolve_rtype(inpfileq))
+    except GrowthError as error:
+        logger.error(f' GSM stopped: {error} (--max-gsm-iters); the last string is in string_{gsm.ID:03d}.xyz')
+        raise SystemExit(1) from error
     if inpfileq['gsm_type'] == 'SE_Cross':
         post_processing(gsm, analyze_ICs=inpfileq['dont_analyze_ICs'], have_TS=False)
         manage_xyz.write_xyz(f'meci_{gsm.ID:03d}.xyz', gsm.nodes[gsm.nR].geometry)

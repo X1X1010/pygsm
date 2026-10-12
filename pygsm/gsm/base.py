@@ -33,6 +33,10 @@ def _format_steps(label, values):
 # TODO nconstraints in ic_reparam and write_iters is irrelevant
 
 
+class GrowthError(RuntimeError):
+    """The string did not finish growing within the allowed number of iterations."""
+
+
 class GSM:
     """String of nodes (Molecules) with tangents, interpolation and reparametrisation; base of the GSM drivers.
 

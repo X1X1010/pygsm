@@ -13,8 +13,8 @@ logger = logging.getLogger(__name__)
 class GrowthMixin:
     """Adds nodes from the end points until the string is grown (mixed into :class:`MainGSM`)."""
 
-    def grow_string(self, max_iters=30, max_opt_steps=3, nconstraints=1):
-        """Run the GSM growth phase."""
+    def grow_string(self, max_iters=30, max_opt_steps=3, nconstraints=1) -> bool:
+        """Run the GSM growth phase; return False if it ran out of iterations first."""
 
         self.make_difference_node_list()
         self.ictan, self.dqmaga = self.get_tangents_growing()
@@ -26,7 +26,7 @@ class GrowthMixin:
         while not is_grown:
             if iteration > max_iters:
                 logger.warning(' Ran out of iterations')
-                return
+                return False
             printcool(f'Starting growth iteration {iteration}')
             self.optimize_iteration(max_opt_steps)
             totalgrad, gradrms, _ = self.calc_optimization_metrics(self.nodes)
@@ -61,6 +61,7 @@ class GrowthMixin:
                 xyz=self.nodes[-1].xyz,
                 new_node_id=self.nnodes - 1,
             )
+        return True
 
     def on_growth_exhausted(self, error):
         """Called when growth stops because no further node can be added."""

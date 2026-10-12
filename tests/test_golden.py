@@ -14,7 +14,7 @@ pytest.importorskip('ase')
 pytest.importorskip('tblite')
 
 from .golden.make_golden import BASELINE_DIR, run_scenario
-from .golden.scenarios import SCENARIOS
+from .golden.scenarios import DATA_DIR, SCENARIOS
 
 RTOL = 1e-10
 ATOL = 1e-12
@@ -54,3 +54,19 @@ def _assert_matches(name, actual, expected):
             np.testing.assert_allclose(got, ref, rtol=RTOL, atol=ATOL, err_msg=f'{name}.{key}')
         else:
             np.testing.assert_array_equal(got, ref, err_msg=f'{name}.{key}')
+
+
+@pytest.mark.golden
+def test_degsm_out_of_growth_iterations_exits_cleanly(tmp_path, monkeypatch):
+    """DE-GSM that cannot finish growing stops with a clear error (it used to crash in reparametrisation)."""
+    from pygsm.cli import main
+
+    monkeypatch.chdir(tmp_path)
+    argv = [
+        '--xyzfile', str(DATA_DIR / 'diels_alder.xyz'), '-m', 'DE_GSM', '-p', 'xTB', '-n', '9',
+        '--max-gsm-iters', '0', '--reactant-geom-fixed', '--product-geom-fixed',
+    ]  # fmt: skip
+    with pytest.raises(SystemExit) as exit_info:
+        main(argv)
+    assert exit_info.value.code == 1
+    assert (tmp_path / 'string_000.xyz').exists()

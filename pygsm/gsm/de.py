@@ -2,6 +2,7 @@ import logging
 
 from pygsm.utils import output
 
+from .base import GrowthError
 from .main import MainGSM
 
 logger = logging.getLogger(__name__)
@@ -20,7 +21,11 @@ class DEGSM(MainGSM):
         elif self.growth_direction == 2:
             self.add_GSM_nodeP(1)
 
-        self.grow_string(max_iters=max_iters, max_opt_steps=opt_steps)
+        if not self.grow_string(max_iters=max_iters, max_opt_steps=opt_steps):
+            raise GrowthError(
+                f'the string did not finish growing (max_iters={max_iters}, '
+                f'{self.current_nnodes} of {self.nnodes} nodes grown); allow more iterations'
+            )
         output.printcool('Done Growing the String!!!')
         self.done_growing = True
 
