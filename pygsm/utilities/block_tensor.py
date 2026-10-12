@@ -1,5 +1,9 @@
+import logging
+
 import numpy as np
 from scipy.linalg import block_diag
+
+logger = logging.getLogger(__name__)
 
 
 class block_tensor:
@@ -14,7 +18,7 @@ class block_tensor:
         for count, m in enumerate(self.matlist, 1):
             lines.append(str(m))
             if count > 10:
-                print('truncating printout')
+                logger.debug('truncating printout')
                 break
         return '\n'.join(lines)
 
@@ -31,9 +35,9 @@ class block_tensor:
         return block_tensor([np.zeros_like(A) for A in BM.matlist])
 
     def __add__(self, rhs):
-        print('adding')
+        logger.debug('adding')
         if isinstance(rhs, self.__class__):
-            print('adding block matrices!')
+            logger.debug('adding block matrices!')
             assert self.shape == rhs.shape
             return block_tensor([A + B for A, B in zip(self.matlist, rhs.matlist)])
         elif isinstance(rhs, (float, int)):

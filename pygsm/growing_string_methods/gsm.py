@@ -1,3 +1,4 @@
+import logging
 import math
 import os
 from collections import Counter
@@ -16,6 +17,13 @@ from pygsm.utilities.config import Config, option
 from pygsm.utilities.manage_xyz import write_molden_geoms
 
 from ._shared import map_method
+
+logger = logging.getLogger(__name__)
+
+
+def _format_steps(label, values):
+    return f' {label:<30} ' + ' '.join(f'step [{n}]: {v:1.3f}' for n, v in enumerate(values))
+
 
 #######################################################################################
 #### This class contains the main constructor, object properties and staticmethods ####
@@ -116,7 +124,7 @@ class GSM:
         self.found_ts = False
         self.rn3m6 = np.sqrt(3.0 * self.nodes[0].natoms - 6.0)
         self.gaddmax = self.options.ADD_NODE_TOL  # self.options.ADD_NODE_TOL/self.rn3m6;
-        print(' gaddmax:', self.gaddmax)
+        logger.debug(f' gaddmax: {self.gaddmax}')
         self.ictan = [None] * self.nnodes
         self.active = [False] * self.nnodes
         self.climber = False  # is this string a climber?
@@ -271,7 +279,7 @@ class GSM:
             ictan, bdist = GSM.get_tangent(nodeR, None, driving_coords=driving_coords)
 
             if bdist < BDISTMIN:
-                print(f'bdist too small {bdist:.3f}')
+                logger.debug(f'bdist too small {bdist:.3f}')
                 return None
             new_node = Molecule.copy_from(nodeR, new_node_id=node_id)
             new_node.update_coordinate_basis(constraints=ictan)
@@ -286,10 +294,10 @@ class GSM:
             dqmag = sign * (DQMAG_MIN + minmax * a)
             if dqmag > DQMAG_MAX:
                 dqmag = DQMAG_MAX
-            print(f' dqmag: {dqmag:4.3f} from bdist: {bdist:4.3f}')
+            logger.debug(f' dqmag: {dqmag:4.3f} from bdist: {bdist:4.3f}')
 
             dq0 = dqmag * constraint
-            print(f' dq0[constraint]: {dqmag:1.3f}')
+            logger.debug(f' dq0[constraint]: {dqmag:1.3f}')
 
             new_node.update_xyz(dq0)
             new_node.bdist = bdist
@@ -299,10 +307,10 @@ class GSM:
             nodeR.update_coordinate_basis(constraints=ictan)
             constraint = nodeR.constraints[:, 0]
             dqmag = np.linalg.norm(ictan)
-            print(f' dqmag: {dqmag:1.3f}')
+            logger.debug(f' dqmag: {dqmag:1.3f}')
             sign = 1.0
             dqmag *= sign * stepsize
-            print(f' scaled dqmag: {dqmag:1.3f}')
+            logger.debug(f' scaled dqmag: {dqmag:1.3f}')
 
             dq0 = dqmag * constraint
             old_xyz = nodeR.xyz.copy()
@@ -328,7 +336,9 @@ class GSM:
         """
 
         if node2 is not None and node1.node_id != node2.node_id:
-            print(f' getting tangent from between {node2.node_id} {node1.node_id} pointing towards {node2.node_id}')
+            logger.debug(
+                f' getting tangent from between {node2.node_id} {node1.node_id} pointing towards {node2.node_id}'
+            )
 
             PMDiff = np.zeros(node2.num_primitives)
             for k, prim in enumerate(node2.primitive_internal_coordinates):
@@ -339,7 +349,7 @@ class GSM:
 
             return np.reshape(PMDiff, (-1, 1)), None
         else:
-            print(' getting tangent from node ', node1.node_id)
+            logger.debug(f' getting tangent from node  {node1.node_id}')
 
             driving_coords = kwargs.get('driving_coords')
             assert driving_coords is not None, ' Driving coord is None!'
@@ -378,7 +388,7 @@ class GSM:
                     if current_d > d0:
                         bdist += np.dot(ictan[prim_idx], ictan[prim_idx])
                     if print_level > 0:
-                        print(
+                        logger.debug(
                             f' bond {(i[1], i[2])} target (less than): {d0:4.3f} current d: {current_d:4.3f} diff: {np.asarray(ictan[prim_idx]).item():4.3f} '
                         )
 
@@ -403,7 +413,7 @@ class GSM:
                         bdist += np.dot(ictan[prim_idx], ictan[prim_idx])
 
                     if print_level > 0:
-                        print(
+                        logger.debug(
                             f' bond {(i[1], i[2])} target (greater than): {d0:4.3f}, current d: {current_d:4.3f} diff: {np.asarray(ictan[prim_idx]).item():4.3f} '
                         )
                 elif 'ANGLE' in i:
@@ -417,7 +427,7 @@ class GSM:
                     ang_value = angle.value(xyz)
                     ang_diff = anglet * np.pi / 180.0 - ang_value
                     if print_level > 0:
-                        print(f' anglev: {ang_value:4.3f} align to {anglet:4.3f} diff(rad): {ang_diff:4.3f}')
+                        logger.debug(f' anglev: {ang_value:4.3f} align to {anglet:4.3f} diff(rad): {ang_diff:4.3f}')
                     ictan[prim_idx] = -ang_diff
                     # TODO need to come up with an adist
                 elif 'TORSION' in i:
@@ -439,7 +449,7 @@ class GSM:
                     if tor_diff * np.pi / 180.0 > 0.1 or tor_diff * np.pi / 180.0 < 0.1:
                         bdist += np.dot(ictan[prim_idx], ictan[prim_idx])
                     if print_level > 0:
-                        print(
+                        logger.debug(
                             f' current torv: {torv * 180.0 / np.pi:4.3f} align to {tort:4.3f} diff(deg): {tor_diff:4.3f}'
                         )
 
@@ -459,7 +469,7 @@ class GSM:
                     if oop_diff * np.pi / 180.0 > 0.1 or oop_diff * np.pi / 180.0 < 0.1:
                         bdist += np.dot(ictan[prim_idx], ictan[prim_idx])
                     if print_level > 0:
-                        print(
+                        logger.debug(
                             f' current oopv: {oopv * 180.0 / np.pi:4.3f} align to {oopt:4.3f} diff(deg): {oop_diff:4.3f}'
                         )
 
@@ -497,17 +507,12 @@ class GSM:
         # TEMPORORARY parallel idea
 
         if print_level > 1:
-            print('------------printing ictan[:]-------------')
+            logger.debug('------------printing ictan[:]-------------')
             for n in range(n0 + 1, nnodes):
-                print(f'ictan[{n}]')
-                print(ictan[n].T)
+                logger.debug(f'ictan[{n}]')
+                logger.debug(ictan[n].T)
         if print_level > 0:
-            print('------------printing dqmaga---------------')
-            for n in range(n0 + 1, nnodes):
-                print(f' {dqmaga[n]:5.4}', end='')
-                if (n) % 5 == 0:
-                    print()
-            print()
+            logger.debug(' dqmaga: ' + ' '.join(f'{dqmaga[n]:5.4}' for n in range(n0 + 1, nnodes)))
         return ictan, dqmaga
 
     @staticmethod
@@ -523,13 +528,13 @@ class GSM:
         last_node_max = TSnode == nnodes - 1
         first_node_max = TSnode == 0
         if first_node_max or last_node_max:
-            print('*********** This will cause a range error in the following for loop *********')
-            print('** Setting the middle of the string to be TS node to get proper directions **')
+            logger.warning('*********** This will cause a range error in the following for loop *********')
+            logger.debug('** Setting the middle of the string to be TS node to get proper directions **')
             TSnode = nnodes // 2
 
         for n in range(n0, nnodes):
             do3 = False
-            print('getting tan[{' + str(n) + '}]')
+            logger.debug('getting tan[{' + str(n) + '}]')
             if n < TSnode:
                 # The order is very important here
                 # the way it should be ;(
@@ -552,7 +557,7 @@ class GSM:
                 if first_node_max or last_node_max:
                     t1, _ = GSM.get_tangent(nodes[intic_n], nodes[newic_n])
                     t2, _ = GSM.get_tangent(nodes[newic_n], nodes[int2ic_n])
-                    print(' done 3 way tangent')
+                    logger.debug(' done 3 way tangent')
                     ictan0 = t1 + t2
                 else:
                     f1 = 0.0
@@ -565,11 +570,11 @@ class GSM:
                     else:
                         f1 = 1 - dEmax / (dEmax + dEmin + 0.00000001)
 
-                    print(f' 3 way tangent ({n}): f1:{f1:3.2}')
+                    logger.debug(f' 3 way tangent ({n}): f1:{f1:3.2}')
 
                     t1, _ = GSM.get_tangent(nodes[intic_n], nodes[newic_n])
                     t2, _ = GSM.get_tangent(nodes[newic_n], nodes[int2ic_n])
-                    print(' done 3 way tangent')
+                    logger.debug(' done 3 way tangent')
                     ictan0 = f1 * t1 + (1.0 - f1) * t2
             else:
                 ictan0, _ = GSM.get_tangent(nodes[newic_n], nodes[intic_n])
@@ -592,7 +597,7 @@ class GSM:
         ic_reparam_steps : int max number of reparameterization steps
         print_level : int verbosity
         """
-        output.printcool('reparametrizing string nodes')
+        output.printcool('Reparametrizing string nodes', level=logging.DEBUG)
 
         nnodes = len(nodes)
         rpart = np.zeros(nnodes)
@@ -625,7 +630,7 @@ class GSM:
                 h1dqmag = np.sum(dqmaga[: TSnode + 1])
                 h2dqmag = np.sum(dqmaga[TSnode + 1 : nnodes])
                 if print_level > 0:
-                    print(f' h1dqmag, h2dqmag: {h1dqmag:3.2f} {h2dqmag:3.2f}')
+                    logger.debug(f' h1dqmag, h2dqmag: {h1dqmag:3.2f} {h2dqmag:3.2f}')
                 progress_gained[:TSnode] = dqmaga[:TSnode] / h1dqmag
                 progress_gained[TSnode + 1 :] = dqmaga[TSnode + 1 :] / h2dqmag
                 progress[:TSnode] = np.cumsum(progress_gained[:TSnode])
@@ -651,25 +656,16 @@ class GSM:
                 deltadqs = difference * totaldqmag
 
             if print_level > 1:
-                print(' ideal progress gained per step', end=' ')
-                for n in range(nnodes):
-                    print(f' step [{n}]: {ideal_progress_gained[n]:1.3f}', end=' ')
-                print()
-                print(' path progress                 ', end=' ')
-                for n in range(nnodes):
-                    print(f' step [{n}]: {progress_gained[n]:1.3f}', end=' ')
-                print()
-                print(' difference                    ', end=' ')
-                for n in range(nnodes):
-                    print(f' step [{n}]: {difference[n]:1.3f}', end=' ')
-                print()
-                print(' deltadqs                      ', end=' ')
-                for n in range(nnodes):
-                    print(f' step [{n}]: {deltadqs[n]:1.3f}', end=' ')
-                print()
+                for label, values in (
+                    ('ideal progress gained per step', ideal_progress_gained),
+                    ('path progress', progress_gained),
+                    ('difference', difference),
+                    ('deltadqs', deltadqs),
+                ):
+                    logger.debug(_format_steps(label, values))
 
             disprms = np.linalg.norm(deltadqs) / np.sqrt(nnodes - 1)
-            print(f' disprms: {disprms:1.3}\n')
+            logger.debug(f' disprms: {disprms:1.3}')
 
             if disprms < 0.02:
                 break
@@ -722,13 +718,13 @@ class GSM:
                 else:
                     for n in chain(range(1, TSnode), range(TSnode + 1, nnodes - 1)):
                         if deltadqs[n] < 0:
-                            print(f' Moving node {n} along tan[{n}] this much {deltadqs[n]}')
+                            logger.debug(f' Moving node {n} along tan[{n}] this much {deltadqs[n]}')
                             nodes[n].update_coordinate_basis(ictan[n])
                             constraint = nodes[n].constraints[:, 0]
                             dq = deltadqs[n] * constraint
                             nodes[n].update_xyz(dq, verbose=(print_level > 1))
                         elif deltadqs[n] > 0:
-                            print(f' Moving node {n} along tan[{n + 1}] this much {deltadqs[n]}')
+                            logger.debug(f' Moving node {n} along tan[{n + 1}] this much {deltadqs[n]}')
                             nodes[n].update_coordinate_basis(ictan[n + 1])
                             constraint = nodes[n].constraints[:, 0]
                             dq = deltadqs[n] * constraint
@@ -771,13 +767,13 @@ class GSM:
                 else:
                     for n in range(1, nnodes - 1):
                         if deltadqs[n] < 0:
-                            print(f' Moving node {n} along tan[{n}] this much {deltadqs[n]}')
+                            logger.debug(f' Moving node {n} along tan[{n}] this much {deltadqs[n]}')
                             nodes[n].update_coordinate_basis(ictan[n])
                             constraint = nodes[n].constraints[:, 0]
                             dq = deltadqs[n] * constraint
                             nodes[n].update_xyz(dq, verbose=(print_level > 1))
                         elif deltadqs[n] > 0:
-                            print(f' Moving node {n} along tan[{n + 1}] this much {deltadqs[n]}')
+                            logger.debug(f' Moving node {n} along tan[{n + 1}] this much {deltadqs[n]}')
                             nodes[n].update_coordinate_basis(ictan[n + 1])
                             constraint = nodes[n].constraints[:, 0]
                             dq = deltadqs[n] * constraint
@@ -788,7 +784,7 @@ class GSM:
             h1dqmag = np.sum(dqmaga[: TSnode + 1])
             h2dqmag = np.sum(dqmaga[TSnode + 1 : nnodes])
             if print_level > 0:
-                print(f' h1dqmag, h2dqmag: {h1dqmag:3.2f} {h2dqmag:3.2f}')
+                logger.debug(f' h1dqmag, h2dqmag: {h1dqmag:3.2f} {h2dqmag:3.2f}')
             progress_gained[:TSnode] = dqmaga[:TSnode] / h1dqmag
             progress_gained[TSnode + 1 :] = dqmaga[TSnode + 1 :] / h2dqmag
             progress[:TSnode] = np.cumsum(progress_gained[:TSnode])
@@ -798,29 +794,20 @@ class GSM:
             totaldqmag = np.sum(dqmaga)
             progress = np.cumsum(dqmaga) / totaldqmag
             progress_gained = dqmaga / totaldqmag
-        print()
         if print_level > 0:
-            print(' ideal progress gained per step', end=' ')
-            for n in range(nnodes):
-                print(f' step [{n}]: {ideal_progress_gained[n]:1.3f}', end=' ')
-            print()
-            print(' original path progress        ', end=' ')
-            for n in range(nnodes):
-                print(f' step [{n}]: {orig_progress_gained[n]:1.3f}', end=' ')
-            print()
-            print(' reparameterized path progress ', end=' ')
-            for n in range(nnodes):
-                print(f' step [{n}]: {progress_gained[n]:1.3f}', end=' ')
-            print()
+            for label, values in (
+                ('ideal progress gained per step', ideal_progress_gained),
+                ('original path progress', orig_progress_gained),
+                ('reparameterized path progress', progress_gained),
+            ):
+                logger.debug(_format_steps(label, values))
 
-        print(' spacings (begin ic_reparam, steps', end=' ')
-        for n in range(nnodes):
-            print(f' {orig_dqmaga[n]:1.2}', end=' ')
-        print()
-        print(f' spacings (end ic_reparam, steps: {i + 1}/{ic_reparam_steps}):', end=' ')
-        for n in range(nnodes):
-            print(f' {dqmaga[n]:1.2}', end=' ')
-        print(f'\n  disprms: {disprms:1.3}')
+        logger.debug(' spacings (begin ic_reparam): ' + ' '.join(f'{orig_dqmaga[n]:1.2}' for n in range(nnodes)))
+        logger.debug(
+            f' spacings (end ic_reparam, steps: {i + 1}/{ic_reparam_steps}): '
+            + ' '.join(f'{dqmaga[n]:1.2}' for n in range(nnodes))
+        )
+        logger.debug(f'  disprms: {disprms:1.3}')
 
         return
 
@@ -831,16 +818,15 @@ class GSM:
         nnodes = len(nodes)
         rn3m6 = math.sqrt(3 * nodes[0].natoms - 6)
         totalgrad, gradrms, sum_gradrms = 0.0, 0.0, 0.0
+        report = []
         for i, ico in enumerate(nodes[1 : nnodes - 1]):
             if ico is None:
                 continue
             ico_gradrms = ico.gradrms
-            print(f' node: {i:02d} gradrms: {ico_gradrms:.6f}', end='')
-            if i % 5 == 0:
-                print()
+            report.append(f'node: {i:02d} gradrms: {ico_gradrms:.6f}')
             totalgrad += ico_gradrms * rn3m6
             gradrms += ico_gradrms**2
             sum_gradrms += ico_gradrms
-        print()
+        logger.debug(' ' + ' '.join(report))
         gradrms = math.sqrt(gradrms / (nnodes - 2))
         return totalgrad, gradrms, sum_gradrms

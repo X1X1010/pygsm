@@ -1,8 +1,12 @@
+import logging
+
 import numpy as np
 
 from pygsm.utilities import math_utils, output
 
 from .rotate import calc_rot_vec_diff, get_expmap, get_expmap_der, is_linear
+
+logger = logging.getLogger(__name__)
 
 
 class PrimitiveCoordinate:
@@ -72,9 +76,7 @@ class _CartesianAxis(PrimitiveCoordinate):
             return False
         eq = self.a == other.a
         if eq and self.w != other.w:
-            output.logger.warning(
-                f'Warning: {type(self).__name__} same atoms, different weights ({self.w:.4f} {other.w:.4f})'
-            )
+            logger.warning(f'Warning: {type(self).__name__} same atoms, different weights ({self.w:.4f} {other.w:.4f})')
         return eq
 
     def __ne__(self, other):
@@ -142,7 +144,7 @@ class _TranslationAxis(PrimitiveCoordinate):
             return False
         eq = set(self.a) == set(other.a)
         if eq and np.sum((self.w - other.w) ** 2) > 1e-6:
-            output.logger.warning(f'Warning: {type(self).__name__} same atoms, different weights')
+            logger.warning(f'Warning: {type(self).__name__} same atoms, different weights')
             eq = False
         return eq
 
@@ -236,7 +238,7 @@ class Rotator:
             return False
         eq = set(self.a) == set(other.a)
         if eq and np.sum((self.x0 - other.x0) ** 2) > 1e-6:
-            output.logger.warning('Warning: Rotator same atoms, different reference positions')
+            logger.warning('Warning: Rotator same atoms, different reference positions')
         return eq
 
     def __repr__(self):
@@ -1085,7 +1087,7 @@ class OutOfPlane(PrimitiveCoordinate):
             return False
         if self.a == other.a and {self.b, self.c, self.d} == {other.b, other.c, other.d}:
             if [self.b, self.c, self.d] != [other.b, other.c, other.d]:
-                output.logger.warning('Warning: OutOfPlane atoms are the same, ordering is different')
+                logger.warning('Warning: OutOfPlane atoms are the same, ordering is different')
             return True
         return False
 

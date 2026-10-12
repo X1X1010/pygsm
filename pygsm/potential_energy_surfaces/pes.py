@@ -1,4 +1,5 @@
 # standard library imports
+import logging
 from dataclasses import dataclass
 from typing import Any
 
@@ -8,6 +9,8 @@ import numpy as np
 # local application imports
 from ..utilities import elements, units
 from ..utilities.config import Config, option
+
+logger = logging.getLogger(__name__)
 
 ELEMENT_TABLE = elements.ElementData()
 
@@ -93,10 +96,10 @@ class PES:
             for n in qm_region:
                 for j in range(3):
                     n1_region.append(n * 3 + j)
-            print('n1_region')
-            print(n1_region)
+            logger.debug('n1_region')
+            logger.debug(n1_region)
             hess = np.zeros((len(n1_region), len(n1_region)))
-        print('hess shape', hess.shape)
+        logger.debug(f'hess shape {hess.shape}')
 
         def gen_row(n):
             vec = np.zeros(coords.shape[0] * 3)
@@ -106,7 +109,7 @@ class PES:
         n_actual = 0
         for n in range(len(coords) * 3):
             if n in n1_region:
-                print('on hessian product ', n)
+                logger.debug(f'on hessian product  {n}')
                 row = gen_row(n)
                 ans = self.get_finite_difference_hessian_product(coords, row)
                 hess[n_actual] = np.squeeze(ans[n1_region])

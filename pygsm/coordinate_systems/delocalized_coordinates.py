@@ -1,4 +1,5 @@
 # standard library imports
+import logging
 from time import time
 
 import numpy as np
@@ -10,6 +11,8 @@ from pygsm.utilities import block_matrix, math_utils, output
 from .internal_coordinates import InternalCoordinates
 from .primitive_internals import PrimitiveInternalCoordinates
 from .slots import RotationA, RotationB, RotationC
+
+logger = logging.getLogger(__name__)
 
 
 class DelocalizedInternalCoordinates(InternalCoordinates):
@@ -25,20 +28,20 @@ class DelocalizedInternalCoordinates(InternalCoordinates):
 
         # The DLC contains an instance of primitive internal coordinates.
         if self.options.primitives is None:
-            print(' making primitives ')
+            logger.debug(' making primitives ')
             t1 = time()
             self.Prims = PrimitiveInternalCoordinates(options.replace())
             dt = time() - t1
-            print(f' Time to make prims {dt:.3f}')
+            logger.debug(f' Time to make prims {dt:.3f}')
             self.options.primitives = self.Prims
         else:
-            print(' setting primitives from options!')
+            logger.debug(' setting primitives from options!')
             t0 = time()
             self.Prims = PrimitiveInternalCoordinates.copy(self.options.primitives)
 
-            print(f' num of primitives {len(self.Prims.Internals)}')
+            logger.debug(f' num of primitives {len(self.Prims.Internals)}')
             dt = time() - t0
-            print(f' Time to copy prims {dt:.3f}')
+            logger.debug(f' Time to copy prims {dt:.3f}')
             self.Prims.clearCache()
 
         xyz = options.xyz
@@ -287,7 +290,7 @@ class DelocalizedInternalCoordinates(InternalCoordinates):
         self.Vecs = block_matrix(tmpvecs)
 
         time_eig = output.click()
-        print(f' Timings: Build G: {time_G:.3f} Eig: {time_eig:.3f}')
+        logger.debug(f' Timings: Build G: {time_G:.3f} Eig: {time_eig:.3f}')
 
         self.Internals = [f'DLC {i + 1}' for i in range(self.Vecs.shape[1])]
 
@@ -342,11 +345,11 @@ class DelocalizedInternalCoordinates(InternalCoordinates):
                 Float array containing difference in primitive coordinates
         """
 
-        print(' starting to build G prim')
+        logger.debug(' starting to build G prim')
         output.click()
         G = self.Prims.GMatrix(xyz)  # in primitive coords
         time_G = output.click()
-        print(f' Timings: Build G: {time_G:.3f} ')
+        logger.debug(f' Timings: Build G: {time_G:.3f} ')
 
         tmpvecs = []
         for A in G.matlist:

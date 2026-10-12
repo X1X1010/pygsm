@@ -1,9 +1,8 @@
 from __future__ import annotations
 
-# standard library imports
-import sys
-from io import StringIO
+import logging
 
+# standard library imports
 # third party
 from typing import TYPE_CHECKING
 
@@ -15,6 +14,8 @@ from ..utilities import block_matrix, units
 # local application imports
 from ._linesearch import NoLineSearch
 from .base_optimizer import BaseOptimizer
+
+logger = logging.getLogger(__name__)
 
 if TYPE_CHECKING:
     from ..molecule import Molecule
@@ -37,10 +38,9 @@ class EigenvectorFollow(BaseOptimizer):
         # stash/initialize some useful attributes
         self.check_inputs(molecule, opt_type, ictan)
         nconstraints = self.get_nconstraints(opt_type)
-        self.buf = StringIO()
 
-        print(f' initial E {molecule.energy - refE:5.4f}')
-        print(f' CONV_TOL {self.conv_grms:1.5f}')
+        logger.debug(f' initial E {molecule.energy - refE:5.4f}')
+        logger.debug(f' CONV_TOL {self.conv_grms:1.5f}')
         geoms = []
         energies = []
         geoms.append(molecule.geometry)
@@ -93,7 +93,7 @@ class EigenvectorFollow(BaseOptimizer):
 
         # ====>  Do opt steps <======= #
         for ostep in range(opt_steps):
-            print(f' On opt step {ostep + 1} for node {molecule.node_id}')
+            logger.debug(f' On opt step {ostep + 1} for node {molecule.node_id}')
 
             # update Hess
             if update_hess:
@@ -112,7 +112,7 @@ class EigenvectorFollow(BaseOptimizer):
                 else:
                     dq = self.TS_eigenvector_step(molecule, g, ictan)
                     if not self.maxol_good:
-                        print(' Switching to climb! Maxol not good!')
+                        logger.debug(' Switching to climb! Maxol not good!')
                         nconstraints = 1
                         opt_type = 'CLIMB'
 
@@ -147,7 +147,7 @@ class EigenvectorFollow(BaseOptimizer):
             g = ls['g']
 
             if ls['status'] == -2:
-                print('[ERROR] the point return to the privious point')
+                logger.warning('[ERROR] the point return to the privious point')
                 x = xp.copy()
                 molecule.xyz = xyzp
                 g = gp.copy()
@@ -157,17 +157,17 @@ class EigenvectorFollow(BaseOptimizer):
 
             if ls['step'] > self.DMAX:
                 if ls['step'] <= self.options.abs_max_step:  # absolute max
-                    print(' Increasing DMAX to {}'.format(ls['step']))
+                    logger.debug(' Increasing DMAX to {}'.format(ls['step']))
                     self.DMAX = ls['step']
                 else:
                     self.DMAX = self.options.abs_max_step
             elif ls['step'] < self.DMAX:
                 if ls['step'] >= self.DMIN:  # absolute min
-                    print(' Decreasing DMAX to {}'.format(ls['step']))
+                    logger.debug(' Decreasing DMAX to {}'.format(ls['step']))
                     self.DMAX = ls['step']
                 elif ls['step'] <= self.DMIN:
                     self.DMAX = self.DMIN
-                    print(f' Decreasing DMAX to {self.DMIN}')
+                    logger.debug(f' Decreasing DMAX to {self.DMIN}')
 
             # calculate predicted value from Hessian, gp is previous constrained gradient
             scaled_dq = dq * step
@@ -184,7 +184,7 @@ class EigenvectorFollow(BaseOptimizer):
 
             # control step size
             dEstep = fx - fxp
-            print(f' dEstep={dEstep:5.4f}')
+            logger.debug(f' dEstep={dEstep:5.4f}')
             ratio = dEstep / dEpre
             molecule.gradrms = np.sqrt(np.dot(gc.T, gc) / n).item()
             if ls['status'] != -2:
@@ -213,25 +213,22 @@ class EigenvectorFollow(BaseOptimizer):
                 raise NotImplementedError(' ef not implemented for CART')
 
             if self.options.print_level > 0:
-                print(
+                logger.info(
                     f' Node: {molecule.node_id} Opt step: {ostep + 1} E: {fx - refE:5.4f} predE: {dEpre:5.4f} ratio: {ratio:1.3f} gradrms: {molecule.gradrms:1.5f} ss: {step:1.3f} DMAX: {self.DMAX:1.3f}'
                 )
-            self.buf.write(
-                f' Node: {molecule.node_id} Opt step: {ostep + 1} E: {fx - refE:5.4f} predE: {dEpre:5.4f} ratio: {ratio:1.3f} gradrms: {molecule.gradrms:1.5f} ss: {step:1.3f} DMAX: {self.DMAX:1.3f}'
-            )
 
             # check for convergence TODO
             fx = molecule.energy
             dE = molecule.difference_energy
             if dE < 1000.0:
-                print(f' difference energy is {dE:5.4f}')
+                logger.debug(f' difference energy is {dE:5.4f}')
             gmax = float(np.max(np.absolute(gc)))
             disp = float(np.linalg.norm((xyz - xyzp).flatten()))
             xnorm = np.sqrt(np.dot(x.T, x))
             if xnorm < 1.0:
                 xnorm = 1.0
 
-            print(f' gmax {gmax:5.4f} disp {disp:5.4f} Ediff {dEstep:5.4f} gradrms {molecule.gradrms:5.4f}\n')
+            logger.debug(f' gmax {gmax:5.4f} disp {disp:5.4f} Ediff {dEstep:5.4f} gradrms {molecule.gradrms:5.4f}')
 
             # TODO turn back on conv_DE
             if (
@@ -244,7 +241,7 @@ class EigenvectorFollow(BaseOptimizer):
             ):
                 if opt_type == 'TS-SEAM':
                     gts = np.dot(g.T, molecule.constraints[:, 0])
-                    print(f' gts {gts:1.4f}')
+                    logger.debug(f' gts {gts:1.4f}')
                     if abs(gts) < self.conv_grms * 5:
                         self.converged = True
                 else:
@@ -267,7 +264,7 @@ class EigenvectorFollow(BaseOptimizer):
                     self.converged = True
 
             if self.converged:
-                print(' converged')
+                logger.debug(' converged')
                 if ostep % xyzframerate != 0:
                     geoms.append(molecule.geometry)
                     energies.append(molecule.energy - refE)
@@ -284,9 +281,5 @@ class EigenvectorFollow(BaseOptimizer):
                 gc = g.copy()
                 for c in molecule.constraints.T:
                     gc -= np.dot(gc.T, c[:, np.newaxis]) * c[:, np.newaxis]
-            print()
-            sys.stdout.flush()
 
-        print(f' opt-summary {molecule.node_id}')
-        print(self.buf.getvalue())
         return geoms, energies

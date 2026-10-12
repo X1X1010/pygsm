@@ -1,6 +1,9 @@
+import logging
 import re
 
 import numpy as np
+
+logger = logging.getLogger(__name__)
 
 # => XYZ File Utility <= #
 
@@ -78,7 +81,7 @@ def read_molden_geoms(filename, scale=1.0):
     # this is for three blocks after GEOCON
     num_geoms = (nlines - 6) / (natoms + 5)
     num_geoms = int(num_geoms)
-    print(num_geoms)
+    logger.debug(num_geoms)
     geoms = []
 
     sa = 4

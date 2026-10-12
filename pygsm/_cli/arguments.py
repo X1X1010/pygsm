@@ -3,11 +3,14 @@
 from __future__ import annotations
 
 import argparse
+import logging
 import os
 import textwrap
 from collections.abc import Sequence
 
 from pygsm.utilities import output
+
+logger = logging.getLogger(__name__)
 
 
 def _build_parser() -> argparse.ArgumentParser:
@@ -87,7 +90,20 @@ def _build_parser() -> argparse.ArgumentParser:
         help='Printout for optimization. 2 prints everything in opt.',
         required=False,
     )
-    parser.add_argument('-gsm_print_level', type=int, default=1, help='Printout for gsm. 1 prints ?', required=False)
+    parser.add_argument(
+        '-gsm_print_level',
+        type=int,
+        default=1,
+        help='GSM diagnostic detail at -log_level DEBUG: 0 less, 1 more, 2 everything',
+        required=False,
+    )
+    parser.add_argument(
+        '-log_level',
+        type=str.upper,
+        default='INFO',
+        choices=['DEBUG', 'INFO', 'WARNING'],
+        help='Log verbosity: DEBUG adds the per-step diagnostics (default: %(default)s)',
+    )
     parser.add_argument(
         '-xTB_Hamiltonian',
         type=str,
@@ -233,7 +249,7 @@ def _build_parser() -> argparse.ArgumentParser:
 def _resolve_nproc(requested_nproc: int, verbose: bool) -> int:
     if requested_nproc > 1:
         if verbose:
-            print(f'forcing number of processors to be {requested_nproc}!!!')
+            logger.info(f'forcing number of processors to be {requested_nproc}!!!')
         return requested_nproc
 
     try:
@@ -242,7 +258,7 @@ def _resolve_nproc(requested_nproc: int, verbose: bool) -> int:
         nproc = 1
 
     if verbose:
-        print(f' Using {nproc} processors')
+        logger.info(f' Using {nproc} processors')
     return nproc
 
 
@@ -280,12 +296,13 @@ def _print_banner() -> None:
 #| http://dx.doi.org/10.1063/1.4952956                                    |#
 #==========================================================================#
     """
-    print(msg)
+    logger.info(msg)
 
 
 def parse_arguments(verbose: bool = True, argv: Sequence[str] | None = None):
     parser = _build_parser()
     args = parser.parse_args(argv)
+    output.setup_logging(args.log_level)
 
     if verbose:
         _print_banner()
@@ -358,7 +375,7 @@ def parse_arguments(verbose: bool = True, argv: Sequence[str] | None = None):
         assert len(inpfileq['adiabatic_index']) > 1, 'need more states'
         assert len(inpfileq['multiplicity']) > 1, 'need more spins'
     if inpfileq['charge'] != 0:
-        print(
+        logger.warning(
             'Warning: charge is not implemented for all level of theories. Make sure this is correct for your package.'
         )
 

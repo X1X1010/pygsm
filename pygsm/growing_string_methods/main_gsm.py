@@ -1,3 +1,4 @@
+import logging
 from itertools import chain
 
 import numpy as np
@@ -10,6 +11,8 @@ from ._shared import map_method
 from .growth import GrowthMixin
 from .gsm import GSM
 from .optimization import OptimizationMixin
+
+logger = logging.getLogger(__name__)
 
 #######################################################################################
 ############### This class contains the main GSM functions  ###########################
@@ -38,11 +41,11 @@ class MainGSM(GrowthMixin, OptimizationMixin, GSM):
         if self.tscontinue:
             self.optimize_string(max_iter=max_iters, opt_steps=self._string_opt_steps(opt_steps), rtype=rtype)
         else:
-            print('Exiting early')
+            logger.info('Exiting early')
             self.end_early = True
 
         self.write_string('string')
-        print('Finished GSM!')
+        logger.info('Finished GSM!')
 
     def set_V0(self):
         raise NotImplementedError
@@ -134,8 +137,7 @@ class MainGSM(GrowthMixin, OptimizationMixin, GSM):
 
         for n in range(self.nnodes):
             if self.nodes[n] and self.active[n]:
-                print()
-                printcool(f'Optimizing node {n}')
+                printcool(f'Optimizing node {n}', level=logging.DEBUG)
                 opt_type = self.set_opt_type(n)
                 osteps = self.mult_steps(n, opt_steps)
                 self.optimizer[n].optimize(
@@ -222,12 +224,12 @@ class MainGSM(GrowthMixin, OptimizationMixin, GSM):
             and (energies[nnodes - 2] - energies[nnodes - 3]) < alluptol2
             and (energies[nnodes - 3] - energies[nnodes - 4]) < alluptol2
         ):
-            print(' possible dissociative profile')
+            logger.debug(' possible dissociative profile')
             diss = True
 
-        print(' nnodes ', nnodes)
-        print(' all uphill? ', allup)
-        print(' dissociative? ', diss)
+        logger.debug(f' nnodes  {nnodes}')
+        logger.debug(f' all uphill?  {allup}')
+        logger.debug(f' dissociative?  {diss}')
         npeaks2 = 0
         minnodes = []
         maxnodes = []
@@ -241,8 +243,8 @@ class MainGSM(GrowthMixin, OptimizationMixin, GSM):
             if energies[n + 1] < energies[n] and energies[n] > energies[n - 1]:
                 maxnodes.append(n)
 
-        print(' min nodes ', minnodes)
-        print(' max nodes ', maxnodes)
+        logger.debug(f' min nodes  {minnodes}')
+        logger.debug(f' max nodes  {maxnodes}')
         len(maxnodes)
         ediff = 0.5
         PEAK4_EDIFF = 2.0
@@ -258,7 +260,7 @@ class MainGSM(GrowthMixin, OptimizationMixin, GSM):
             emax = float(max(energies))
             nmax = np.argmax(energies)
 
-        print(f' emax and nmax in find peaks {emax:3.4f},{nmax} ')
+        logger.debug(f' emax and nmax in find peaks {emax:3.4f},{nmax} ')
 
         # check if any node after peak is less than 2 kcal below
         for n in maxnodes:
@@ -267,7 +269,7 @@ class MainGSM(GrowthMixin, OptimizationMixin, GSM):
                 found = n
                 npeaks2 += 1
         npeaks = npeaks2
-        print(f' found {npeaks} significant peak(s) TOL {ediff:3.2f}')
+        logger.debug(f' found {npeaks} significant peak(s) TOL {ediff:3.2f}')
 
         # handle dissociative case
         if rtype == 'intermediate' and npeaks == 1:
@@ -286,10 +288,9 @@ class MainGSM(GrowthMixin, OptimizationMixin, GSM):
 
         return npeaks
 
-    def print_energies(self):
-        for n in range(len(self.energies)):
-            print(f' {float(self.energies[n]):7.3f}', end=' ')
-        print()
+    def print_energies(self, label: str = ' V_profile:', level: int = logging.INFO) -> None:
+        """Log the string's relative energies (kcal/mol) on one line."""
+        logger.log(level, label + ''.join(f' {float(e):7.3f}' for e in self.energies))
 
     def get_intermediate(self, noise):
         """
@@ -322,7 +323,7 @@ class MainGSM(GrowthMixin, OptimizationMixin, GSM):
                     break
                 b += 1
             if (rnoise > noise) and (pnoise > noise):
-                print(f'Potential minimum at image {i}')
+                logger.info(f'Potential minimum at image {i}')
                 potential_min.append(i)
 
         return potential_min
@@ -347,7 +348,7 @@ class MainGSM(GrowthMixin, OptimizationMixin, GSM):
         nstructs = len(input_geoms)
 
         if nstructs != self.nnodes:
-            print('need to interpolate')
+            logger.debug('need to interpolate')
             raise NotImplementedError
         else:
             geoms = input_geoms
@@ -375,18 +376,14 @@ class MainGSM(GrowthMixin, OptimizationMixin, GSM):
             self.climb = True
         # ALEX CHANGE - rearranged reparameterize and restart_energies 'if' blocks
         if restart_energies:
-            print(' V_profile: ', end=' ')
-            energies = self.energies
-            for n in range(self.nnodes):
-                print(f' {float(energies[n]):7.3f}', end=' ')
-            print()
+            self.print_energies()
         if reparametrize:
             printcool('Reparametrizing')
             self.reparameterize(ic_reparam_steps=8)
 
         self.ictan, self.dqmaga = self.get_tangents(self.nodes)
         self.refresh_coordinates()
-        print(' setting all interior nodes to active')
+        logger.debug(' setting all interior nodes to active')
         for n in range(1, self.nnodes - 1):
             self.active[n] = True
             self.optimizer[n].conv_grms = self.CONV_TOL * 2.5

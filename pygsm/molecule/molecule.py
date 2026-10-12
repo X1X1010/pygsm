@@ -4,6 +4,7 @@ This class is the combination of Martinez group and Lee Ping's molecule class.
 
 from __future__ import annotations
 
+import logging
 from dataclasses import dataclass
 from time import time
 from typing import Any
@@ -15,6 +16,8 @@ from pygsm.utilities import block_matrix, elements, manage_xyz, units
 from pygsm.utilities.config import Config, option
 
 from ._helpers import copy_geometry_inputs, copy_pes, load_geometry_inputs, validate_geometry_inputs
+
+logger = logging.getLogger(__name__)
 
 ELEMENT_TABLE = elements.ElementData()
 
@@ -107,7 +110,7 @@ class Molecule:
         copy_wavefunction: bool = True,
     ) -> Molecule:
         """Copy ``MoleculeA``, optionally with new coordinates, node id and a fresh wavefunction."""
-        print(f' Copying from MoleculA {MoleculeA.node_id}')
+        logger.debug(f' Copying from MoleculA {MoleculeA.node_id}')
         return cls._copy_fast(
             MoleculeA,
             xyz=xyz,
@@ -126,7 +129,7 @@ class Molecule:
         _geom, atoms, xyz = load_geometry_inputs(self.options)
 
         t1 = time()
-        print(f' Time to get coords= {t1 - t0:.3f}')
+        logger.debug(f' Time to get coords= {t1 - t0:.3f}')
 
         # Perform all the sanity checks and cache some useful attributes
 
@@ -140,7 +143,7 @@ class Molecule:
         self.atoms = [ELEMENT_TABLE.from_symbol(atom) for atom in atoms]
 
         tx = time()
-        print(f' Time to create PES,elements {tx - t1:.3f}')
+        logger.debug(f' Time to create PES,elements {tx - t1:.3f}')
         t1 = tx
 
         if not isinstance(self.options.comment, str):
@@ -148,29 +151,29 @@ class Molecule:
 
         # Create the coordinate system
         if self.options.coord_obj is not None:
-            print(' getting coord_object from options')
+            logger.debug(' getting coord_object from options')
             self.coord_obj = self.options.coord_obj
         else:
-            print(' Disabling this feature, Molecule cannot create coordinate system')
+            logger.debug(' Disabling this feature, Molecule cannot create coordinate system')
             raise NotImplementedError
         self.options.coord_obj = self.coord_obj
 
         t2 = time()
-        print(f' Time  to build coordinate system= {t2 - t1:.3f}')
+        logger.debug(f' Time  to build coordinate system= {t2 - t1:.3f}')
         self._initialize_runtime_state()
 
         if self.options.Hessian is None and self.options.Form_Hessian:
             if self.options.Primitive_Hessian is None and type(self.coord_obj) is not CartesianCoordinates:
                 self.form_Primitive_Hessian()
             t3 = time()
-            print(f' Time to build Prim Hessian {t3 - t2:.3f}')
+            logger.debug(f' Time to build Prim Hessian {t3 - t2:.3f}')
             if self.options.Primitive_Hessian is not None:
-                print(' forming Hessian in basis')
+                logger.debug(' forming Hessian in basis')
                 self.form_Hessian_in_basis()
             else:
                 self.form_Hessian()
 
-        print(' molecule constructed')
+        logger.debug(' molecule constructed')
 
     def _initialize_runtime_state(self):
         self.gradrms = 0.0
@@ -277,12 +280,12 @@ class Molecule:
         self.options.Primitive_Hessian = value
 
     def form_Primitive_Hessian(self):
-        print(' making primitive Hessian')
+        logger.debug(' making primitive Hessian')
         self.options.Primitive_Hessian = self.coord_obj.Prims.guess_hessian(self.xyz)
         self.newHess = 10
 
     def update_Primitive_Hessian(self, change=None):
-        print(' updating prim hess')
+        logger.debug(' updating prim hess')
         if change is not None:
             self.Primitive_Hessian += change
         return self.Primitive_Hessian
@@ -361,7 +364,7 @@ class Molecule:
         if isinstance(self.coord_obj, CartesianCoordinates):
             return
 
-        print(' updating coord basis')
+        logger.debug(' updating coord basis')
         self.coord_obj.clearCache()
         self.coord_obj.build_dlc(self.xyz, constraints)
         return self.coord_basis

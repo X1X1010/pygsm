@@ -1,7 +1,11 @@
+import logging
+
 import numpy as np
 from scipy.linalg import block_diag
 
 from .math_utils import conjugate_orthogonalize, orthogonalize
+
+logger = logging.getLogger(__name__)
 
 
 def isblock(obj):
@@ -20,7 +24,7 @@ class block_matrix:
         for count, m in enumerate(self.matlist, 1):
             lines.append(str(m))
             if count > 10:
-                print('truncating printout')
+                logger.debug('truncating printout')
                 break
         return '\n'.join(lines)
 
@@ -220,9 +224,9 @@ class block_matrix:
         return block_matrix([np.zeros_like(A) for A in BM.matlist])
 
     def __add__(self, rhs):
-        print('adding')
+        logger.debug('adding')
         if isinstance(rhs, self.__class__):
-            print('adding block matrices!')
+            logger.debug('adding block matrices!')
             assert self.shape == rhs.shape
             return block_matrix([A + B for A, B in zip(self.matlist, rhs.matlist)])
         elif isinstance(rhs, (float, int)):

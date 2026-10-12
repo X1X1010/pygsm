@@ -1,9 +1,13 @@
 # third party
+import logging
+
 import numpy as np
 
 # local application imports
 from ..utilities import units
 from .pes import PES
+
+logger = logging.getLogger(__name__)
 
 
 class AvgPES(PES):
@@ -60,7 +64,7 @@ class AvgPES(PES):
     def symmetric_orthogonalization(self, xyz):
         def get_beta(g, h):
             gdoth = np.dot(g.T, h)
-            print(f' g*h = {gdoth:1.4f}')
+            logger.debug(f' g*h = {gdoth:1.4f}')
             dotg = np.dot(g.T, g)
             doth = np.dot(h.T, h)
             arg = (2 * gdoth) / (dotg - doth)
@@ -80,12 +84,12 @@ class AvgPES(PES):
         dgrad = 0.5 * self.get_dgrad(xyz)
         dvec = self.get_coupling(xyz)
         sab = self.get_average_gradient(xyz)
-        print(f' dE is {self.dE:5.4f}')
+        logger.debug(f' dE is {self.dE:5.4f}')
 
         # non-adiabatic coupling is derivative coupling times dE
         nac = dvec * self.dE / units.KCAL_MOL_PER_AU
         beta = get_beta(dgrad, nac)
-        print(f' beta = {beta:1.6f}')
+        logger.debug(f' beta = {beta:1.6f}')
 
         # rotate nac and dgrad to be orthonormal
         save_nac = nac.copy()
@@ -112,21 +116,21 @@ class AvgPES(PES):
         sab_y = doty / pitch
 
         # flip direction of dgrad,nac
-        print(f' sab_x {sab_x:1.2f} sab_y {sab_y:1.2f}')
+        logger.debug(f' sab_x {sab_x:1.2f} sab_y {sab_y:1.2f}')
         if sab_x < 0.0 and sab_y > 0.0:
-            print(' flipping dgrad')
+            logger.debug(' flipping dgrad')
             dgrad = -dgrad
             dotx = np.dot(sab.T, dgrad) / norm_dg
             sab_x = dotx / pitch
         elif sab_x > 0.0 and sab_y < 0.0:
-            print(' flipping nac')
+            logger.debug(' flipping nac')
             nac = -nac
             doty = np.dot(sab.T, nac) / norm_nac
             sab_y = doty / pitch
 
         sigma = np.sqrt(sab_x * sab_x + sab_y * sab_y)
         theta_s = np.arctan(sab_y / sab_x)
-        print(
+        logger.debug(
             f' pitch  {pitch:1.5f}, asymmetry {asymmetry:1.5f}, sigma {sigma:1.5f} theta_s {theta_s:1.5f} sx {sab_x:1.2f} sy {sab_y:1.2f}'
         )
 
@@ -135,16 +139,16 @@ class AvgPES(PES):
             ((1.0 + asymmetry) * (np.cos(theta_s)) ** 2) ** (1.0 / 3)
             + ((1 - asymmetry) * (np.sin(theta_s)) ** 2) ** (1.0 / 3)
         )
-        print(f' P {P:2.5f} B {B:2.5f}')
+        logger.debug(f' P {P:2.5f} B {B:2.5f}')
 
         if P < 1.0:
-            print(' Your conical intersection is peaked')
+            logger.debug(' Your conical intersection is peaked')
         elif P > 1.0:
-            print(' Your conical intersection is sloped')
+            logger.debug(' Your conical intersection is sloped')
         if B < 1.0:
-            print(' Your conical intersection is bifurcating')
+            logger.debug(' Your conical intersection is bifurcating')
         if B > 1.0:
-            print(' Your conical intersection is single path')
+            logger.debug(' Your conical intersection is single path')
 
         return {
             'x': dgrad / norm_dg,

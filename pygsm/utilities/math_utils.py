@@ -1,4 +1,8 @@
+import logging
+
 import numpy as np
+
+logger = logging.getLogger(__name__)
 
 # Some vector calculus functions
 
@@ -112,8 +116,8 @@ def conjugate_orthogonalize(vecs, G, numCvecs=0):
                 raise RuntimeError(f'this vector should be vanishing (norm={wnorm}):\n{w}') from error
     dots = np.linalg.multi_dot([basis.T, G, basis])
     if not (np.allclose(dots, np.eye(dots.shape[0], dtype=float))):
-        print('np.dot(b.T,b)')
-        print(dots)
+        logger.debug('np.dot(b.T,b)')
+        logger.debug(dots)
         raise RuntimeError('error in orthonormality')
     return basis
 
@@ -141,8 +145,8 @@ def orthogonalize(vecs, numCvecs=0):
                 raise RuntimeError(f'this vector should be vanishing (norm={wnorm})') from error
     dots = np.matmul(basis.T, basis)
     if not (np.allclose(dots, np.eye(dots.shape[0], dtype=float), atol=1e-4)):
-        print('np.dot(b.T,b)')
-        print(dots - np.eye(dots.shape[0], dtype=float))
+        logger.debug('np.dot(b.T,b)')
+        logger.debug(dots - np.eye(dots.shape[0], dtype=float))
         raise RuntimeError('error in orthonormality')
     return basis
 

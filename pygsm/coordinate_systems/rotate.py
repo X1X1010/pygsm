@@ -1,7 +1,11 @@
+import logging
+
 import numpy as np
 from numpy.linalg import multi_dot
 
-from pygsm.utilities import manage_xyz, math_utils, output
+from pygsm.utilities import manage_xyz, math_utils
+
+logger = logging.getLogger(__name__)
 
 """
 References
@@ -291,7 +295,7 @@ def get_R_der(x, y):
                 RMinus = build_correlation(x, y)
                 x[u, w] += h
                 FDiffR = (RPlus - RMinus) / (2 * h)
-                output.logger.info(u, w, np.max(np.abs(ADiffR[u, w] - FDiffR)))
+                logger.debug(f'{u} {w} {np.max(np.abs(ADiffR[u, w] - FDiffR))}')
     return ADiffR
 
 
@@ -357,7 +361,7 @@ def get_F_der(x, y):
                 FMinus = build_F(x, y)
                 x[u, w] += h
                 FDiffF = (FPlus - FMinus) / (2 * h)
-                output.logger.info(u, w, np.max(np.abs(dF[u, w] - FDiffF)))
+                logger.debug(f'{u} {w} {np.max(np.abs(dF[u, w] - FDiffF))}')
     return dF
 
 
@@ -435,7 +439,7 @@ def get_q_der(x, y, second=False, fdcheck=False, use_loops=False):
     if fdcheck:
         # If fdcheck = True, then return finite difference derivatives
         h = 1e-6
-        print('-=# Now checking first derivatives of superposition quaternion w/r.t. Cartesians #=-\n')
+        logger.debug('-=# Now checking first derivatives of superposition quaternion w/r.t. Cartesians #=-')
         FDiffQ = np.zeros((x.shape[0], 3, 4), dtype=float)
         for u in range(x.shape[0]):
             for w in range(3):
@@ -446,11 +450,11 @@ def get_q_der(x, y, second=False, fdcheck=False, use_loops=False):
                 x[u, w] += h
                 FDiffQ[u, w] = (QPlus - QMinus) / (2 * h)
                 maxerr = np.max(np.abs(dq[u, w] - FDiffQ[u, w]))
-                print(f'atom {u:>3} {"xyz"[w]} : maxerr = {maxerr:.3e} {"X" if maxerr > 1e-6 else ""}\n')
+                logger.debug(f'atom {u:>3} {"xyz"[w]} : maxerr = {maxerr:.3e} {"X" if maxerr > 1e-6 else ""}')
         dq = FDiffQ
         if second:
             h = 1.0e-3
-            print('-=# Now checking second derivatives of superposition quaternion w/r.t. Cartesians #=-\n')
+            logger.debug('-=# Now checking second derivatives of superposition quaternion w/r.t. Cartesians #=-')
             Q0 = get_quat(x, y)
             FDiffQ2 = np.zeros((x.shape[0], 3, y.shape[0], 3, 4), dtype=float)
             for u in range(x.shape[0]):
@@ -479,8 +483,8 @@ def get_q_der(x, y, second=False, fdcheck=False, use_loops=False):
                                 FDiffQ2[u, w, a, b] /= 4 * h**2
                             maxerr = np.max(np.abs(dq2[u, w, a, b] - FDiffQ2[u, w, a, b]))
                             if maxerr > 1e-8:
-                                print(
-                                    f'atom {u:>3} {"xyz"[w]}, {a:>3} {"xyz"[b]} : maxerr = {maxerr:.3e} {"X" if maxerr > 1e-6 else ""}\n'
+                                logger.debug(
+                                    f'atom {u:>3} {"xyz"[w]}, {a:>3} {"xyz"[b]} : maxerr = {maxerr:.3e} {"X" if maxerr > 1e-6 else ""}'
                                 )
             dq2 = FDiffQ2
     if second:
@@ -591,7 +595,7 @@ def get_expmap_der(x, y, second=False, fdcheck=False, use_loops=False):
         h = 1e-6
         fac, _ = calc_fac_dfac(q[0])
         V0 = fac * q[1:]
-        print('-=# Now checking first derivatives of exponential map w/r.t. quaternion #=-\n')
+        logger.debug('-=# Now checking first derivatives of exponential map w/r.t. quaternion #=-')
         for p in range(4):
             # Do backwards difference only, because arccos of q[0] > 1 is undefined
             q[p] -= h
@@ -600,10 +604,10 @@ def get_expmap_der(x, y, second=False, fdcheck=False, use_loops=False):
             q[p] += h
             FDiffV = (V0 - VMinus) / h
             maxerr = np.max(np.abs(dvdq[p] - FDiffV))
-            print(f'q {i:>3} : maxerr = {maxerr:.3e} {"X" if maxerr > 1e-6 else ""}\n')
+            logger.debug(f'q {i:>3} : maxerr = {maxerr:.3e} {"X" if maxerr > 1e-6 else ""}')
         if second:
             h = 1e-5
-            print('-=# Now checking second derivatives of exponential map w/r.t. quaternion #=-\n')
+            logger.debug('-=# Now checking second derivatives of exponential map w/r.t. quaternion #=-')
 
             def V_(q_):
                 fac_, _ = calc_fac_dfac(q_[0])
@@ -632,7 +636,7 @@ def get_expmap_der(x, y, second=False, fdcheck=False, use_loops=False):
                     FDiffV2 /= h**2
                     maxerr = np.max(np.abs(dvdq2[p, r] - FDiffV2))
                     if maxerr > 1e-7:
-                        print(f'q {p:>3} {r:>3} : maxerr = {maxerr:.3e} {"X" if maxerr > 1e-5 else ""}\n')
+                        logger.debug(f'q {p:>3} {r:>3} : maxerr = {maxerr:.3e} {"X" if maxerr > 1e-5 else ""}')
 
     # Dimensionality: Number of atoms, number of dimensions (3), number of elements in q (4)
     if second:
@@ -672,7 +676,7 @@ def get_expmap_der(x, y, second=False, fdcheck=False, use_loops=False):
     # LPW 2019-03-09: Using einsum gives 166x speedup over for loops for trp-cage (200 atoms); 0.06 vs. 10.1 s
     if fdcheck:
         h = 1e-3
-        print('-=# Now checking first derivatives of exponential map w/r.t. Cartesians #=-\n')
+        logger.debug('-=# Now checking first derivatives of exponential map w/r.t. Cartesians #=-')
         FDiffV = np.zeros((x.shape[0], 3, 3), dtype=float)
         for u in range(x.shape[0]):
             for w in range(3):
@@ -683,10 +687,10 @@ def get_expmap_der(x, y, second=False, fdcheck=False, use_loops=False):
                 x[u, w] += h
                 FDiffV[u, w] = (VPlus - VMinus) / (2 * h)
                 maxerr = np.max(np.abs(dvdx[u, w] - FDiffV[u, w]))
-                print(f'atom {u:>3} {"xyz"[w]} : maxerr = {maxerr:.3e} {"X" if maxerr > 1e-6 else ""}\n')
+                logger.debug(f'atom {u:>3} {"xyz"[w]} : maxerr = {maxerr:.3e} {"X" if maxerr > 1e-6 else ""}')
         dvdx = FDiffV
         if second:
-            print('-=# Now checking second derivatives of exponential map w/r.t. Cartesians #=-\n')
+            logger.debug('-=# Now checking second derivatives of exponential map w/r.t. Cartesians #=-')
             FDiffV2 = np.zeros((x.shape[0], 3, y.shape[0], 3, 3), dtype=float)
             for u in range(x.shape[0]):
                 for w in range(3):
@@ -714,8 +718,8 @@ def get_expmap_der(x, y, second=False, fdcheck=False, use_loops=False):
                                 FDiffV2[u, w, a, b] /= 4 * h**2
                             maxerr = np.max(np.abs(dvdx2[u, w, a, b] - FDiffV2[u, w, a, b]))
                             if maxerr > 1e-8:
-                                print(
-                                    f'atom {u:>3} {"xyz"[w]}, {a:>3} {"xyz"[b]} : maxerr = {maxerr:.3e} {"X" if maxerr > 1e-6 else ""}\n'
+                                logger.debug(
+                                    f'atom {u:>3} {"xyz"[w]}, {a:>3} {"xyz"[b]} : maxerr = {maxerr:.3e} {"X" if maxerr > 1e-6 else ""}'
                                 )
             dvdx2 = FDiffV2
 

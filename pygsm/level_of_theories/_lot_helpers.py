@@ -2,6 +2,10 @@
 
 from __future__ import annotations
 
+import logging
+
+logger = logging.getLogger(__name__)
+
 
 def normalize_states(states):
     singlets = [state for state in states if state[0] == 1]
@@ -30,6 +34,6 @@ def normalize_states(states):
 
 def infer_gradient_states(states, gradient_states, calc_grad):
     if gradient_states is None and calc_grad:
-        print(' Assuming gradient states are ', states)
+        logger.debug(f' Assuming gradient states are  {states}')
         return states
     return gradient_states

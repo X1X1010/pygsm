@@ -1,9 +1,13 @@
+import logging
+
 from ..molecule import Molecule
 
 # local application imports
 from ..potential_energy_surfaces import PES, AvgPES
 from ..utilities import output
 from .se_gsm import SEGSM
+
+logger = logging.getLogger(__name__)
 
 # standard library imports
 
@@ -15,7 +19,7 @@ class SECross(SEGSM):
 
     def on_growth_exhausted(self, error):
         # SE-Cross optimises the last node itself after growth (see go_gsm).
-        print(' Will do extra optimization of this node in SE-Cross')
+        logger.debug(' Will do extra optimization of this node in SE-Cross')
 
     def go_gsm(self, max_iters: int = 50, opt_steps: int = 3, rtype: int = 0) -> None:
         """rtype=0 MECI search
@@ -29,22 +33,22 @@ class SECross(SEGSM):
 
         self.nodes[0].gradrms = 0.0
         self.nodes[0].V0 = self.nodes[0].energy
-        print(f' Initial energy is {self.nodes[0].energy:1.4f}')
+        logger.info(f' Initial energy is {self.nodes[0].energy:1.4f}')
 
         # stash bdist for node 0
         _, self.nodes[0].bdist = self.get_tangent(self.nodes[0], None, driving_coords=self.driving_coords)
-        print(f' Initial bdist is {self.nodes[0].bdist:1.3f}')
+        logger.debug(f' Initial bdist is {self.nodes[0].bdist:1.3f}')
 
         # interpolate first node
         self.add_GSM_nodeR()
 
         # grow string
         self.grow_string(max_iters=max_iters, max_opt_steps=opt_steps)
-        print(' SE_Cross growth phase over')
-        print(' Warning last node still not fully optimized')
+        logger.info(' SE_Cross growth phase over')
+        logger.warning(' Warning last node still not fully optimized')
 
         # doing extra constrained penalty optimization for MECI, tightening the penalty step by step
-        print(f' extra constrained optimization for the nnR-1 = {self.nR - 1}')
+        logger.info(f' extra constrained optimization for the nnR-1 = {self.nR - 1}')
         self.optimizer[self.nR - 1].conv_grms = self.options.CONV_TOL * 5
         for sigma in (1.5, 2.5, 3.5):
             ictan = self.get_tangent_xyz(
@@ -78,7 +82,7 @@ class SECross(SEGSM):
                 verbose=True,
             )
             if not self.optimizer[self.nR].converged:
-                print('doing extra optimization in hopes that the MECI will converge.')
+                logger.info('doing extra optimization in hopes that the MECI will converge.')
                 if self.nodes[self.nR].PES.PES2.energy - self.nodes[0].V0 < 20:
                     self.optimizer[self.nR].optimize(
                         molecule=self.nodes[self.nR],
@@ -92,7 +96,7 @@ class SECross(SEGSM):
             # TODO make unctonstrained "CROSSING" which checks for dE convergence
             self.nodes[self.nR] = Molecule.copy_from(self.nodes[self.nR - 1], new_node_id=self.nR)
             self.nodes[self.nR].PES.sigma = 10.0
-            print(f' sigma for node {self.nR} is {self.nodes[self.nR].PES.sigma:.3f}')
+            logger.debug(f' sigma for node {self.nR} is {self.nodes[self.nR].PES.sigma:.3f}')
             self.optimizer[self.nR].opt_cross = True
             self.optimizer[self.nR].conv_grms = self.options.CONV_TOL
             self.optimizer[self.nR].conv_Ediff = self.options.CONV_Ediff
@@ -109,7 +113,7 @@ class SECross(SEGSM):
         if self.optimizer[self.nR].converged:
             self.nnodes = self.nR + 1
             self.nodes = self.nodes[: self.nnodes]
-            print('Setting all interior nodes to active')
+            logger.debug('Setting all interior nodes to active')
             for n in range(1, self.nnodes - 1):
                 self.active[n] = True
             self.active[self.nnodes - 1] = False
@@ -119,32 +123,29 @@ class SECross(SEGSM):
             for n in range(self.nnodes):
                 self.nodes[n].PES = PES.create_pes_from(self.nodes[n].PES.PES2, options={'gradient_states': [(1, 1)]})
 
-            print(' initial ic_reparam')
+            logger.debug(' initial ic_reparam')
             self.reparameterize(ic_reparam_steps=25)
-            print(' V_profile (after reparam): ', end=' ')
+            self.print_energies(' V_profile (after reparam):')
             energies = self.energies
-            for n in range(self.nnodes):
-                print(f' {float(energies[n]):7.3f}', end=' ')
-            print()
 
             deltaE = energies[-1] - energies[0]
             if deltaE > 20:
-                print(f" MECI energy is too high {deltaE:5.4f}. Don't try to optimize pathway")
-                print('Exiting early')
+                logger.info(f" MECI energy is too high {deltaE:5.4f}. Don't try to optimize pathway")
+                logger.info('Exiting early')
                 self.end_early = True
             else:
-                print(f' deltaE s1-minimum and MECI {deltaE:5.4f}')
+                logger.info(f' deltaE s1-minimum and MECI {deltaE:5.4f}')
                 try:
                     self.optimize_string(max_iter=max_iters, opt_steps=3, rtype=1)
                 except Exception as error:
                     if str(error) == 'Ran out of iterations':
-                        print(error)
+                        logger.warning(error)
                         self.end_early = True
                     else:
-                        print(error)
+                        logger.warning(error)
                         self.end_early = True
         else:
-            print('Exiting early')
+            logger.info('Exiting early')
             self.end_early = True
         self.write_string('string')
 
@@ -156,10 +157,10 @@ class SECross(SEGSM):
             abs(pes1dE) > abs(pes2dE)
         )
         if condition1:
-            print(' Condition 1 satisfied')
-            print(f' bdist current {abs(self.nodes[self.nR - 1].bdist):1.3f}')
-            print(f' bdist target {abs(self.nodes[0].bdist) * (1 - self.BDIST_RATIO):1.3f}')
-            print(' Growth-phase over')
+            logger.debug(' Condition 1 satisfied')
+            logger.debug(f' bdist current {abs(self.nodes[self.nR - 1].bdist):1.3f}')
+            logger.debug(f' bdist target {abs(self.nodes[0].bdist) * (1 - self.BDIST_RATIO):1.3f}')
+            logger.info(' Growth-phase over')
             isDone = True
         return isDone
 
@@ -167,4 +168,4 @@ class SECross(SEGSM):
         self.optimizer[nR].conv_grms = self.options.ADD_NODE_TOL
         self.optimizer[nR].conv_gmax = 100.0  # self.options.ADD_NODE_TOL # could use some multiplier times CONV_GMAX...
         self.optimizer[nR].conv_Ediff = 1000.0  # 2.5
-        print(f' conv_tol of node {nR} is {self.optimizer[nR].conv_grms:.4f}')
+        logger.debug(f' conv_tol of node {nR} is {self.optimizer[nR].conv_grms:.4f}')

@@ -1,9 +1,11 @@
-import sys
-
 # third party
 # local application imports
+import logging
+
 from ..utilities import units
 from .pes import PES
+
+logger = logging.getLogger(__name__)
 
 
 class PenaltyPES(PES):
@@ -23,7 +25,7 @@ class PenaltyPES(PES):
         self.alpha = alpha
         self.dE = 1000.0
         self.sigma = sigma
-        print(
+        logger.debug(
             f' PES1 multiplicity: {self.PES1.multiplicity} PES2 multiplicity: {self.PES2.multiplicity} sigma: {self.sigma}'
         )
 
@@ -40,7 +42,6 @@ class PenaltyPES(PES):
         self.dE = E2 - E1
         # TODO what to do if PES2 is or goes lower than PES1?
         G = (self.dE * self.dE) / (abs(self.dE) + self.alpha)
-        sys.stdout.flush()
         return avgE + self.sigma * G
 
     def get_gradient(self, geom, frozen_atoms=None):

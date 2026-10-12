@@ -1,6 +1,10 @@
+import logging
+
 from pygsm.utilities import output
 
 from .main_gsm import MainGSM
+
+logger = logging.getLogger(__name__)
 
 
 class DEGSM(MainGSM):
@@ -11,8 +15,8 @@ class DEGSM(MainGSM):
     def __init__(self, options=None, **kwargs):
         super().__init__(options, **kwargs)
 
-        print(' Assuming primitives are union!')
-        print(' number of primitives is', self.nodes[0].num_primitives)
+        logger.debug(' Assuming primitives are union!')
+        logger.debug(f' number of primitives is {self.nodes[0].num_primitives}')
 
     def _grow_phase(self, max_iters, opt_steps):
         if self.growth_direction == 0:
@@ -30,7 +34,7 @@ class DEGSM(MainGSM):
 
     def add_GSM_nodes(self, newnodes=1):
         if self.current_nnodes + newnodes > self.nnodes:
-            print('Adding too many nodes, cannot add_GSM_node')
+            logger.debug('Adding too many nodes, cannot add_GSM_node')
         sign = -1
         for _i in range(newnodes):
             sign *= -1
@@ -41,21 +45,21 @@ class DEGSM(MainGSM):
 
     def set_active(self, nR, nP):
         if nR != nP and self.growth_direction == 0:
-            print(f' setting active nodes to {nR} and {nP}')
+            logger.debug(f' setting active nodes to {nR} and {nP}')
         elif self.growth_direction == 1:
-            print(f' setting active node to {nR} ')
+            logger.debug(f' setting active node to {nR} ')
         elif self.growth_direction == 2:
-            print(f' setting active node to {nP} ')
+            logger.debug(f' setting active node to {nP} ')
         else:
-            print(f' setting active node to {nR} ')
+            logger.debug(f' setting active node to {nR} ')
 
         for i in range(self.nnodes):
             if self.nodes[i] is not None:
                 self.optimizer[i].conv_grms = self.CONV_TOL * 2.0
         self.optimizer[nR].conv_grms = self.options.ADD_NODE_TOL
         self.optimizer[nP].conv_grms = self.options.ADD_NODE_TOL
-        print(f' conv_tol of node {nR} is {self.optimizer[nR].conv_grms:.4f}')
-        print(f' conv_tol of node {nP} is {self.optimizer[nP].conv_grms:.4f}')
+        logger.debug(f' conv_tol of node {nR} is {self.optimizer[nR].conv_grms:.4f}')
+        logger.debug(f' conv_tol of node {nP} is {self.optimizer[nP].conv_grms:.4f}')
         self.active[nR] = True
         self.active[nP] = True
         if self.growth_direction == 1:
@@ -82,14 +86,16 @@ class DEGSM(MainGSM):
             and self.nodes[self.nR] is None
         ):
             self.add_GSM_nodeR()
-            print(f' getting energy for node {self.nR - 1}: {self.nodes[self.nR - 1].energy - self.nodes[0].V0:5.4f}')
+            logger.debug(
+                f' getting energy for node {self.nR - 1}: {self.nodes[self.nR - 1].energy - self.nodes[0].V0:5.4f}'
+            )
         if (
             self.nodes[self.nnodes - self.nP].gradrms < self.gaddmax
             and self.growth_direction != 1
             and self.nodes[-self.nP - 1] is None
         ):
             self.add_GSM_nodeP()
-            print(
+            logger.debug(
                 f' getting energy for node {self.nnodes - self.nP}: {self.nodes[-self.nP].energy - self.nodes[0].V0:5.4f}'
             )
         return
@@ -150,7 +156,7 @@ class DEGSM(MainGSM):
         self.nodes[0].gradrms = 0.0
         if self.growth_direction != 1:
             self.nodes[-1].gradrms = 0.0
-            print(f' Energy of the end points are {self.nodes[0].energy:4.3f}, {self.nodes[-1].energy:4.3f}')
-            print(f' relative E {0.0:4.3f}, {self.nodes[-1].energy - self.nodes[0].energy:4.3f}')
+            logger.info(f' Energy of the end points are {self.nodes[0].energy:4.3f}, {self.nodes[-1].energy:4.3f}')
+            logger.info(f' relative E {0.0:4.3f}, {self.nodes[-1].energy - self.nodes[0].energy:4.3f}')
         else:
-            print(f' Energy of end points are {self.nodes[0].energy:4.3f} ')
+            logger.info(f' Energy of end points are {self.nodes[0].energy:4.3f} ')

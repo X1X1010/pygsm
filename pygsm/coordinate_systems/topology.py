@@ -1,10 +1,13 @@
 import itertools
+import logging
 from collections import OrderedDict
 
 import networkx as nx
 import numpy as np
 
 from pygsm.utilities import math_utils, output
+
+logger = logging.getLogger(__name__)
 
 # ===========================#
 # |   Connectivity graph    |#
@@ -143,7 +146,7 @@ def build_topology(
 
     # can do an assert for xyz here CRA TODO
     if natoms > 100000:
-        output.logger.warning(f'Warning: Large number of atoms ({natoms}), topology building may take a long time')
+        logger.warning(f'Warning: Large number of atoms ({natoms}), topology building may take a long time')
 
     # Get hybrid indices
     hybrid_indices = hybrid_indices
@@ -171,7 +174,7 @@ def build_topology(
                     hybrid_idx_start_stop.append((start, end))
 
     if not bondlistfile:
-        output.printcool(' building bonds')
+        output.printcool('Building bonds', level=logging.DEBUG)
         bonds = build_bonds(xyz, atoms, primitive_indices, prim_idx_start_stop)
         assert bondlistfile is None
     else:
@@ -182,7 +185,7 @@ def build_topology(
             raise RuntimeError(f'could not read bonds from {bondlistfile}') from error
 
     if add_bond:
-        print(' adding extra bonds')
+        logger.debug(' adding extra bonds')
         for bond in add_bond:
             bonds.append(bond)
 
@@ -293,7 +296,7 @@ def _build_atom_iterator_from_ranges(index_ranges):
 def build_bonds(xyz, atoms, primitive_indices, prim_idx_start_stop=None, **kwargs):
     """Build the bond connectivity graph."""
 
-    print(' In build bonds')
+    logger.debug(' In build bonds')
     top_settings = {
         'toppbc': kwargs.get('toppbc', False),
         'topframe': kwargs.get('topframe', 0),
@@ -326,9 +329,7 @@ def build_bonds(xyz, atoms, primitive_indices, prim_idx_start_stop=None, **kwarg
         ymax = boxes[sn].b
         zmax = boxes[sn].c
         if any([i != 90.0 for i in [boxes[sn].alpha, boxes[sn].beta, boxes[sn].gamma]]):
-            output.logger.warning(
-                'Warning: Topology building will not work with broken molecules in nonorthogonal cells.'
-            )
+            logger.warning('Warning: Topology building will not work with broken molecules in nonorthogonal cells.')
             toppbc = False
     else:
         xmin = mins[0]
@@ -356,7 +357,7 @@ def build_bonds(xyz, atoms, primitive_indices, prim_idx_start_stop=None, **kwarg
     # Decide if we want to use the grid algorithm.
     use_grid = toppbc or (np.min([xext, yext, zext]) > 2.0 * gsz)
     if use_grid and prim_idx_start_stop is None:
-        print(' Using grid')
+        logger.debug(' Using grid')
         xgrd = np.arange(xmin, xmax - gszx, gszx)
         ygrd = np.arange(ymin, ymax - gszy, gszy)
         zgrd = np.arange(zmin, zmax - gszz, gszz)
@@ -373,7 +374,7 @@ def build_bonds(xyz, atoms, primitive_indices, prim_idx_start_stop=None, **kwarg
         if prim_idx_start_stop is None:
             prim_idx_start_stop = _primitive_index_ranges(primitive_indices, natoms)
         else:
-            print(' using user defined primitive start stop values')
+            logger.debug(' using user defined primitive start stop values')
 
         AtomIterator = _build_atom_iterator_from_ranges(prim_idx_start_stop)
     if AtomIterator.size == 0:
@@ -421,7 +422,7 @@ def build_bonds(xyz, atoms, primitive_indices, prim_idx_start_stop=None, **kwarg
 
 
 def read_bonds_from_file(filename):
-    print('reading bonds')
+    logger.debug('reading bonds')
     bondlist = np.loadtxt(filename)
 
     bonds = []
@@ -434,7 +435,7 @@ def read_bonds_from_file(filename):
             bonds.append((j, i))
 
     sorted_bonds = sorted(list(set(bonds)))
-    print(sorted_bonds[:10])
+    logger.debug(sorted_bonds[:10])
 
     return sorted_bonds
 

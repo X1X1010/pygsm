@@ -1,3 +1,4 @@
+import logging
 from dataclasses import dataclass
 
 # third party
@@ -9,6 +10,8 @@ from ..utilities.config import Config, option
 
 # local application imports
 from ._linesearch import NoLineSearch, backtrack
+
+logger = logging.getLogger(__name__)
 
 
 def sorted_eigh(mat, asc=False):
@@ -212,7 +215,7 @@ class BaseOptimizer:
         elif opt_type == 'ICTAN' or opt_type == 'CLIMB' or opt_type == 'BEALES_CG':
             constraints = ictan
         elif opt_type == 'MECI':
-            print('MECI')
+            logger.debug('MECI')
             dgrad_U = block_matrix.dot(molecule.coord_basis, molecule.difference_gradient)
             dvec_U = block_matrix.dot(molecule.coord_basis, molecule.derivative_coupling)
             constraints = np.hstack((dgrad_U, dvec_U))
@@ -238,7 +241,7 @@ class BaseOptimizer:
             max_step = 0.05 / self.SCALE_CLIMB
             if gts > np.abs(max_step):
                 gts = np.sign(gts) * max_step
-            print(f' gts {gts.item():.4f}')
+            logger.debug(f' gts {gts.item():.4f}')
             constraint_steps = gts * molecule.constraints[:, 0]
             constraint_steps = constraint_steps[:, np.newaxis]
         # => MECI
@@ -257,7 +260,7 @@ class BaseOptimizer:
             max_step = 0.05 / self.SCALE_CLIMB
             if gts > np.abs(max_step):
                 gts = np.sign(gts) * max_step
-            print(f' gts {gts.item():.4f}')
+            logger.debug(f' gts {gts.item():.4f}')
             constraint_steps = gts * molecule.constraints[:, 0]
             constraint_steps = constraint_steps[:, np.newaxis]
 
@@ -272,8 +275,8 @@ class BaseOptimizer:
 
         norm_dg = np.linalg.norm(molecule.difference_gradient)
         if self.options.print_level > 0:
-            print(f' norm_dg is {norm_dg:1.4f}')
-            print(f' dE is {molecule.difference_energy:1.4f}')
+            logger.debug(f' norm_dg is {norm_dg:1.4f}')
+            logger.debug(f' dE is {molecule.difference_energy:1.4f}')
 
         dq = -molecule.difference_energy / units.KCAL_MOL_PER_AU / norm_dg
         if dq < self.DMAX / 5:
@@ -288,11 +291,11 @@ class BaseOptimizer:
 
         if opt_type in ['TS', 'CLIMB']:
             if ratio < 0.0 and abs(dEpre) > 0.05:
-                print('sign problem, decreasing DMAX')
+                logger.debug('sign problem, decreasing DMAX')
                 self.DMAX /= 1.35
             elif ratio < 0.75 or ratio > 1.5:  # and abs(dEpre)>0.05:
                 if self.options.print_level > 0:
-                    print(' decreasing DMAX')
+                    logger.debug(' decreasing DMAX')
                 if step < self.DMAX:
                     self.DMAX = step / 1.1
                 else:
@@ -300,14 +303,14 @@ class BaseOptimizer:
 
             elif ratio > 0.85 and ratio < 1.3:
                 if gradrms > (pgradrms + 0.0005):
-                    print(' decreasing DMAX, gradrms increased')
+                    logger.debug(' decreasing DMAX, gradrms increased')
                     self.DMAX -= self.DMAX / 10.0
                 elif gradrms < (pgradrms + 0.0005):
                     if self.DMAX < 0.05:
-                        print(' increased DMAX, gradrms decreased')
-                        print(gradrms)
-                        print(pgradrms)
-                        print(' increasing DMAX')
+                        logger.debug(' increased DMAX, gradrms decreased')
+                        logger.debug(gradrms)
+                        logger.debug(pgradrms)
+                        logger.debug(' increasing DMAX')
                         self.DMAX = self.DMAX * 1.1
                     elif gradrms < (pgradrms - 0.0005) and ratio > 0.9 and ratio < 1.1:
                         self.DMAX = self.DMAX * 1.1
@@ -317,21 +320,21 @@ class BaseOptimizer:
         else:
             if dE_iter > 0.001 and opt_type in ['UNCONSTRAINED', 'ICTAN']:
                 if self.options.print_level > 0:
-                    print(' decreasing DMAX')
+                    logger.debug(' decreasing DMAX')
                 if step < self.DMAX:
                     self.DMAX = step / 1.5
                 else:
                     self.DMAX = self.DMAX / 1.5
             elif (ratio < 0.25 or ratio > 1.5) and abs(dEpre) > 0.05:
                 if self.options.print_level > 0:
-                    print(' decreasing DMAX')
+                    logger.debug(' decreasing DMAX')
                 if step < self.DMAX:
                     self.DMAX = step / 1.1
                 else:
                     self.DMAX = self.DMAX / 1.2
             elif ratio > 0.75 and ratio < 1.25 and step > self.DMAX and gradrms < (pgradrms * 1.35):
                 if self.options.print_level > 0:
-                    print(' increasing DMAX')
+                    logger.debug(' increasing DMAX')
                 self.DMAX = self.DMAX * 1.1 + 0.01
             if self.DMAX > 0.25:
                 self.DMAX = 0.25
@@ -347,11 +350,11 @@ class BaseOptimizer:
             SCALE = 10.0
 
         if self.options.print_level > 1:
-            print(f'new_hess {molecule.newHess}')
+            logger.debug(f'new_hess {molecule.newHess}')
 
         if self.options.print_level > 1:
-            print('constraints')
-            print(molecule.constraints.T)
+            logger.debug('constraints')
+            logger.debug(molecule.constraints.T)
 
         P = np.eye(len(molecule.constraints), dtype=float)
         for c in molecule.constraints.T:
@@ -363,15 +366,15 @@ class BaseOptimizer:
         lambda1 = self.set_lambda1('NOT-TS', e)
 
         if self.options.print_level > 1:
-            print(' eigenvalues ', e)
+            logger.debug(f' eigenvalues  {e}')
         if self.options.print_level > 1:
-            print(' eigenvectors ', v_temp)
+            logger.debug(f' eigenvectors  {v_temp}')
 
         if self.options.print_level > 1:
-            print(' g ', g.T)
+            logger.debug(f' g  {g.T}')
 
         if self.options.print_level > 1:
-            print(' gqe ', gqe.T)
+            logger.debug(f' gqe  {gqe.T}')
 
         dqe0 = -gqe.flatten() / (e + lambda1) / SCALE
         dqe0 = [np.sign(i) * self.options.MAXAD if abs(i) > self.options.MAXAD else i for i in dqe0]
@@ -387,7 +390,7 @@ class BaseOptimizer:
             dq -= np.dot(c[:, np.newaxis].T, dq) * c[:, np.newaxis]
 
         if self.options.print_level > 1:
-            print(' dq ', dq.T)
+            logger.debug(f' dq  {dq.T}')
         return np.reshape(dq, (-1, 1))
 
     # need to modify this only for the DLC region
@@ -422,11 +425,11 @@ class BaseOptimizer:
         # => Overlap metric <= #
         overlap = np.dot(block_matrix.dot(tmph, block_matrix.transpose(Vecs)), Cn)
 
-        print(' overlap', overlap[:4].T)
-        print(' nneg', self.nneg)
+        logger.debug(f' overlap {overlap[:4].T}')
+        logger.debug(f' nneg {self.nneg}')
         # Max overlap metrics
         path_overlap, maxoln = self.maxol_w_Hess(overlap[0:4])
-        print(f' t/ol {maxoln}: {path_overlap:3.2f}')
+        logger.debug(f' t/ol {maxoln}: {path_overlap:3.2f}')
 
         # => set lamda1 scale factor <=#
         lambda1 = self.set_lambda1('TS', eigen, maxoln)
@@ -439,7 +442,7 @@ class BaseOptimizer:
             # => grad in eigenvector basis <= #
             gqe = np.dot(tmph, g)
             path_overlap_e_g = gqe[maxoln]
-            print(f' gtse: {path_overlap_e_g[0]:1.4f} ')
+            logger.debug(f' gtse: {path_overlap_e_g[0]:1.4f} ')
             # save gtse in memory ...
             self.gtse = abs(path_overlap_e_g[0])
             # => calculate eigenvector step <=#
@@ -460,7 +463,7 @@ class BaseOptimizer:
             # => if overlap is small use Cn as Constraint <= #
             molecule.update_coordinate_basis(ictan)
             g = molecule.gradient
-            print(molecule.constraints.T)
+            logger.debug(molecule.constraints.T)
             molecule.form_Hessian_in_basis()
             dq = self.eigenvector_step(molecule, g)
 
@@ -484,10 +487,10 @@ class BaseOptimizer:
         if isinstance(molecule.coord_obj, DelocalizedInternalCoordinates):
             molecule.update_Primitive_Hessian(change=change)
             if self.options.print_level > 1:
-                print('change')
-                print(change)
-                print(' updated primitive internals Hessian')
-                print(molecule.Primitive_Hessian)
+                logger.debug('change')
+                logger.debug(change)
+                logger.debug(' updated primitive internals Hessian')
+                logger.debug(molecule.Primitive_Hessian)
             if mode == 'BFGS':
                 molecule.form_Hessian_in_basis()
             if mode == 'BOFILL':
@@ -505,9 +508,9 @@ class BaseOptimizer:
 
     def update_bfgsp(self, molecule):
         if self.options.print_level > 1:
-            print('In update bfgsp')
-            print('dx_prim ', self.dx_prim.T)
-            print('dg_prim ', self.dg_prim.T)
+            logger.debug('In update bfgsp')
+            logger.debug(f'dx_prim  {self.dx_prim.T}')
+            logger.debug(f'dg_prim  {self.dg_prim.T}')
 
         Hdx = np.dot(molecule.Primitive_Hessian, self.dx_prim)
         dxHdx = np.dot(np.transpose(self.dx_prim), Hdx)
@@ -516,11 +519,9 @@ class BaseOptimizer:
         change = np.zeros_like(molecule.Primitive_Hessian)
 
         if self.options.print_level > 1:
-            print('Hdx')
-            print(Hdx.T)
-            print(f'dgtdx: {dgtdx:1.8f} dxHdx: {dxHdx:1.8f} dgdg')
-            print('dgdg')
-            print(dgdg)
+            logger.debug(f'Hdx {Hdx.T}')
+            logger.debug(f'dgtdx: {dgtdx.item():1.8f} dxHdx: {dxHdx.item():1.8f}')
+            logger.debug(f'dgdg\n{dgdg}')
 
         if dgtdx > 0.0:
             if dgtdx < 0.001:
@@ -534,7 +535,7 @@ class BaseOptimizer:
         return change
 
     def update_bofill(self, molecule):
-        print(' in update bofill')
+        logger.debug(' in update bofill')
 
         G = np.copy(molecule.Hessian)  # nicd,nicd
         Gdx = np.dot(G, self.dx)  # (nicd,nicd)(nicd,1) = (nicd,1)

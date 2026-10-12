@@ -1,4 +1,5 @@
 # standard library imports
+import logging
 import os
 from collections import namedtuple
 from dataclasses import dataclass
@@ -11,6 +12,8 @@ import numpy as np
 from ..utilities import manage_xyz, units
 from ..utilities.config import Config, option
 from ._lot_helpers import infer_gradient_states, normalize_states
+
+logger = logging.getLogger(__name__)
 
 
 class LoTError(Exception):
@@ -64,15 +67,15 @@ class Lot:
         )
         normalized_states, did_normalize = normalize_states(self.states)
         if did_normalize:
-            print('fixing states to be proper length')
+            logger.debug('fixing states to be proper length')
             self.states = normalized_states
-            print(' New states ', self.states)
+            logger.debug(f' New states  {self.states}')
 
         self.geom = self.options.geom
         if self.geom is not None:
-            print(' initializing LOT from geom')
+            logger.debug(' initializing LOT from geom')
         elif self.options.fnm is not None:
-            print(' initializing LOT from file')
+            logger.debug(' initializing LOT from file')
             if not os.path.exists(self.options.fnm):
                 raise OSError
             self.geom = manage_xyz.read_xyz(self.options.fnm, scale=1.0)

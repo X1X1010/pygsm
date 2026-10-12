@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import logging
 from collections.abc import Sequence
 
 import numpy as np
@@ -22,6 +23,8 @@ from pygsm.utilities.manage_xyz import XYZ_WRITERS
 
 from .arguments import parse_arguments
 from .factory import choose_optimizer, choose_pes, create_lot
+
+logger = logging.getLogger(__name__)
 
 
 def _read_nonempty_lines(path: str) -> list[str]:
@@ -85,7 +88,7 @@ def _build_topology_data(inpfileq: dict, geoms):
     if prim_indices is not None:
         output.printcool(' Defining primitive internal region :)')
         assert inpfileq['coordinate_type'] == 'TRIC', "won't work (currently) with other coordinate systems"
-        print(prim_indices)
+        logger.debug(prim_indices)
 
     top1 = build_topology(
         xyz1,
@@ -109,7 +112,7 @@ def _build_topology_data(inpfileq: dict, geoms):
         for bond in top2.edges():
             if bond in top1.edges or (bond[1], bond[0]) in top1.edges():
                 continue
-            print(f' Adding bond {bond} to top1')
+            logger.debug(f' Adding bond {bond} to top1')
             if bond[0] > bond[1]:
                 top1.add_edge(bond[0], bond[1])
             else:
@@ -126,7 +129,7 @@ def _build_topology_data(inpfileq: dict, geoms):
             bond = (primitive.atoms[0], primitive.atoms[1])
             if bond in top1.edges or (bond[1], bond[0]) in top1.edges():
                 continue
-            print(f' Adding bond {bond} to top1')
+            logger.debug(f' Adding bond {bond} to top1')
             top1.add_edge(bond[0], bond[1])
 
     return atoms, xyz1, xyz2, top1, hybrid_indices, driving_coordinates, driving_coord_prims
@@ -147,7 +150,7 @@ def _build_coordinate_object(inpfileq: dict, atoms, xyz1, xyz2, top1, hybrid_ind
     if hybrid_indices:
         p1.get_hybrid_indices(xyz1)
     p1.newMakePrimitives(xyz1)
-    print(' done making primitives p1')
+    logger.debug(' done making primitives p1')
 
     if inpfileq['gsm_type'] == 'DE_GSM':
         output.printcool('Building Primitive Internal Coordinates 2')
@@ -162,16 +165,16 @@ def _build_coordinate_object(inpfileq: dict, atoms, xyz1, xyz2, top1, hybrid_ind
         if hybrid_indices:
             p2.get_hybrid_indices(xyz2)
         p2.newMakePrimitives(xyz2)
-        print(' done making primitives p2')
+        logger.debug(' done making primitives p2')
         output.printcool('Forming Union of Primitives')
         p1.add_union_primitives(p2)
-        print(f'check {len(p1.Internals)}')
+        logger.debug(f'check {len(p1.Internals)}')
     else:
         for primitive in driving_coord_prims:
             if isinstance(primitive, Distance):
                 continue
             if primitive not in p1.Internals:
-                print(f'Adding driving coord prim {primitive} to Internals')
+                logger.info(f'Adding driving coord prim {primitive} to Internals')
                 p1.append_prim_to_block(primitive)
 
     output.printcool('Building Delocalized Internal Coordinates')
@@ -257,10 +260,10 @@ def _resolve_rtype(inpfileq: dict) -> int:
 def _load_pes_side_inputs(inpfileq: dict) -> None:
     if inpfileq['FORCE_FILE']:
         inpfileq['FORCE'] = _read_force_like_file(inpfileq['FORCE_FILE'], integer_prefix=2)
-        print(inpfileq['FORCE'])
+        logger.info(inpfileq['FORCE'])
     if inpfileq['RESTRAINT_FILE']:
         inpfileq['RESTRAINTS'] = _read_force_like_file(inpfileq['RESTRAINT_FILE'], integer_prefix=1)
-        print(inpfileq['RESTRAINTS'])
+        logger.info(inpfileq['RESTRAINTS'])
 
 
 def main(argv: Sequence[str] | None = None):
@@ -275,7 +278,7 @@ def main(argv: Sequence[str] | None = None):
     lot = create_lot(inpfileq, geoms[0])
 
     if inpfileq['gsm_type'] == 'SE_Cross' and inpfileq['PES_type'] != 'Penalty_PES':
-        print(' setting PES type to Penalty')
+        logger.info(' setting PES type to Penalty')
         inpfileq['PES_type'] = 'Penalty_PES'
     if inpfileq['optimize_mesx'] or inpfileq['optimize_meci'] or inpfileq['gsm_type'] == 'SE_Cross':
         assert inpfileq['PES_type'] == 'Penalty_PES', 'Need penalty pes for optimizing MESX/MECI'
@@ -398,10 +401,10 @@ def post_processing(gsm, analyze_ICs=False, have_TS=True):
     if have_TS:
         minnodeR = np.argmin(gsm.energies[: gsm.TSnode])
         ts_energy = gsm.energies[gsm.TSnode] - gsm.energies[minnodeR]
-        print(f' TS energy: {ts_energy:5.4f}')
-        print(f' absolute energy TS node {gsm.nodes[gsm.TSnode].energy:5.4f}')
+        logger.info(f' TS energy: {ts_energy:5.4f}')
+        logger.info(f' absolute energy TS node {gsm.nodes[gsm.TSnode].energy:5.4f}')
         minnodeP = gsm.TSnode + np.argmin(gsm.energies[gsm.TSnode :])
-        print(f' min reactant node: {minnodeR} min product node {minnodeP} TS node is {gsm.TSnode}')
+        logger.info(f' min reactant node: {minnodeR} min product node {minnodeP} TS node is {gsm.TSnode}')
 
         internals.append(gsm.nodes[minnodeR].primitive_internal_values)
         internals.append(gsm.nodes[gsm.TSnode].primitive_internal_values)
@@ -409,18 +412,18 @@ def post_processing(gsm, analyze_ICs=False, have_TS=True):
         with open(f'IC_data_{gsm.ID:03d}.txt', 'w') as handle:
             handle.write(f'Internals \t minnodeR: {minnodeR} \t TSnode: {gsm.TSnode} \t minnodeP: {minnodeP}\n')
             for record in zip(*internals):
-                handle.write('\t'.join(str(v) for v in record) + '\n')
+                handle.write('\t'.join(str(v) for v in record))
     else:
         minnodeR = 0
         minnodeP = gsm.nR
-        print(f' absolute energy end node {gsm.nodes[gsm.nR].energy:5.4f}')
-        print(f' difference energy end node {gsm.nodes[gsm.nR].difference_energy:5.4f}')
+        logger.info(f' absolute energy end node {gsm.nodes[gsm.nR].energy:5.4f}')
+        logger.info(f' difference energy end node {gsm.nodes[gsm.nR].difference_energy:5.4f}')
         internals.append(gsm.nodes[minnodeR].primitive_internal_values)
         internals.append(gsm.nodes[minnodeP].primitive_internal_values)
         with open(f'IC_data_{gsm.ID:03d}.txt', 'w') as handle:
             handle.write(f'Internals \t Beginning: {minnodeR} \t End: {minnodeP}')
             for record in zip(*internals):
-                handle.write('\t'.join(str(v) for v in record) + '\n')
+                handle.write('\t'.join(str(v) for v in record))
 
     delta_e = gsm.energies[minnodeP] - gsm.energies[minnodeR]
-    print(f' Delta E is {delta_e:5.4f}')
+    logger.info(f' Delta E is {delta_e:5.4f}')

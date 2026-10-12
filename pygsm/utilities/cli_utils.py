@@ -1,9 +1,14 @@
+import logging
+
+logger = logging.getLogger(__name__)
+
+
 def plot(fx, x, title):
     """Save the string energy profile to ``string_<title>.png`` (skipped without matplotlib)."""
     try:
         import matplotlib.pyplot as plt
     except ModuleNotFoundError:
-        print(' matplotlib is not installed; skipping the string energy plot (pip install pygsm[plot])')
+        logger.debug(' matplotlib is not installed; skipping the string energy plot (pip install pygsm[plot])')
         return
     fig, ax = plt.subplots()
     ax.set_title(f'String {title:03d}')

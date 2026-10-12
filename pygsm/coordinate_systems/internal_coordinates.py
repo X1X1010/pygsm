@@ -2,6 +2,7 @@
 
 # standard library imports
 
+import logging
 from collections import OrderedDict
 from dataclasses import dataclass
 from typing import Any
@@ -9,8 +10,10 @@ from typing import Any
 # third party
 import numpy as np
 
-from pygsm.utilities import block_matrix, elements, output
+from pygsm.utilities import block_matrix, elements
 from pygsm.utilities.config import Config, option
+
+logger = logging.getLogger(__name__)
 
 ELEMENT_TABLE = elements.ElementData()
 
@@ -78,7 +81,7 @@ class InternalCoordinates:
         global _CACHE_WARNING_ISSUED
         self.stored_wilsonB[xhash] = Bmat
         if len(self.stored_wilsonB) > _CACHE_WARNING_SIZE and not _CACHE_WARNING_ISSUED:
-            output.logger.warning(
+            logger.warning(
                 f'\x1b[91mWarning: more than {_CACHE_WARNING_SIZE} B-matrices stored, memory leaks likely\x1b[0m'
             )
             _CACHE_WARNING_ISSUED = True
@@ -116,7 +119,7 @@ class InternalCoordinates:
                 PMDiff = self.calcDiff(x1, x2)
                 FiniteDifference[:, i, j] = PMDiff / (2 * h)
         for i in range(Analytical.shape[0]):
-            output.logger.info(f'IC {i}/{Analytical.shape[0]} : {self.Internals[i]}')
+            logger.info(f'IC {i}/{Analytical.shape[0]} : {self.Internals[i]}')
             lines = ['']
             maxerr = 0.0
             for j in range(Analytical.shape[1]):
@@ -139,10 +142,10 @@ class InternalCoordinates:
                     if maxerr < np.abs(error):
                         maxerr = np.abs(error)
             if maxerr > 1e-5:
-                output.logger.info('\n'.join(lines))
+                logger.info('\n'.join(lines))
             else:
-                output.logger.info(f'Max Error = {maxerr:.5e}')
-        output.logger.info('Finite-difference Finished')
+                logger.info(f'Max Error = {maxerr:.5e}')
+        logger.info('Finite-difference Finished')
 
     def checkFiniteDifferenceHess(self, xyz):
         xyz = xyz.reshape(-1, 3)
@@ -150,7 +153,7 @@ class InternalCoordinates:
         FiniteDifference = np.zeros_like(Analytical)
         h = 1e-4
         verbose = False
-        output.logger.info('-=# Now checking second derivatives of internal coordinates w/r.t. Cartesians #=-\n')
+        logger.info('-=# Now checking second derivatives of internal coordinates w/r.t. Cartesians #=-')
         for j in range(xyz.shape[0]):
             for m in range(3):
                 for k in range(xyz.shape[0]):
@@ -174,7 +177,7 @@ class InternalCoordinates:
             title = f'{f"IC {i + 1}/{Analytical.shape[0]}":>20} : {self.Internals[i]!s:>20}'
             lines = [title]
             if verbose:
-                print(title + '\n')
+                logger.debug(title + '')
             maxerr = 0.0
             numerr = 0
             for j in range(Analytical.shape[1]):
@@ -190,14 +193,14 @@ class InternalCoordinates:
                             if np.abs(error) > 1e-5:
                                 numerr += 1
                             if (ana != 0.0 or fin != 0.0) and verbose:
-                                print(message + '\n')
+                                logger.debug(message + '')
                             lines.append(message)
                             if maxerr < np.abs(error):
                                 maxerr = np.abs(error)
             if maxerr > 1e-5 and not verbose:
-                print('\n'.join(lines) + '\n')
-            print(f'{title} : Max Error = {maxerr: 12.5e} ({numerr} above threshold)\n')
-        print('Finite-difference Finished\n')
+                logger.debug('\n'.join(lines))
+            logger.warning(f'{title} : Max Error = {maxerr: 12.5e} ({numerr} above threshold)')
+        logger.debug('Finite-difference Finished')
         return FiniteDifference
 
     def calcGrad(self, xyz, gradx, frozen_atoms=None):
@@ -256,21 +259,21 @@ class InternalCoordinates:
         def finish(microiter, rmsdt, ndqt, xyzsave, xyz_iter1):
             if ndqt > 1e-1:
                 if verbose:
-                    output.logger.info(
-                        f' Failed to obtain coordinates after {microiter} microiterations (rmsd = {rmsdt:.3e} |dQ| = {ndqt:.3e})\n'
+                    logger.warning(
+                        f' Failed to obtain coordinates after {microiter} microiterations (rmsd = {rmsdt:.3e} |dQ| = {ndqt:.3e})'
                     )
                 self.bork = True
                 self.writeCache(xyz, dQ, xyz_iter1)
                 return xyzsave.reshape((-1, 3))
             elif ndqt > 1e-3:
                 if verbose:
-                    output.logger.info(
-                        f' Approximate coordinates obtained after {microiter} microiterations (rmsd = {rmsdt:.3e} |dQ| = {ndqt:.3e})\n'
+                    logger.debug(
+                        f' Approximate coordinates obtained after {microiter} microiterations (rmsd = {rmsdt:.3e} |dQ| = {ndqt:.3e})'
                     )
             else:
                 if verbose:
-                    output.logger.info(
-                        f' Cartesian coordinates obtained after {microiter} microiterations (rmsd = {rmsdt:.3e} |dQ| = {ndqt:.3e})\n'
+                    logger.debug(
+                        f' Cartesian coordinates obtained after {microiter} microiterations (rmsd = {rmsdt:.3e} |dQ| = {ndqt:.3e})'
                     )
             self.writeCache(xyz, dQ, xyzsave)
             return xyzsave.reshape((-1, 3))
@@ -299,15 +302,15 @@ class InternalCoordinates:
             if len(ndqs) > 0:
                 if ndq > ndqt:
                     if verbose:
-                        output.logger.info(
-                            f' Iter: {microiter} Err-dQ (Best) = {ndq:.5e} ({ndqt:.5e}) RMSD: {rmsd:.5e} Damp: {damp:.5e} (Bad)\n'
+                        logger.debug(
+                            f' Iter: {microiter} Err-dQ (Best) = {ndq:.5e} ({ndqt:.5e}) RMSD: {rmsd:.5e} Damp: {damp:.5e} (Bad)'
                         )
                     damp /= 2
                     fail_counter += 1
                 else:
                     if verbose:
-                        output.logger.info(
-                            f' Iter: {microiter} Err-dQ (Best) = {ndq:.5e} ({ndqt:.5e}) RMSD: {rmsd:.5e} Damp: {damp:.5e} (Good)\n'
+                        logger.debug(
+                            f' Iter: {microiter} Err-dQ (Best) = {ndq:.5e} ({ndqt:.5e}) RMSD: {rmsd:.5e} Damp: {damp:.5e} (Good)'
                         )
                     fail_counter = 0
                     damp = min(damp * 1.2, 1.0)
@@ -316,7 +319,7 @@ class InternalCoordinates:
                     xyzsave = xyz2.copy()
             else:
                 if verbose:
-                    output.logger.info(f' Iter: {microiter} Err-dQ = {ndq:.5e} RMSD: {rmsd:.5e} Damp: {damp:.5e}\n')
+                    logger.debug(f' Iter: {microiter} Err-dQ = {ndq:.5e} RMSD: {rmsd:.5e} Damp: {damp:.5e}')
                 rmsdt = rmsd
                 ndqt = ndq
             ndqs.append(ndq)

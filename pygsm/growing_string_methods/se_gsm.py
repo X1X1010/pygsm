@@ -1,5 +1,5 @@
 # local application imports
-import sys
+import logging
 
 # standard library imports
 # third party
@@ -12,6 +12,8 @@ from ..molecule import Molecule
 from ..utilities import output
 from .main_gsm import MainGSM
 
+logger = logging.getLogger(__name__)
+
 
 class SEGSM(MainGSM):
     """Single-ended GSM: grows from the reactant along driving coordinates, then optimises towards the TS."""
@@ -20,14 +22,13 @@ class SEGSM(MainGSM):
         super().__init__(options, **kwargs)
         self.current_nnodes = 1
 
-        print(' Assuming the isomers are initialized!')
-        print(' Primitive Internal Coordinates')
-        print(self.nodes[0].primitive_internal_coordinates[0:50])
-        print(' number of primitives is', self.nodes[0].num_primitives)
+        logger.debug(' Assuming the isomers are initialized!')
+        logger.debug(' Primitive Internal Coordinates')
+        logger.debug(self.nodes[0].primitive_internal_coordinates[0:50])
+        logger.debug(f' number of primitives is {self.nodes[0].num_primitives}')
 
-        print('Driving Coordinates: ')
-        print(self.driving_coords)
-        sys.stdout.flush()
+        logger.info('Driving Coordinates: ')
+        logger.debug(self.driving_coords)
 
         # stash bdist for node 0
         ictan, self.nodes[0].bdist = self.get_tangent(
@@ -47,12 +48,12 @@ class SEGSM(MainGSM):
     def _grow_phase(self, max_iters, opt_steps):
         self.nodes[0].gradrms = 0.0
         self.nodes[0].V0 = self.nodes[0].energy
-        print(f' Initial energy is {self.nodes[0].energy:1.4f}')
+        logger.info(f' Initial energy is {self.nodes[0].energy:1.4f}')
         self.add_GSM_nodeR()
         self.grow_string(max_iters=max_iters, max_opt_steps=opt_steps)
         if self.tscontinue:
             self.pastts = self.past_ts()
-            print(f'pastts {self.pastts}')
+            logger.debug(f'pastts {self.pastts}')
             try:
                 if self.pastts == 1:  # normal over the hill
                     self.add_GSM_nodeR(1)
@@ -64,38 +65,33 @@ class SEGSM(MainGSM):
                 elif self.pastts == 3:  # product detected by bonding
                     self.add_last_node(1)
             except (IndexError, RuntimeError, ValueError) as error:
-                print(f'Failed to add last node, continuing: {error}')
+                logger.warning(f'Failed to add last node, continuing: {error}')
                 # probably need to make sure last node is optimized
 
         self.nnodes = self.nR
         self.nodes = self.nodes[: self.nR]
-        energies = self.energies
 
         if self.TSnode == self.nR - 1:
-            print(' The highest energy node is the last')
-            print(' not continuing with TS optimization.')
+            logger.info(' The highest energy node is the last')
+            logger.info(' not continuing with TS optimization.')
             self.tscontinue = False
 
-        print(' Number of nodes is ', self.nnodes)
-        print(' Warning last node still not optimized fully')
+        logger.info(f' Number of nodes is  {self.nnodes}')
+        logger.warning(' Warning last node still not optimized fully')
         self.write_string('grown_string')
-        print(' SSM growth phase over')
+        logger.info(' SSM growth phase over')
         self.done_growing = True
 
-        print(' beginning opt phase')
-        print('Setting all interior nodes to active')
+        logger.info(' beginning opt phase')
+        logger.debug('Setting all interior nodes to active')
         for n in range(1, self.nnodes - 1):
             self.active[n] = True
         self.active[self.nnodes - 1] = False
         self.active[0] = False
 
-        print(' initial ic_reparam')
+        logger.debug(' initial ic_reparam')
         self.reparameterize(ic_reparam_steps=25)
-        print(' V_profile (after reparam): ', end=' ')
-        energies = self.energies
-        for n in range(self.nnodes):
-            print(f' {float(energies[n]):7.3f}', end=' ')
-        print()
+        self.print_energies(' V_profile (after reparam):')
 
     def _string_opt_steps(self, opt_steps):
         # opt steps are fixed at 3 in the optimisation phase
@@ -110,9 +106,9 @@ class SEGSM(MainGSM):
             opt_type = 'UNCONSTRAINED'
 
         if rtype == 1:
-            print(' copying last node, opting')
+            logger.debug(' copying last node, opting')
             self.nodes[self.nR] = Molecule.copy_from(self.nodes[self.nR - 1], new_node_id=self.nR)
-            print(f' Optimizing node {self.nR}')
+            logger.debug(f' Optimizing node {self.nR}')
             self.optimizer[self.nR].conv_grms = self.options.CONV_TOL
             self.optimizer[self.nR].conv_gmax = self.options.CONV_gmax
             self.optimizer[self.nR].conv_Ediff = self.options.CONV_Ediff
@@ -125,11 +121,11 @@ class SEGSM(MainGSM):
             )
             self.active[self.nR] = True
             if (self.nodes[self.nR].xyz == self.nodes[self.nR - 1].xyz).all():
-                print(' Opt did not produce new geometry')
+                logger.info(' Opt did not produce new geometry')
             else:
                 self.nR += 1
         elif rtype == 2:
-            print(' already created node, opting')
+            logger.debug(' already created node, opting')
             self.optimizer[self.nR - 1].conv_grms = self.options.CONV_TOL
             self.optimizer[self.nR - 1].conv_gmax = self.options.CONV_gmax
             self.optimizer[self.nR - 1].conv_Ediff = self.options.CONV_Ediff
@@ -145,9 +141,9 @@ class SEGSM(MainGSM):
     def on_growth_exhausted(self, error):
         """Optimise the last grown node once the driving coordinates are exhausted."""
         opt_type = 'MECI' if self.nodes[self.nR - 1].PES.lot.do_coupling else 'UNCONSTRAINED'
-        print(' optimizing last node')
+        logger.info(' optimizing last node')
         self.optimizer[self.nR - 1].conv_grms = self.CONV_TOL
-        print(self.optimizer[self.nR - 1].conv_grms)
+        logger.debug(self.optimizer[self.nR - 1].conv_grms)
         self.optimizer[self.nR - 1].optimize(
             molecule=self.nodes[self.nR - 1],
             refE=self.nodes[0].V0,
@@ -158,18 +154,18 @@ class SEGSM(MainGSM):
     def grow_nodes(self):
         if self.nodes[self.nR - 1].gradrms < self.options.ADD_NODE_TOL:
             if self.nR == self.nnodes:
-                print(' Ran out of nodes, exiting GSM')
+                logger.warning(' Ran out of nodes, exiting GSM')
                 raise ValueError
             if self.nodes[self.nR] is None:
                 self.add_GSM_nodeR()
-                print(
+                logger.debug(
                     f' getting energy for node {self.nR - 1}: {self.nodes[self.nR - 1].energy - self.nodes[0].V0:5.4f}'
                 )
         return
 
     def add_GSM_nodes(self, newnodes=1):
         if self.current_nnodes + newnodes > self.nnodes:
-            print('Adding too many nodes, cannot interpolate')
+            logger.debug('Adding too many nodes, cannot interpolate')
         for _i in range(newnodes):
             self.add_GSM_nodeR()
 
@@ -184,10 +180,10 @@ class SEGSM(MainGSM):
         self.optimizer[nR].conv_grms = self.options.ADD_NODE_TOL
         self.optimizer[nR].conv_gmax = 100.0  # self.options.ADD_NODE_TOL # could use some multiplier times CONV_GMAX...
         self.optimizer[nR].conv_Ediff = 1000.0  # 2.5
-        print(f' conv_tol of node {nR} is {self.optimizer[nR].conv_grms:.4f}')
+        logger.debug(f' conv_tol of node {nR} is {self.optimizer[nR].conv_grms:.4f}')
 
     def set_active(self, nR, nP=None):
-        print(f' setting active node to {nR} ')
+        logger.debug(f' setting active node to {nR} ')
 
         for i in range(self.nnodes):
             if self.nodes[i] is not None:
@@ -239,14 +235,13 @@ class SEGSM(MainGSM):
         if ns < nodemax:
             ns = nodemax
 
-        print(' Energies', end=' ')
         energies = self.energies
+        logger.debug(' Energies ' + ' '.join(f'{energies[n]:4.3f}' for n in range(ns, self.nR)))
         for n in range(ns, self.nR):
-            print(f' {energies[n]:4.3f}', end=' ')
             if energies[n] > emax:
                 nodemax = n
                 emax = energies[n]
-        print('\n nodemax ', nodemax)
+        logger.debug(f' nodemax  {nodemax}')
 
         for n in range(nodemax, self.nR):
             if energies[n] < emax - THRESH1:
@@ -257,9 +252,9 @@ class SEGSM(MainGSM):
                 ispast3 += 1
             if ispast1 > 1:
                 break
-        print(' ispast1', ispast1)
-        print(' ispast2', ispast2)
-        print(' ispast3', ispast3)
+        logger.debug(f' ispast1 {ispast1}')
+        logger.debug(f' ispast2 {ispast2}')
+        logger.debug(f' ispast3 {ispast3}')
 
         # TODO 5/9/2019 what about multiple constraints
         # Done 6/23/2019
@@ -271,17 +266,17 @@ class SEGSM(MainGSM):
 
         cgrad = np.linalg.norm(cgrad) * np.sign(overlap)
 
-        print(f' cgrad: {np.asarray(cgrad).item():4.3f} nodemax: {nodemax} nR: {self.nR}')
+        logger.debug(f' cgrad: {np.asarray(cgrad).item():4.3f} nodemax: {nodemax} nR: {self.nR}')
 
         # 6/17 THIS should check if the last node is high in energy
         if cgrad > CTHRESH and not self.nodes[self.nR - 1].PES.lot.do_coupling and nodemax != self.TSnode:
-            print(' constraint gradient positive')
+            logger.debug(' constraint gradient positive')
             ispast = 2
         elif ispast1 > 0 and cgrad > OTHRESH:
-            print(' over the hill(1)')
+            logger.info(' over the hill(1)')
             ispast = 1
         elif ispast2 > 1:
-            print(' over the hill(2)')
+            logger.info(' over the hill(2)')
             ispast = 1
         else:
             ispast = 0
@@ -289,9 +284,9 @@ class SEGSM(MainGSM):
         if ispast == 0:
             bch = self.check_for_reaction_g(1, self.driving_coords)
             if ispast3 > 1 and bch:
-                print(f'over the hill(3) connection changed {bch!r} ')
+                logger.info(f'over the hill(3) connection changed {bch!r} ')
                 ispast = 3
-        print(' ispast=', ispast)
+        logger.debug(f' ispast= {ispast}')
         return ispast
 
     def check_if_grown(self):
@@ -304,14 +299,14 @@ class SEGSM(MainGSM):
         isDone = False
         # TODO break planes
         condition1 = abs(self.nodes[self.nR - 1].bdist) <= (1 - self.BDIST_RATIO) * abs(self.nodes[0].bdist)
-        print(f' bdist {self.nodes[self.nR - 1].bdist:.3f}')
+        logger.debug(f' bdist {self.nodes[self.nR - 1].bdist:.3f}')
 
         fp = self.find_peaks('growing')
         if self.pastts and self.current_nnodes > 3 and condition1:  # TODO extra criterion here
-            print(' pastts is ', self.pastts)
+            logger.debug(f' pastts is  {self.pastts}')
             if self.TSnode == self.nR - 1:
-                print(' The highest energy node is the last')
-                print(' not continuing with TS optimization.')
+                logger.info(' The highest energy node is the last')
+                logger.info(' not continuing with TS optimization.')
                 self.tscontinue = False
             output.printcool('Over the hill')
             isDone = True
@@ -320,13 +315,13 @@ class SEGSM(MainGSM):
             and self.energies[self.nR - 1] > 200.0
             and self.nodes[self.nR - 1].gradrms > self.options.CONV_TOL * 5
         ):
-            print('growth_iters over: all uphill and high energy')
+            logger.info('growth_iters over: all uphill and high energy')
             self.end_early = 2
             self.tscontinue = False
             self.nnodes = self.nR
             isDone = True
         elif fp == -2:
-            print('growth_iters over: all uphill and flattening out')
+            logger.info('growth_iters over: all uphill and flattening out')
             self.end_early = 2
             self.tscontinue = False
             self.nnodes = self.nR
@@ -338,26 +333,26 @@ class SEGSM(MainGSM):
     def is_converged(self, totalgrad, fp, rtype, ts_cgradq):
         if self.TSnode == self.nnodes - 2 and (self.find or totalgrad < 0.2) and fp == 1:
             if self.nodes[self.nR - 1].gradrms > self.options.CONV_TOL:
-                print('TS node is second to last node, adding one more node')
+                logger.debug('TS node is second to last node, adding one more node')
                 self.add_last_node(1)
                 self.nnodes = self.nR
                 self.active[self.nnodes - 1] = False  # GSM makes self.active[self.nnodes-1]=True as well
                 self.active[self.nnodes - 2] = True  # GSM makes self.active[self.nnodes-1]=True as well
-                print('done adding node')
-                print('nnodes = ', self.nnodes)
+                logger.debug('done adding node')
+                logger.debug(f'nnodes =  {self.nnodes}')
                 self.ictan, self.dqmaga = self.get_tangents(self.nodes)
                 self.refresh_coordinates()
             return False
 
         # => check string profile <= #
         if fp == -1:  # total string is uphill
-            print('fp == -1, check V_profile')
-            print('total dissociation')
+            logger.debug('fp == -1, check V_profile')
+            logger.info('total dissociation')
             self.endearly = True  # bools
             self.tscontinue = False
             return True
         elif fp == -2:
-            print('termination due to dissociation')
+            logger.info('termination due to dissociation')
             self.tscontinue = False
             self.endearly = True  # bools
             return True
@@ -370,7 +365,7 @@ class SEGSM(MainGSM):
             if fp > 1:
                 rxnocc, wint = self.check_for_reaction()
             if fp > 1 and rxnocc and wint < self.nnodes - 1:
-                print('Need to trim string')
+                logger.info('Need to trim string')
                 self.tscontinue = False
                 self.endearly = True  # bools
                 return True
@@ -397,7 +392,7 @@ class SEGSM(MainGSM):
                 maxnodes.append(n)
         if len(minnodes) > 2 and len(maxnodes) > 1:
             wint = minnodes[1]  # the real reaction ends at first minimum
-            print(' wint ', wint)
+            logger.debug(f' wint  {wint}')
 
         return isrxn, wint
 
@@ -437,7 +432,7 @@ class SEGSM(MainGSM):
                 isrxn = True
         else:
             isrxn = True
-        print(f' check_for_reaction_g isrxn: {isrxn!r} nadd+nbrk: {nadds + nbreaks}')
+        logger.debug(f' check_for_reaction_g isrxn: {isrxn!r} nadd+nbrk: {nadds + nbreaks}')
         return isrxn
 
         # # => Convergence Criteria

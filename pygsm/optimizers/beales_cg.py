@@ -1,9 +1,8 @@
 from __future__ import annotations
 
-# standard library imports
-import sys
-from io import StringIO
+import logging
 
+# standard library imports
 # third party
 from typing import TYPE_CHECKING
 
@@ -14,6 +13,8 @@ from ..utilities import block_matrix
 
 # local application imports
 from .base_optimizer import BaseOptimizer
+
+logger = logging.getLogger(__name__)
 
 if TYPE_CHECKING:
     from ..molecule import Molecule
@@ -35,8 +36,7 @@ class BealesCG(BaseOptimizer):
         verbose=False,
         trajectory: str | None = None,
     ) -> tuple[list, list]:
-        print(f' initial E {molecule.energy - refE:5.4f}')
-        sys.stdout.flush()
+        logger.debug(f' initial E {molecule.energy - refE:5.4f}')
 
         # stash/initialize some useful attributes
         geoms = []
@@ -48,7 +48,6 @@ class BealesCG(BaseOptimizer):
         self.Ediff = 1000.0
         self.check_inputs(molecule, opt_type, ictan)
         nconstraints = self.get_nconstraints(opt_type)
-        self.buf = StringIO()
 
         # for cartesian these are the same
         x = np.copy(molecule.coordinates)
@@ -69,7 +68,7 @@ class BealesCG(BaseOptimizer):
         update_hess = False
 
         for ostep in range(opt_steps):
-            print(f' On opt step {ostep + 1} ')
+            logger.debug(f' On opt step {ostep + 1} ')
 
             if update_hess and self.options.update_hess_in_bg:
                 if opt_type != 'TS':
@@ -98,11 +97,11 @@ class BealesCG(BaseOptimizer):
 
             # normalize the direction
             stepsize = np.linalg.norm(d)
-            print(f' stepsize = {stepsize:1.2f}')
+            logger.debug(f' stepsize = {stepsize:1.2f}')
             d = d / stepsize  # normalize
             if stepsize > self.DMAX:
                 stepsize = self.DMAX
-                print(f' reducing step, new step = {stepsize:1.2f}')
+                logger.debug(f' reducing step, new step = {stepsize:1.2f}')
 
             # store
             xp = x.copy()
@@ -115,12 +114,11 @@ class BealesCG(BaseOptimizer):
             constraint_steps = self.get_constraint_steps(molecule, opt_type, g)
 
             # line search
-            print(' Linesearch')
-            sys.stdout.flush()
+            logger.debug(' Linesearch')
             ls = self.Linesearch(
                 n, x, fx, g, d, stepsize, xp, constraint_steps, self.linesearch_parameters, molecule, verbose
             )
-            print(' Done linesearch')
+            logger.debug(' Done linesearch')
 
             # save new values from linesearch
             molecule = ls['molecule']
@@ -133,21 +131,21 @@ class BealesCG(BaseOptimizer):
 
             if ls['step'] > self.options.DMAX:
                 if ls['step'] <= self.options.abs_max_step:  # absolute max
-                    print(' Increasing DMAX to {}'.format(ls['step']))
+                    logger.debug(' Increasing DMAX to {}'.format(ls['step']))
                     self.options.DMAX = ls['step']
                 else:
                     self.options.DMAX = self.options.abs_max_step
             elif ls['step'] < self.options.DMAX:
                 if ls['step'] >= self.DMIN:  # absolute min
-                    print(' Decreasing DMAX to {}'.format(ls['step']))
+                    logger.debug(' Decreasing DMAX to {}'.format(ls['step']))
                     self.options.DMAX = ls['step']
                 elif ls['step'] <= self.DMIN:
                     self.options.DMAX = self.DMIN
-                    print(f' Decreasing DMAX to {self.DMIN}')
+                    logger.debug(f' Decreasing DMAX to {self.DMIN}')
 
             # dE
             dEstep = fx - fxp
-            print(f' dEstep={dEstep:5.4f}')
+            logger.debug(f' dEstep={dEstep:5.4f}')
 
             # revert to the previous point
             if ls['status'] < 0 or dEstep > 0.0:
@@ -155,10 +153,8 @@ class BealesCG(BaseOptimizer):
                 molecule.xyz = xyzp
                 g = gp.copy()
                 fx = fxp
-                print('[ERROR] the point return to the previous point')
+                logger.warning('[ERROR] the point return to the previous point')
                 if nconstraints == 1:
-                    print(' opt-summary')
-                    print(self.buf.getvalue())
                     return geoms, energies
                 else:
                     nconstraints = 1
@@ -191,18 +187,15 @@ class BealesCG(BaseOptimizer):
                 raise NotImplementedError(' ef not implemented for CART')
 
             if self.options.print_level > 0:
-                print(
+                logger.info(
                     f' Opt step: {ostep + 1} E: {fx - refE:5.4f} gradrms: {molecule.gradrms:1.5f} ss: {step:1.3f} DMAX: {self.options.DMAX:1.3f}'
                 )
-            self.buf.write(
-                f' Opt step: {ostep + 1} E: {fx - refE:5.4f} gradrms: {molecule.gradrms:1.5f} ss: {step:1.3f} DMAX: {self.options.DMAX:1.3f}\n'
-            )
 
             # check for convergence TODO
             molecule.gradrms = np.sqrt(np.dot(g.T, g) / n).item()
             gmax = float(np.max(g))
             disp = float(np.linalg.norm((xyz - xyzp).flatten()))
-            print(f' gmax {gmax:5.4f} disp {disp:5.4f} Ediff {dEstep:5.4f} gradrms {molecule.gradrms:5.4f}\n')
+            logger.debug(f' gmax {gmax:5.4f} disp {disp:5.4f} Ediff {dEstep:5.4f} gradrms {molecule.gradrms:5.4f}')
 
             self.converged = False
             dE = molecule.difference_energy if self.opt_cross else None
@@ -224,7 +217,7 @@ class BealesCG(BaseOptimizer):
                 self.converged = True
 
             if self.converged:
-                print(' converged')
+                logger.debug(' converged')
                 if ostep % xyzframerate != 0:
                     geoms.append(molecule.geometry)
                     energies.append(molecule.energy - refE)
@@ -233,22 +226,18 @@ class BealesCG(BaseOptimizer):
 
             # update DLC  --> this changes q, g, Hint
             if not isinstance(molecule.coord_obj, CartesianCoordinates) and opt_type in ('SEAM', 'MECI'):
-                print(' updating DLC')
-                sys.stdout.flush()
+                logger.debug(' updating DLC')
                 constraints = self.get_constraint_vectors(molecule, opt_type, ictan)
                 molecule.update_coordinate_basis(constraints=constraints)
                 x = np.copy(molecule.coordinates)
                 fx = molecule.energy
                 dE = molecule.difference_energy
                 if dE != 1000.0:
-                    print(f' difference energy is {dE:5.4f}')
+                    logger.debug(f' difference energy is {dE:5.4f}')
                 g = molecule.gradient.copy()
                 if nconstraints > 0:
                     g = g - np.dot(g.T, molecule.constraints) * molecule.constraints
                 g_prim = block_matrix.dot(molecule.coord_basis, g)
-                print(' Done update')
-            sys.stdout.flush()
+                logger.debug(' Done update')
 
-        print(' opt-summary')
-        print(self.buf.getvalue())
         return geoms, energies

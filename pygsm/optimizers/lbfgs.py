@@ -1,9 +1,8 @@
 from __future__ import annotations
 
-# standard library imports
-import sys
-from io import StringIO
+import logging
 
+# standard library imports
 # third party
 from typing import TYPE_CHECKING
 
@@ -15,6 +14,8 @@ from ..utilities import block_matrix, units
 
 # local application imports
 from .base_optimizer import BaseOptimizer
+
+logger = logging.getLogger(__name__)
 
 if TYPE_CHECKING:
     from ..molecule import Molecule
@@ -50,14 +51,13 @@ class LBFGS(BaseOptimizer):
         trajectory: str | None = None,
     ) -> tuple[list, list]:
         # stash/initialize some useful attributes
-        print(f' initial E {molecule.energy - refE:5.4f}')
+        logger.debug(f' initial E {molecule.energy - refE:5.4f}')
         geoms = []
         energies = []
         geoms.append(molecule.geometry)
         energies.append(molecule.energy - refE)
         self.check_inputs(molecule, opt_type, ictan)
         nconstraints = self.get_nconstraints(opt_type)
-        self.buf = StringIO()
 
         # form initial coord basis
         constraints = self.get_constraint_vectors(molecule, opt_type, ictan)
@@ -104,7 +104,7 @@ class LBFGS(BaseOptimizer):
                 self.lm.append(IterationData(0.0, s_prim.flatten(), y_prim.flatten()))
 
         for ostep in range(opt_steps):
-            print(f' On opt step {ostep + 1} ')
+            logger.debug(f' On opt step {ostep + 1} ')
 
             SCALE = self.options.SCALEQN
             if molecule.newHess > 0:
@@ -136,11 +136,11 @@ class LBFGS(BaseOptimizer):
 
             # normalize the direction
             actual_step = np.linalg.norm(d)
-            print(f' actual_step= {actual_step:1.5f}')
+            logger.debug(f' actual_step= {actual_step:1.5f}')
             d = d / actual_step  # normalize
             if actual_step > self.DMAX:
                 step = self.DMAX
-                print(f' reducing step, new step = {step:1.5f}')
+                logger.debug(f' reducing step, new step = {step:1.5f}')
             else:
                 step = actual_step
 
@@ -175,13 +175,13 @@ class LBFGS(BaseOptimizer):
             dEpre = np.dot(gc.T, dq) * units.KCAL_MOL_PER_AU
             constraint_energy = np.dot(gp.T, constraint_steps) * units.KCAL_MOL_PER_AU
             if opt_type not in ['UNCONSTRAINED', 'ICTAN']:
-                print(f'constraint_energy: {constraint_energy.item():1.4f}')
+                logger.debug(f'constraint_energy: {constraint_energy.item():1.4f}')
             dEpre = (dEpre + constraint_energy).item()
 
             ratio = dEstep / dEpre
-            print(f' dEstep={dEstep:5.4f}')
-            print(f' dEpre={dEpre:5.4f}')
-            print(f' ratio={ratio:5.4f}')
+            logger.debug(f' dEstep={dEstep:5.4f}')
+            logger.debug(f' dEpre={dEpre:5.4f}')
+            logger.debug(f' ratio={ratio:5.4f}')
 
             # revert to the privious point
             if ls['status'] < 0 or (ratio < 0.0 and opt_type != 'CLIMB'):
@@ -194,7 +194,7 @@ class LBFGS(BaseOptimizer):
                 ratio = 0.0
                 dEstep = 0.0
 
-                print('[ERROR] the point return to the previous point')
+                logger.warning('[ERROR] the point return to the previous point')
                 self.lm = []
                 for _i in range(0, maxcor):
                     s_prim = np.zeros_like(g_prim)
@@ -204,7 +204,7 @@ class LBFGS(BaseOptimizer):
                 self.end = 0
                 molecule.newHess = 5
                 if self.DMAX <= self.DMIN:
-                    print(' Reached minimum step,exiting')
+                    logger.debug(' Reached minimum step,exiting')
                     geoms.append(molecule.geometry)
                     energies.append(molecule.energy - refE)
                     break
@@ -219,7 +219,7 @@ class LBFGS(BaseOptimizer):
             # if ratio is less than 0.3 than reduce DMAX
             flag = True
             if ratio < 0.3 and ls['status'] == 0:  # and abs(dEpre)>0.05:
-                print(' Reducing DMAX')
+                logger.debug(' Reducing DMAX')
                 self.DMAX /= 1.5
                 if self.DMAX < self.DMIN:
                     self.DMAX = self.DMIN
@@ -229,7 +229,7 @@ class LBFGS(BaseOptimizer):
 
                 if opt_type == 'CLIMB' and self.SCALE_CLIMB < 10.0 and opt_type == 'CLIMB':
                     self.SCALE_CLIMB += 1.0
-                    print(f'SCALING CLIMB BY {self.SCALE_CLIMB}')
+                    logger.debug(f'SCALING CLIMB BY {self.SCALE_CLIMB}')
             elif ratio > 0.3:
                 molecule.newHess -= 1
                 if opt_type == 'CLIMB' and self.SCALE_CLIMB > 1.0:
@@ -243,34 +243,34 @@ class LBFGS(BaseOptimizer):
 
             dE = molecule.difference_energy
             if dE < 100.0:
-                print(f' difference energy is {dE:5.4f}')
+                logger.debug(f' difference energy is {dE:5.4f}')
             molecule.gradrms = np.sqrt(np.dot(gc.T, gc) / num_coords).item()
 
             # control step size  NEW FEB 2020
             if flag:
                 if ls['status'] == 0:  # passed
                     dgradrms = molecule.gradrms - pgradrms
-                    print('dgradrms ', dgradrms)
+                    logger.debug(f'dgradrms  {dgradrms}')
                     if ls['step'] > self.DMAX:
                         if ls['step'] <= self.options.abs_max_step:  # absolute max
-                            print(' Increasing DMAX to {}'.format(ls['step']))
+                            logger.debug(' Increasing DMAX to {}'.format(ls['step']))
                             self.DMAX = ls['step']
                         else:
                             self.DMAX = self.options.abs_max_step
                     elif ls['step'] < self.DMAX:
                         if ls['step'] >= self.DMIN:  # absolute min
-                            print(' Decreasing DMAX to {}'.format(ls['step']))
+                            logger.debug(' Decreasing DMAX to {}'.format(ls['step']))
                             self.DMAX = ls['step']
                         elif ls['step'] <= self.DMIN:
                             self.DMAX = self.DMIN
-                            print(f' Decreasing DMAX to {self.DMIN}')
+                            logger.debug(f' Decreasing DMAX to {self.DMIN}')
                     elif ratio > 0.85 and ratio < 1.1 and actual_step > self.DMAX and dgradrms < -0.00005:
-                        print(' HERE increasing DMAX')
+                        logger.debug(' HERE increasing DMAX')
                         self.DMAX *= 1.1
                         if self.options.abs_max_step < self.DMAX:
                             self.DMAX = self.options.abs_max_step
                 else:
-                    print('status not zero')
+                    logger.debug('status not zero')
 
             if ostep % xyzframerate == 0:
                 geoms.append(molecule.geometry)
@@ -278,16 +278,13 @@ class LBFGS(BaseOptimizer):
                 self.write_trajectory(trajectory, geoms, energies)
 
             if self.options.print_level > 0:
-                print(
+                logger.info(
                     f' Node: {molecule.node_id} Opt step: {ostep + 1} E: {fx - refE:5.4f} predE: {dEpre:5.4f} ratio: {ratio:1.3f} gradrms: {molecule.gradrms:1.5f} ss: {step:1.3f} DMAX: {self.DMAX:1.3f}'
                 )
-            self.buf.write(
-                f' Node: {molecule.node_id} Opt step: {ostep + 1} E: {fx - refE:5.4f} predE: {dEpre:5.4f} ratio: {ratio:1.3f} gradrms: {molecule.gradrms:1.5f} ss: {step:1.3f} DMAX: {self.DMAX:1.3f}\n'
-            )
 
             gmax = float(np.max(np.absolute(gc)))
             disp = float(np.linalg.norm((xyz - self.xyzp).flatten()))
-            print(f' gmax {gmax:5.4f} disp {disp:5.4f} dEstep {dEstep:5.4f} gradrms {molecule.gradrms:5.4f}\n')
+            logger.debug(f' gmax {gmax:5.4f} disp {disp:5.4f} dEstep {dEstep:5.4f} gradrms {molecule.gradrms:5.4f}')
             self.converged = False
             if (
                 self.opt_cross
@@ -321,7 +318,7 @@ class LBFGS(BaseOptimizer):
                     self.converged = True
 
             if self.converged:
-                print(' converged')
+                logger.debug(' converged')
                 if ostep % xyzframerate != 0:
                     geoms.append(molecule.geometry)
                     energies.append(molecule.energy - refE)
@@ -339,8 +336,5 @@ class LBFGS(BaseOptimizer):
                 for c in molecule.constraints.T:
                     gc -= np.dot(gc.T, c[:, np.newaxis]) * c[:, np.newaxis]
                 g_prim = block_matrix.dot(molecule.coord_basis, gc)
-            sys.stdout.flush()
 
-        print(' opt-summary')
-        print(self.buf.getvalue())
         return geoms, energies

@@ -1,8 +1,8 @@
 from __future__ import annotations
 
-# standard library imports
-from io import StringIO
+import logging
 
+# standard library imports
 # third party
 import numpy as np
 
@@ -12,12 +12,14 @@ from ..utilities import units
 # local application imports
 from .base_optimizer import BaseOptimizer
 
+logger = logging.getLogger(__name__)
+
 
 class ConjugateGradient(BaseOptimizer):
     """Plain conjugate-gradient optimizer."""
 
     def optimize(self, molecule, refE=0.0, opt_type='UNCONSTRAINED', opt_steps=3, ictan=None):
-        print(f' initial E {molecule.energy - refE:5.4f}')
+        logger.debug(f' initial E {molecule.energy - refE:5.4f}')
         if opt_type == 'TS':
             raise RuntimeError
 
@@ -31,7 +33,6 @@ class ConjugateGradient(BaseOptimizer):
         self.Ediff = 1000.0
         self.check_inputs(molecule, opt_type, ictan)
         nconstraints = self.get_nconstraints(opt_type)
-        self.buf = StringIO()
 
         # form initial coord basis
         constraints = self.get_constraint_vectors(molecule, opt_type, ictan)
@@ -56,11 +57,11 @@ class ConjugateGradient(BaseOptimizer):
 
         molecule.gradrms = np.sqrt(np.dot(g[nconstraints:].T, g[nconstraints:]) / n).item()
         if molecule.gradrms < self.conv_grms:
-            print(' already at min')
+            logger.debug(' already at min')
             return geoms, energies
 
         for ostep in range(opt_steps):
-            print(f' On opt step {ostep + 1} ')
+            logger.debug(f' On opt step {ostep + 1} ')
 
             if self.initial_step is True:
                 # d: store the negative gradient of the object function on point x.
@@ -75,7 +76,7 @@ class ConjugateGradient(BaseOptimizer):
                 deltanew = np.dot(dnew.T, dnew)
                 deltaold = np.dot(-gp_prim.T, -gp_prim)
                 beta = deltanew / deltaold
-                print(f' beta = {beta:1.2f}')
+                logger.debug(f' beta = {beta:1.2f}')
                 d_prim = dnew + beta * d_prim
 
             # form in DLC basis (does nothing if cartesian)
@@ -83,11 +84,11 @@ class ConjugateGradient(BaseOptimizer):
 
             # normalize the direction
             actual_step = np.linalg.norm(d)
-            print(f' actual_step= {actual_step:1.2f}')
+            logger.debug(f' actual_step= {actual_step:1.2f}')
             d = d / actual_step  # normalize
             if actual_step > self.options.DMAX:
                 step = self.options.DMAX
-                print(f' reducing step, new step = {step:1.2f}')
+                logger.debug(f' reducing step, new step = {step:1.2f}')
             else:
                 step = actual_step
 
@@ -101,14 +102,14 @@ class ConjugateGradient(BaseOptimizer):
             constraint_steps = self.get_constraint_steps(molecule, opt_type, g)
 
             # line search
-            print(' Linesearch')
+            logger.debug(' Linesearch')
             ls = self.Linesearch(n, x, fx, g, d, step, xp, gp, constraint_steps, self.linesearch_parameters, molecule)
-            print(' Done linesearch')
+            logger.debug(' Done linesearch')
 
             # revert to the previous point
             if ls['status'] < 0:
                 x = xp.copy()
-                print('[ERROR] the point return to the previous point')
+                logger.warning('[ERROR] the point return to the previous point')
                 return ls['status']
 
             # get values from linesearch
@@ -131,25 +132,22 @@ class ConjugateGradient(BaseOptimizer):
 
             # dE
             dEstep = fx - fxp
-            print(f' dEstep={dEstep:5.4f}')
+            logger.debug(f' dEstep={dEstep:5.4f}')
 
             # update molecule xyz
             geoms.append(molecule.geometry)
             energies.append(molecule.energy - refE)
 
             if self.options.print_level > 0:
-                print(
+                logger.info(
                     f' Opt step: {ostep + 1} E: {fx - refE:5.4f} gradrms: {molecule.gradrms:1.5f} ss: {step:1.3f} DMAX: {self.options.DMAX:1.3f}'
                 )
-            self.buf.write(
-                f' Opt step: {ostep + 1} E: {fx - refE:5.4f} gradrms: {molecule.gradrms:1.5f} ss: {step:1.3f} DMAX: {self.options.DMAX:1.3f}\n'
-            )
 
             gmax = np.max(g) / units.ANGSTROM_TO_AU
             self.disp = np.max(x - xp) / units.ANGSTROM_TO_AU
             self.Ediff = fx - fxp / units.KCAL_MOL_PER_AU
-            print(f' maximum displacement component {self.disp:1.2f} (au)')
-            print(f' maximum gradient component {gmax:1.2f} (au)')
+            logger.debug(f' maximum displacement component {self.disp:1.2f} (au)')
+            logger.debug(f' maximum gradient component {gmax:1.2f} (au)')
 
             # check for convergence TODO
             molecule.gradrms = np.sqrt(np.dot(g[nconstraints:].T, g[nconstraints:]) / n).item()
@@ -169,11 +167,8 @@ class ConjugateGradient(BaseOptimizer):
                 fx = molecule.energy
                 dE = molecule.difference_energy
                 if dE != 1000.0:
-                    print(f' difference energy is {dE:5.4f}')
+                    logger.debug(f' difference energy is {dE:5.4f}')
                 g = molecule.gradient.copy()
                 molecule.form_Hessian_in_basis()
-            print()
 
-        print(' opt-summary')
-        print(self.buf.getvalue())
         return geoms, energies

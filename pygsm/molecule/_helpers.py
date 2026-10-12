@@ -2,23 +2,26 @@
 
 from __future__ import annotations
 
+import logging
 import os
 
 import numpy as np
 
 from pygsm.utilities import manage_xyz
 
+logger = logging.getLogger(__name__)
+
 
 def load_geometry_inputs(data):
     if data.geom is not None:
-        print(' getting cartesian coordinates from geom')
+        logger.debug(' getting cartesian coordinates from geom')
         geom = data.geom
         atoms = manage_xyz.get_atoms(geom)
         xyz = manage_xyz.xyz_to_np(geom)
         return geom, atoms, xyz
 
     if data.fnm is not None:
-        print(' reading cartesian coordinates from file')
+        logger.debug(' reading cartesian coordinates from file')
         if data.ftype is None:
             data.ftype = os.path.splitext(data.fnm)[1][1:]
         if not os.path.exists(data.fnm):

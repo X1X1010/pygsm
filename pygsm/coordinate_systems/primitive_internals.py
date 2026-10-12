@@ -1,5 +1,6 @@
 # standard library imports
 import itertools
+import logging
 from collections import OrderedDict, defaultdict
 from copy import copy, deepcopy
 
@@ -29,6 +30,8 @@ from .slots import (
     TranslationZ,
 )
 from .topology import MolGraph, build_topology, distance_matrix
+
+logger = logging.getLogger(__name__)
 
 
 def _merge_block_windows(raw_blocks):
@@ -90,11 +93,11 @@ class PrimitiveInternalCoordinates(InternalCoordinates):
         # setup
         if self.options.form_topology:
             if self.topology is None:
-                print(
+                logger.warning(
                     " Warning it's better to build the topology before calling PrimitiveInternals\n Only the most basic option is enabled here \n You get better control of the topology by controlling extra bonds, angles etc."
                 )
                 self.topology = build_topology(xyz, self.atoms)
-                print(' done making topology')
+                logger.debug(' done making topology')
 
             self.fragments = [self.topology.subgraph(c).copy() for c in nx.connected_components(self.topology)]
             for g in self.fragments:
@@ -103,7 +106,7 @@ class PrimitiveInternalCoordinates(InternalCoordinates):
             # ALEX CHANGE for lines 86-91
             self.get_hybrid_indices(xyz)
             self.newMakePrimitives(xyz)
-            print(' done making primitives')
+            logger.debug(' done making primitives')
 
         # Reorder primitives for checking with cc's code in TC.
         # Note that reorderPrimitives() _must_ be updated with each new InternalCoordinate class written.
@@ -197,11 +200,11 @@ class PrimitiveInternalCoordinates(InternalCoordinates):
         answer = True
         for i in self.Internals:
             if i not in other.Internals:
-                print('this prim is in p1 but not p2 ', i)
+                logger.debug(f'this prim is in p1 but not p2  {i}')
                 answer = False
         for i in other.Internals:
             if i not in self.Internals:
-                print('this prim is in p2 but not p1', i)
+                logger.debug(f'this prim is in p2 but not p1 {i}')
                 answer = False
         return answer
 
@@ -234,7 +237,7 @@ class PrimitiveInternalCoordinates(InternalCoordinates):
                 if bonds_only and not isinstance(i, Distance):
                     pass
                 else:
-                    print(('Adding ', i))
+                    logger.debug(f'Adding {i}')
                     self.Internals.append(i)
                     Changed = True
         return Changed
@@ -323,12 +326,12 @@ class PrimitiveInternalCoordinates(InternalCoordinates):
         """Append ``dof`` unless an equal primitive is present (Cartesians are always appended)."""
         if isinstance(dof, (CartesianX, CartesianY, CartesianZ)):
             if verbose:
-                print((' adding ', dof))
+                logger.debug(f' adding {dof}')
             internals.append(dof)
             return None
         if dof not in internals:
             if verbose:
-                print((' adding ', dof))
+                logger.debug(f' adding {dof}')
             internals.append(dof)
             return True
         return False
@@ -353,7 +356,7 @@ class PrimitiveInternalCoordinates(InternalCoordinates):
             i, j, k, l = indice_tuple
             prim = OutOfPlane(i, j, k, l)
         else:
-            print(dtype)
+            logger.debug(dtype)
             raise NotImplementedError
         return self.Internals.index(prim)
 
@@ -381,11 +384,11 @@ class PrimitiveInternalCoordinates(InternalCoordinates):
             # then calculate the constraint value from the positions.
             # If both are provided, then the coordinates are ignored.
             cVal = cPrim.value(xyz)
-            print(cVal)
+            logger.debug(cVal)
         if cPrim in self.cPrims:
             iPrim = self.cPrims.index(cPrim)
             if np.abs(cVal - self.cVals[iPrim]) > 1e-6:
-                print(f'Updating constraint value to {cVal:.4e}')
+                logger.debug(f'Updating constraint value to {cVal:.4e}')
             self.cVals[iPrim] = cVal
         else:
             if cPrim not in self.Internals:
@@ -439,14 +442,14 @@ class PrimitiveInternalCoordinates(InternalCoordinates):
         addcart = self.options.addcart
         addtr = self.options.addtr
 
-        print(' Creating block info')
+        logger.debug(' Creating block info')
         tmp_block_info = []
         # get primitive blocks
         for frag in self.fragments:
             nodes = frag.L()
             tmp_block_info.append((nodes[0], nodes[-1] + 1, frag, 'reg'))
             # TODO can assert blocks are contiguous here
-        print(' number of primitive blocks is ', len(self.fragments))
+        logger.debug(f' number of primitive blocks is  {len(self.fragments)}')
 
         # get hybrid blocks
         for tup in self.hybrid_idx_start_stop:
@@ -459,7 +462,7 @@ class PrimitiveInternalCoordinates(InternalCoordinates):
 
         # sort the blocks
         tmp_block_info.sort(key=lambda tup: tup[0])
-        print(' Done creating block info,\n Now Making Primitives by block')
+        logger.debug(' Done creating block info,\n Now Making Primitives by block')
 
         sp = 0
         for info in tmp_block_info:
@@ -484,7 +487,7 @@ class PrimitiveInternalCoordinates(InternalCoordinates):
                     mst = sorted(list(nx.minimum_spanning_edges(dgraph, data=False)))
                     for edge in mst:
                         if edge not in list(self.topology.edges()):
-                            print(f'Adding {edge!s} from minimum spanning tree')
+                            logger.debug(f'Adding {edge!s} from minimum spanning tree')
                             self.topology.add_edge(edge[0], edge[1])
                             noncov.append(edge)
 
@@ -675,10 +678,10 @@ class PrimitiveInternalCoordinates(InternalCoordinates):
 
         self.prim_only_block_info = [info for info in self.block_info if info[-1] != 'hyb']
 
-        print(' Done making primitives')
-        print(f' Made a total of {len(self.Internals)} primitives')
-        print(' num blocks ', len(self.block_info))
-        print(' num prim blocks ', len(self.prim_only_block_info))
+        logger.debug(' Done making primitives')
+        logger.debug(f' Made a total of {len(self.Internals)} primitives')
+        logger.debug(f' num blocks  {len(self.block_info)}')
+        logger.debug(f' num prim blocks  {len(self.prim_only_block_info)}')
 
         self.clearCache()
         return
@@ -705,7 +708,7 @@ class PrimitiveInternalCoordinates(InternalCoordinates):
 
         tmp_block_info = []
 
-        print(' Creating block info')
+        logger.debug(' Creating block info')
         # get primitive blocks
         for frag in self.fragments:
             nodes = frag.L()
@@ -723,7 +726,7 @@ class PrimitiveInternalCoordinates(InternalCoordinates):
         # sort the blocks
         tmp_block_info.sort(key=lambda tup: tup[0])
 
-        print(' Done creating block info,\n Now Ordering Primitives by block')
+        logger.debug(' Done creating block info,\n Now Ordering Primitives by block')
 
         # Order primitives by block
         # probably faster to just reform the primitives!!!!
@@ -764,7 +767,7 @@ class PrimitiveInternalCoordinates(InternalCoordinates):
 
         self.Internals = newPrims
 
-        print(self.Internals)
+        logger.debug(self.Internals)
         self.clearCache()
         return
 
@@ -798,7 +801,7 @@ class PrimitiveInternalCoordinates(InternalCoordinates):
 
     def printConstraints(self, xyz, thre=1e-5):
         out_lines = []
-        header = 'Constraint                         Current      Target       Diff.\n'
+        header = 'Constraint                         Current      Target       Diff.'
         for ic, c in enumerate(self.cPrims):
             w = c.w if type(c) in [RotationA, RotationB, RotationC] else 1.0
             current = c.value(xyz) / w
@@ -814,11 +817,10 @@ class PrimitiveInternalCoordinates(InternalCoordinates):
             elif c.isAngular:
                 factor = 180.0 / np.pi
             out_lines.append(
-                f'{c!s:<30}  {current * factor: 10.5f}  {reference * factor: 10.5f}  {diff * factor: 10.5f}\n'
+                f'{c!s:<30}  {current * factor: 10.5f}  {reference * factor: 10.5f}  {diff * factor: 10.5f}'
             )
         if len(out_lines) > 0:
-            print(header)
-            print('\n'.join(out_lines))
+            logger.debug('\n'.join([header, *out_lines]))
 
     def getConstraintTargetVals(self):
         cNames = []
@@ -1006,7 +1008,7 @@ class PrimitiveInternalCoordinates(InternalCoordinates):
     def add_union_primitives(self, other):
         # Can make this faster if only check primitive indices
         # Need the primitive internal coordinates -- not the Cartesian internal coordinates
-        print(f' Number of primitives before {len(self.Internals)}')
+        logger.debug(f' Number of primitives before {len(self.Internals)}')
 
         # #for i in other.Internals:
         # #    if i not in self.Internals:
@@ -1021,10 +1023,10 @@ class PrimitiveInternalCoordinates(InternalCoordinates):
             for i in other.Internals[sp2:ep2]:
                 # Dont check Cartesians
                 if type(i) not in [CartesianX, CartesianY, CartesianZ] and i not in self.Internals[sp1:ep1]:
-                    print(f'Adding prim {i} that is in Other to Internals')
+                    logger.debug(f'Adding prim {i} that is in Other to Internals')
                     self.append_prim_to_block(i, count)
 
-        print(f' Number of primitives after {len(self.Internals)}')
+        logger.debug(f' Number of primitives after {len(self.Internals)}')
 
 
 def get_driving_coord_prim(dc):
