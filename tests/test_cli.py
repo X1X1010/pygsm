@@ -52,6 +52,12 @@ def test_short_options_and_legacy_single_dash_spellings():
     assert (legacy['gsm_type'], legacy['num_nodes'], legacy['CONV_TOL'], legacy['ID']) == ('SE_GSM', 7, 0.001, 3)
 
 
+@pytest.mark.parametrize(('mode', 'nodes'), [('DE_GSM', 9), ('SE_GSM', 20), ('SE_Cross', 20)])
+def test_num_nodes_default_depends_on_mode(mode, nodes):
+    config = parse_arguments(verbose=False, argv=['--xyzfile', str(DATA_DIR / 'ethylene.xyz'), '-m', mode])
+    assert config['num_nodes'] == nodes
+
+
 def test_python_module_cli_help_smoke():
     result = subprocess.run(
         [sys.executable, '-m', 'pygsm.cli', '--help'],

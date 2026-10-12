@@ -54,8 +54,8 @@ def _build_parser() -> argparse.ArgumentParser:
         '-n',
         '--num-nodes',
         type=int,
-        default=11,
-        help='number of nodes for string (defaults: 9 DE-GSM, 20 SE-GSM)',
+        default=None,
+        help='number of nodes for string (defaults: 9 DE-GSM, 20 SE-GSM and SE-Cross)',
         required=False,
     )
     parser.add_argument(
