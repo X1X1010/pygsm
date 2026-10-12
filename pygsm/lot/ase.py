@@ -88,8 +88,6 @@ class ASELoT(Lot):
         # energy is always calculated -> cached if force calculation was done
         self._Energies[(mult, ad_idx)] = self.Energy(atoms.get_potential_energy() / units.Ha, 'Hartree')
 
-        self.hasRanForCurrentCoords = True
-
 
 def xyz_to_ase(xyz):
     """

@@ -29,11 +29,6 @@ class PenaltyPES(PES):
             f' PES1 multiplicity: {self.PES1.multiplicity} PES2 multiplicity: {self.PES2.multiplicity} sigma: {self.sigma}'
         )
 
-    @classmethod
-    def create_pes_from(cls, PES, **lot_changes):
-        lot = PES.lot.clone(**lot_changes)
-        return cls(PES.PES1, PES.PES2, lot, PES.sigma, PES.alpha)
-
     def get_energy(self, geom):
         E1 = self.PES1.get_energy(geom)
         E2 = self.PES2.get_energy(geom)

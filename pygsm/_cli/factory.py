@@ -91,6 +91,7 @@ def choose_optimizer(inpfileq: dict):
         raise NotImplementedError(f'Optimizer `{inpfileq["optimizer"]}` not implemented') from exc
 
     return opt_class(
+        OPTTHRESH=inpfileq['CONV_TOL'],
         print_level=inpfileq['opt_print_level'],
         Linesearch=inpfileq['linesearch'],
         update_hess_in_bg=update_hess_in_bg,

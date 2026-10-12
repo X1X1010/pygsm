@@ -28,15 +28,18 @@ class Configurable:
 
     @classmethod
     def param_names(cls) -> list[str]:
-        """Names of the constructor parameters, including those of base-class constructors."""
+        """Constructor parameters, following base constructors only while ``**kwargs`` is accepted."""
         names: list[str] = []
-        for klass in reversed(cls.__mro__):
+        for klass in cls.__mro__:
             init = klass.__dict__.get('__init__')
             if init is None:
                 continue
-            for parameter in list(inspect.signature(init).parameters.values())[1:]:
+            parameters = list(inspect.signature(init).parameters.values())[1:]
+            for parameter in parameters:
                 if parameter.kind in _PARAMETER_KINDS and parameter.name not in names:
                     names.append(parameter.name)
+            if not any(parameter.kind == inspect.Parameter.VAR_KEYWORD for parameter in parameters):
+                break
         return names
 
     def get_params(self) -> dict[str, Any]:

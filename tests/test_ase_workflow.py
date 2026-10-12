@@ -113,3 +113,36 @@ def test_gsm_energy_cache_invalidates_when_node_geometry_changes():
 
     assert gsm._cached_energy_signature != signature_before
     assert len(energies_after) == 3
+
+
+@pytest.mark.parametrize('mode', ['DE_GSM', 'SE_GSM', 'SE_Cross'])
+@pytest.mark.parametrize('use_defaults', [False, True])
+def test_cli_convergence_settings_reach_gsm_and_node_optimizers(mode, use_defaults):
+    from pygsm._cli.factory import choose_optimizer
+    from pygsm._cli.runtime import _build_gsm
+    from pygsm.cli import parse_arguments
+
+    convergence_options = [] if use_defaults else [
+        '--conv-tol', '0.002', '--conv-gmax', '0.03', '--conv-ediff', '0.04', '--conv-de', '0.05',
+    ]  # fmt: skip
+    config = parse_arguments(
+        verbose=False,
+        argv=[
+            '--xyzfile', str(DATA_DIR / 'ethylene.xyz'), '--mode', mode, '--num-nodes', '5',
+            '--pes-type', 'Penalty_PES', '--multiplicity', '1', '3', '--adiabatic-index', '0', '0',
+            *convergence_options,
+        ],
+    )  # fmt: skip
+    _, xyz, _, reactant = _build_ase_molecule()
+    product = Molecule.copy_from(reactant, xyz=xyz + 0.01) if mode == 'DE_GSM' else None
+    optimizer = choose_optimizer(config)
+    gsm = _build_gsm(config, reactant, product, optimizer, [('BREAK', 1, 2)])
+
+    tolerance = 0.0005 if use_defaults else 0.002
+    node_thresholds = (100.0, 100.0, 1.0) if use_defaults else (0.03, 0.04, 0.05)
+    string_thresholds = (0.001, 0.1, 0.5) if use_defaults and mode != 'DE_GSM' else node_thresholds
+    assert (gsm.CONV_TOL, optimizer.conv_grms) == (tolerance, tolerance)
+    assert (gsm.CONV_gmax, gsm.CONV_Ediff, gsm.CONV_dE) == string_thresholds
+    for node_optimizer in gsm.optimizer:
+        assert (node_optimizer.conv_gmax, node_optimizer.conv_Ediff, node_optimizer.conv_dE) == node_thresholds
+        assert node_optimizer.opt_cross is False  # crossing criteria are for the end points only

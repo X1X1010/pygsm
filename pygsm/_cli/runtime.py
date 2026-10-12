@@ -16,7 +16,6 @@ from pygsm.coords import (
 from pygsm.coords.primitives import get_driving_coord_prim
 from pygsm.gsm import DEGSM, SEGSM, GrowthError, SECross
 from pygsm.molecule import Molecule
-from pygsm.pes import PenaltyPES
 from pygsm.utils import elements, manage_xyz, output
 from pygsm.utils.cli_utils import plot
 from pygsm.utils.manage_xyz import XYZ_WRITERS
@@ -189,43 +188,30 @@ def _build_coordinate_object(inpfileq: dict, atoms, xyz1, xyz2, top1, hybrid_ind
 
 
 def _build_gsm(inpfileq: dict, reactant: Molecule, product: Molecule | None, optimizer, driving_coordinates):
-    xyz_writer = XYZ_WRITERS[inpfileq['xyz_output_format']]
-    if inpfileq['gsm_type'] == 'DE_GSM':
-        return DEGSM(
-            reactant=reactant,
-            product=product,
-            nnodes=inpfileq['num_nodes'],
-            CONV_TOL=inpfileq['CONV_TOL'],
-            CONV_gmax=inpfileq['conv_gmax'],
-            CONV_Ediff=inpfileq['conv_Ediff'],
-            CONV_dE=inpfileq['conv_dE'],
-            ADD_NODE_TOL=inpfileq['ADD_NODE_TOL'],
-            growth_direction=inpfileq['growth_direction'],
-            optimizer=optimizer,
-            ID=inpfileq['ID'],
-            print_level=inpfileq['gsm_print_level'],
-            xyz_writer=xyz_writer,
-            output_dir='.',
-            mp_cores=inpfileq['mp_cores'],
-            interp_method=inpfileq['interp_method'],
-        )
-
-    gsm_class = SEGSM if inpfileq['gsm_type'] == 'SE_GSM' else SECross
-    return gsm_class(
+    options = dict(
         reactant=reactant,
         nnodes=inpfileq['num_nodes'],
-        DQMAG_MAX=inpfileq['DQMAG_MAX'],
-        BDIST_RATIO=inpfileq['BDIST_RATIO'],
         CONV_TOL=inpfileq['CONV_TOL'],
+        CONV_gmax=inpfileq['CONV_gmax'],
+        CONV_Ediff=inpfileq['CONV_Ediff'],
+        CONV_dE=inpfileq['CONV_dE'],
         ADD_NODE_TOL=inpfileq['ADD_NODE_TOL'],
         optimizer=optimizer,
         print_level=inpfileq['gsm_print_level'],
-        driving_coords=driving_coordinates,
         ID=inpfileq['ID'],
-        xyz_writer=xyz_writer,
+        xyz_writer=XYZ_WRITERS[inpfileq['xyz_output_format']],
         output_dir='.',
         mp_cores=inpfileq['mp_cores'],
         interp_method=inpfileq['interp_method'],
+    )
+    if inpfileq['gsm_type'] == 'DE_GSM':
+        return DEGSM(product=product, growth_direction=inpfileq['growth_direction'], **options)
+    gsm_class = SEGSM if inpfileq['gsm_type'] == 'SE_GSM' else SECross
+    return gsm_class(
+        driving_coords=driving_coordinates,
+        DQMAG_MAX=inpfileq['DQMAG_MAX'],
+        BDIST_RATIO=inpfileq['BDIST_RATIO'],
+        **options,
     )
 
 
@@ -237,14 +223,6 @@ def _run_only_drive_mode(gsm) -> None:
             break
     geometries = [node.geometry for node in gsm.nodes if node is not None]
     manage_xyz.write_xyzs('interpolated.xyz', geometries)
-
-
-def _optimize_endpoint_if_needed(optimizer, molecule: Molecule, ref_energy: float, opt_steps: int) -> None:
-    optimizer.optimize(
-        molecule=molecule,
-        refE=ref_energy,
-        opt_steps=opt_steps,
-    )
 
 
 def _resolve_rtype(inpfileq: dict) -> int:
@@ -276,12 +254,6 @@ def main(argv: Sequence[str] | None = None):
 
     output.printcool(f'Build the {inpfileq["EST_Package"]} level of theory (LOT) object')
     lot = create_lot(inpfileq, geoms[0])
-
-    if inpfileq['gsm_type'] == 'SE_Cross' and inpfileq['PES_type'] != 'Penalty_PES':
-        logger.info(' setting PES type to Penalty')
-        inpfileq['PES_type'] = 'Penalty_PES'
-    if inpfileq['optimize_mesx'] or inpfileq['optimize_meci'] or inpfileq['gsm_type'] == 'SE_Cross':
-        assert inpfileq['PES_type'] == 'Penalty_PES', 'Need penalty pes for optimizing MESX/MECI'
 
     _load_pes_side_inputs(inpfileq)
     output.printcool(f'Building the {inpfileq["PES_type"]} objects')
@@ -324,18 +296,18 @@ def main(argv: Sequence[str] | None = None):
         _run_only_drive_mode(gsm)
         return
 
-    if (inpfileq['gsm_type'] != 'SE_Cross' and isinstance(pes, (PenaltyPES,))) or (
-        inpfileq['gsm_type'] != 'SE_Cross' and inpfileq['PES_type'] == 'Avg_PES'
-    ):
+    # Crossing convergence (energy gap) for the end-point optimisations only: the string's node
+    # optimizers were copied from this one above and keep the ordinary criteria.
+    if inpfileq['gsm_type'] != 'SE_Cross' and inpfileq['PES_type'] in ('Avg_PES', 'Penalty_PES'):
         optimizer.opt_cross = True
 
     if not inpfileq['reactant_geom_fixed'] and inpfileq['gsm_type'] != 'SE_Cross':
         output.printcool('REACTANT GEOMETRY NOT FIXED!!! OPTIMIZING')
-        _optimize_endpoint_if_needed(optimizer, reactant, reactant.energy, 100)
+        optimizer.optimize(molecule=reactant, refE=reactant.energy, opt_steps=100)
 
     if product is not None and not inpfileq['product_geom_fixed']:
         output.printcool('PRODUCT GEOMETRY NOT FIXED!!! OPTIMIZING')
-        _optimize_endpoint_if_needed(optimizer, product, reactant.energy, 100)
+        optimizer.optimize(molecule=product, refE=reactant.energy, opt_steps=100)
 
     if inpfileq['max_opt_steps'] is None:
         inpfileq['max_opt_steps'] = 3 if inpfileq['gsm_type'] == 'DE_GSM' else 20

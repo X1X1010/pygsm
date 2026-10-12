@@ -27,11 +27,6 @@ class AvgPES(PES):
         self.lot.do_coupling = True
         self.lot.coupling_states = (PES1.ad_idx, PES2.ad_idx)
 
-    @classmethod
-    def create_pes_from(cls, PES, **lot_changes):
-        lot = PES.lot.clone(**lot_changes)
-        return cls(PES.PES1, PES.PES2, lot)
-
     def get_energy(self, xyz):
         if self.PES1.multiplicity == self.PES2.multiplicity:
             assert self.PES2.ad_idx > self.PES1.ad_idx, 'dgrad wrong direction'

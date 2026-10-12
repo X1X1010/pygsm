@@ -70,7 +70,7 @@ def _build_parser() -> argparse.ArgumentParser:
     )
     parser.add_argument(
         '--adiabatic-index',
-        nargs='*',
+        nargs='+',
         type=int,
         default=[0],
         help='adiabatic index of each state, 0-based (default: %(default)s)',
@@ -78,7 +78,7 @@ def _build_parser() -> argparse.ArgumentParser:
     )
     parser.add_argument(
         '--multiplicity',
-        nargs='*',
+        nargs='+',
         type=int,
         default=[1],
         help='spin multiplicity of each state (default: %(default)s)',
@@ -245,18 +245,16 @@ def _build_parser() -> argparse.ArgumentParser:
     )
     parser.add_argument(
         '--conv-ediff',
-        default=100.0,
         type=float,
-        help='energy-change convergence of the node optimisations (default: %(default)s)',
+        help='energy-change convergence (defaults: 100 for nodes, 0.1 for the SE string)',
     )
     parser.add_argument(
         '--conv-de',
-        default=1.0,
         type=float,
-        help='state energy-gap convergence for crossing searches (default: %(default)s)',
+        help='state energy-gap convergence (defaults: 1.0 for nodes, 0.5 for the SE string)',
     )
     parser.add_argument(
-        '--conv-gmax', default=100.0, type=float, help='max-gradient convergence (default: %(default)s)'
+        '--conv-gmax', type=float, help='max-gradient convergence (defaults: 100 for nodes, 0.001 for the SE string)'
     )
     parser.add_argument('--dmax', default=0.1, type=float, help='initial optimizer step size (default: %(default)s)')
     parser.add_argument(
@@ -370,6 +368,14 @@ def _print_banner() -> None:
 def parse_arguments(verbose: bool = True, argv: Sequence[str] | None = None):
     parser = _build_parser()
     args = parser.parse_args(_translate_legacy_options(sys.argv[1:] if argv is None else argv, parser))
+    if args.mode == 'SE_Cross':
+        args.pes_type = 'Penalty_PES'
+    if len(args.multiplicity) != len(args.adiabatic_index):
+        parser.error('--multiplicity and --adiabatic-index must have the same number of states')
+    if args.pes_type != 'PES' and len(args.multiplicity) < 2:
+        parser.error(f'{args.pes_type} requires at least two states (--multiplicity and --adiabatic-index)')
+    if (args.optimize_mesx or args.optimize_meci) and args.pes_type != 'Penalty_PES':
+        parser.error('--optimize-mesx and --optimize-meci require --pes-type Penalty_PES')
     output.setup_logging(args.log_level)
 
     if verbose:
@@ -408,9 +414,6 @@ def parse_arguments(verbose: bool = True, argv: Sequence[str] | None = None):
         'isomers_file': args.isomers,
         'ADD_NODE_TOL': args.add_node_tol,
         'CONV_TOL': args.conv_tol,
-        'conv_Ediff': args.conv_ediff,
-        'conv_dE': args.conv_de,
-        'conv_gmax': args.conv_gmax,
         'BDIST_RATIO': args.bdist_ratio,
         'DQMAG_MAX': args.dqmag_max,
         'growth_direction': args.growth_direction,
@@ -435,13 +438,20 @@ def parse_arguments(verbose: bool = True, argv: Sequence[str] | None = None):
         'ase_class': args.ase_class,
         'ase_kwargs': args.ase_kwargs,
     }
+    # SE strings historically use tighter thresholds than their node optimizers.
+    # Preserve those defaults, but apply an explicit CLI setting to both layers.
+    for name, value, node_default, se_default in (
+        ('gmax', args.conv_gmax, 100.0, 0.001),
+        ('Ediff', args.conv_ediff, 100.0, 0.1),
+        ('dE', args.conv_de, 1.0, 0.5),
+    ):
+        string_default = node_default if args.mode == 'DE_GSM' else se_default
+        inpfileq[f'conv_{name}'] = node_default if value is None else value
+        inpfileq[f'CONV_{name}'] = string_default if value is None else value
 
     if verbose:
         output.printcool_dictionary(inpfileq, title='Parsed GSM Keys : Values')
 
-    if inpfileq['PES_type'] != 'PES':
-        assert len(inpfileq['adiabatic_index']) > 1, 'need more states'
-        assert len(inpfileq['multiplicity']) > 1, 'need more spins'
     if inpfileq['charge'] != 0:
         logger.warning(
             'Warning: charge is not implemented for all level of theories. Make sure this is correct for your package.'

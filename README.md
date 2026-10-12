@@ -36,7 +36,9 @@ gsm --xyzfile reaction.xyz -m DE_GSM -p xTB --restart-file string_000.xyz
 ```
 Options use `--kebab-case`; `-m`, `-p`, `-n` and `-i` are short for `--mode`, `--package`,
 `--num-nodes` and `--isomers`. The old single-dash spellings (`-num_nodes`, `-CONV_TOL`, ...) still
-work but print a deprecation warning. `gsm --help` lists every option; the main ones are:
+work but print a deprecation warning. `--multiplicity` and `--adiabatic-index` must list the same
+number of states; `Avg_PES`, `Penalty_PES` and `SE_Cross` require at least two.
+`gsm --help` lists every option; the main ones are:
 
 | option | default | meaning |
 |---|---|---|
@@ -86,6 +88,10 @@ work but print a deprecation warning. `gsm --help` lists every option; the main 
 | `--xyz-output-format` | `molden` | `molden` (energies, gradients) or `multixyz` |
 | `--only-drive` | off | only build the interpolated string (no optimisation) and write `interpolated.xyz` |
 | `--dont-analyze-ics` | off | don't write `IC_data_<ID>.txt` |
+
+When `--conv-gmax`, `--conv-ediff` and `--conv-de` are omitted, SE-GSM and SE-Cross retain
+string thresholds of 0.001, 0.1 and 0.5 alongside the node optimizer defaults listed above.
+Explicit values apply to both the string and its node optimizers.
 
 `--restraint-file` holds atoms near their input positions with harmonic restraints (one
 `atom k` per line, k in kcal/mol/A^2) and `--force-file` applies constant forces between atom pairs

@@ -59,7 +59,7 @@ class Lot(Configurable):
         self.geom = geom
         self.fnm = fnm
         self.states = [(1, 0)] if states is None else states
-        self.coupling_states = coupling_states
+        self.coupling_states = () if coupling_states is None else coupling_states
         self.charge = charge
         self.nproc = nproc
         self.do_coupling = do_coupling
@@ -134,11 +134,7 @@ class Lot(Configurable):
         self._Couplings = value
 
     def get_energy(self, coords, multiplicity, state, runtype=None):
-        if self._coords_changed(coords):
-            self.currentCoords = coords.copy()
-            geom = manage_xyz.np_to_xyz(self.geom, self.currentCoords)
-            self.runall(geom, runtype)
-            self.hasRanForCurrentCoords = True
+        self._ensure_calculated(coords, runtype)
 
         Energy = self.Energies[(multiplicity, state)]
         if Energy.unit == 'Hartree':
@@ -147,11 +143,7 @@ class Lot(Configurable):
             return Energy.value
 
     def get_gradient(self, coords, multiplicity, state, frozen_atoms=None):
-        if self._coords_changed(coords):
-            self.currentCoords = coords.copy()
-            geom = manage_xyz.np_to_xyz(self.geom, self.currentCoords)
-            self.runall(geom)
-            self.hasRanForCurrentCoords = True
+        self._ensure_calculated(coords)
         Gradient = self.Gradients[(multiplicity, state)]
         if Gradient.value is not None:
             gradient = Gradient.value.copy()
@@ -168,11 +160,7 @@ class Lot(Configurable):
             return None
 
     def get_coupling(self, coords, multiplicity, state1, state2, frozen_atoms=None):
-        if self._coords_changed(coords):
-            self.currentCoords = coords.copy()
-            geom = manage_xyz.np_to_xyz(self.geom, self.currentCoords)
-            self.runall(geom)
-            self.hasRanForCurrentCoords = True
+        self._ensure_calculated(coords)
         Coupling = self.Couplings[(state1, state2)]
 
         if Coupling.value is not None:
@@ -205,3 +193,17 @@ class Lot(Configurable):
 
     def _coords_changed(self, coords):
         return self.hasRanForCurrentCoords is False or not np.array_equal(coords, self.currentCoords)
+
+    def _ensure_calculated(self, coords, runtype=None):
+        """Cache a geometry only after all its requested states have been calculated successfully."""
+        if not self._coords_changed(coords):
+            return
+        self.hasRanForCurrentCoords = False
+        self.currentCoords = coords.copy()
+        try:
+            self.runall(manage_xyz.np_to_xyz(self.geom, self.currentCoords), runtype)
+        except Exception:
+            # A backend may have marked an individual state as complete before another failed.
+            self.hasRanForCurrentCoords = False
+            raise
+        self.hasRanForCurrentCoords = True

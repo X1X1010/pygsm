@@ -54,8 +54,38 @@ def test_short_options_and_legacy_single_dash_spellings():
 
 @pytest.mark.parametrize(('mode', 'nodes'), [('DE_GSM', 9), ('SE_GSM', 20), ('SE_Cross', 20)])
 def test_num_nodes_default_depends_on_mode(mode, nodes):
-    config = parse_arguments(verbose=False, argv=['--xyzfile', str(DATA_DIR / 'ethylene.xyz'), '-m', mode])
+    states = ['--multiplicity', '1', '3', '--adiabatic-index', '0', '0'] if mode == 'SE_Cross' else []
+    config = parse_arguments(verbose=False, argv=['--xyzfile', str(DATA_DIR / 'ethylene.xyz'), '-m', mode, *states])
     assert config['num_nodes'] == nodes
+
+
+@pytest.mark.parametrize(
+    'options',
+    [
+        ['--multiplicity'],
+        ['--adiabatic-index'],
+        ['--multiplicity', '1', '3'],
+        ['--pes-type', 'Avg_PES'],
+        ['--pes-type', 'Penalty_PES'],
+        ['--mode', 'SE_Cross'],
+    ],
+)
+def test_invalid_state_lists_are_cli_errors(options, capsys):
+    with pytest.raises(SystemExit) as error:
+        parse_arguments(verbose=False, argv=['--xyzfile', str(DATA_DIR / 'ethylene.xyz'), '--mode', 'DE_GSM', *options])
+    assert error.value.code == 2
+    assert 'error:' in capsys.readouterr().err
+
+
+def test_se_cross_resolves_penalty_surface_before_building_lot():
+    config = parse_arguments(
+        verbose=False,
+        argv=[
+            '--xyzfile', str(DATA_DIR / 'ethylene.xyz'), '--mode', 'SE_Cross',
+            '--multiplicity', '1', '3', '--adiabatic-index', '0', '0',
+        ],
+    )  # fmt: skip
+    assert config['PES_type'] == 'Penalty_PES'
 
 
 def test_dont_analyze_ics_flag():

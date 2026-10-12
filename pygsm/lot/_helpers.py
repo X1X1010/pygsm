@@ -2,38 +2,19 @@
 
 from __future__ import annotations
 
-import logging
-
-logger = logging.getLogger(__name__)
-
 
 def normalize_states(states):
-    singlets = [state for state in states if state[0] == 1]
-    doublets = [state for state in states if state[0] == 2]
-    triplets = [state for state in states if state[0] == 3]
-    quartets = [state for state in states if state[0] == 4]
-    quintets = [state for state in states if state[0] == 5]
-
-    len_singlets = max(singlets, key=lambda state: state[1])[1] + 1 if singlets else 0
-    len_doublets = len(doublets)
-    len_triplets = len(triplets)
-    len_quartets = len(quartets)
-    len_quintets = len(quintets)
-    expected_length = len_singlets + len_doublets + len_triplets + len_quartets + len_quintets
-
-    if len(states) >= expected_length:
+    """Fill missing lower states for each multiplicity without dropping other spin states."""
+    highest = {}
+    for multiplicity, index in states:
+        highest[multiplicity] = max(highest.get(multiplicity, 0), index)
+    normalized = [(mult, index) for mult, highest_index in highest.items() for index in range(highest_index + 1)]
+    if set(normalized) == set(states):
         return states, False
-
-    fixed_states = []
-    for index in range(len_singlets):
-        fixed_states.append((1, index))
-    for index in range(len_triplets):
-        fixed_states.append((3, index))
-    return fixed_states, True
+    return normalized, True
 
 
 def infer_gradient_states(states, gradient_states, calc_grad):
-    if gradient_states is None and calc_grad:
-        logger.debug(f' Assuming gradient states are  {states}')
-        return states
-    return gradient_states
+    if gradient_states is not None:
+        return gradient_states
+    return list(states) if calc_grad else []
