@@ -180,3 +180,33 @@ def test_three_fragments_deeply_interleaved():
     # interleaved multi-fragment blocks).
     dense = block_matrix.full_matrix(prims.wilsonB(xyz))
     assert dense.shape == (21, 18)
+
+
+def test_rotator_derivatives_interleaved_match_finite_difference():
+    """Rotation primitives of interleaved, non-linear fragments: the analytic
+    Wilson B rows must match finite differences away from the reference
+    geometry (the derivatives once used a contiguous atom range for the
+    reference coordinates)."""
+    from pygsm.coordinate_systems import RotationA, RotationB, RotationC
+
+    bent = np.array([[0.0, 0.0, 0.0], [1.0, 0.0, 0.0], [-0.3, 0.95, 0.0]])
+    base_xyz = np.vstack([bent, bent + np.array([10.0, 0.0, 0.0])])  # A = 0,1,2 ; B = 3,4,5 (O-H-H)
+    perm = [0, 3, 1, 4, 2, 5]  # A = {0, 2, 4}, B = {1, 3, 5}
+    xyz = base_xyz[perm]
+    atoms = [ELEMENT_TABLE.from_symbol(s) for s in ['O', 'O', 'H', 'H', 'H', 'H']]
+    prims = _build_primitives(xyz, atoms)
+
+    rng = np.random.default_rng(0)
+    x = xyz + 0.1 * rng.standard_normal(xyz.shape)
+    B = block_matrix.full_matrix(prims.wilsonB(x))
+    h = 1e-6
+    rotations = [(i, p) for i, p in enumerate(prims.Internals) if isinstance(p, (RotationA, RotationB, RotationC))]
+    assert len(rotations) == 6
+    for i, p in rotations:
+        fd = np.zeros(x.size)
+        for k in range(x.size):
+            xp, xm = x.flatten(), x.flatten()
+            xp[k] += h
+            xm[k] -= h
+            fd[k] = (p.value(xp.reshape(-1, 3)) - p.value(xm.reshape(-1, 3))) / (2 * h)
+        assert B[i] == pytest.approx(fd, abs=1e-6)

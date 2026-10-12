@@ -347,10 +347,8 @@ class Rotator:
         # merged together); explicitly selecting relative_a generalizes
         # correctly to a block containing other atoms/fragments too.
         xsel = xyz[relative_a, :]
-        # x0 is the full size. . .
-        # need absolute indices of fragment
-        absolute_a = list(range(start_idx, start_idx + len(relative_a)))
-        ysel = self.x0[absolute_a, :]
+        # x0 holds the whole molecule, so index it with the absolute atom indices (as value() does)
+        ysel = self.x0[self.a, :]
         xmean = np.mean(xsel, axis=0)
         ymean = np.mean(ysel, axis=0)
         if not self.linear and is_linear(xsel, ysel):
@@ -398,8 +396,8 @@ class Rotator:
         ##
 
         xsel = xyz[relative_a, :]
-        absolute_a = list(range(start_idx, start_idx + len(relative_a)))
-        ysel = self.x0[absolute_a, :]
+        # x0 holds the whole molecule, so index it with the absolute atom indices (as value() does)
+        ysel = self.x0[self.a, :]
         xmean = np.mean(xsel, axis=0)
         ymean = np.mean(ysel, axis=0)
 
