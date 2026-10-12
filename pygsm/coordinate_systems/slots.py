@@ -222,16 +222,8 @@ class Rotator:
         self.linear = False
 
     def reset(self, x0):
-        x0 = x0.reshape(-1, 3)
-        self.x0 = x0.copy()
-        self.stored_valxyz = np.zeros_like(x0)
-        self.stored_value = None
-        self.stored_derxyz = np.zeros_like(x0)
-        self.stored_deriv = None
-        self.stored_norm = 0.0
-        self.e0 = None
-        self.stored_dot2 = 0.0
-        self.linear = False
+        """Use ``x0`` as the new reference geometry and drop every cached value and derivative."""
+        self.__init__(self.a, x0)
 
     def __eq__(self, other):
         if type(self) is not type(other):
