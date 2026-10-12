@@ -16,10 +16,13 @@ logger = logging.getLogger(__name__)
 
 
 class SEGSM(MainGSM):
-    """Single-ended GSM: grows from the reactant along driving coordinates, then optimises towards the TS."""
+    """Single-ended GSM: grows from the reactant along driving coordinates, then optimises towards the TS.
 
-    def __init__(self, options=None, **kwargs):
-        super().__init__(options, **kwargs)
+    Parameters: see :class:`GSM` (no ``product``; ``driving_coords`` is required).
+    """
+
+    def __init__(self, reactant, **kwargs):
+        super().__init__(reactant, **kwargs)
         self.current_nnodes = 1
 
         logger.debug(' Assuming the isomers are initialized!')
@@ -60,7 +63,7 @@ class SEGSM(MainGSM):
                     self.add_last_node(2)
                 elif self.pastts in (2, 3):  # 2: constraint gradient positive, 3: product bonds formed
                     self.add_last_node(1)
-                    if self.nodes[self.nR - 1].gradrms > 5.0 * self.options.CONV_TOL:
+                    if self.nodes[self.nR - 1].gradrms > 5.0 * self.CONV_TOL:
                         self.add_last_node(1)
             except (IndexError, RuntimeError, ValueError) as error:
                 logger.warning(f'Failed to add last node, continuing: {error}')
@@ -107,10 +110,10 @@ class SEGSM(MainGSM):
             logger.debug(' copying last node, opting')
             self.nodes[self.nR] = Molecule.copy_from(self.nodes[self.nR - 1], new_node_id=self.nR)
             logger.debug(f' Optimizing node {self.nR}')
-            self.optimizer[self.nR].conv_grms = self.options.CONV_TOL
-            self.optimizer[self.nR].conv_gmax = self.options.CONV_gmax
-            self.optimizer[self.nR].conv_Ediff = self.options.CONV_Ediff
-            self.optimizer[self.nR].conv_dE = self.options.CONV_dE
+            self.optimizer[self.nR].conv_grms = self.CONV_TOL
+            self.optimizer[self.nR].conv_gmax = self.CONV_gmax
+            self.optimizer[self.nR].conv_Ediff = self.CONV_Ediff
+            self.optimizer[self.nR].conv_dE = self.CONV_dE
             self.optimizer[self.nR].optimize(
                 molecule=self.nodes[self.nR],
                 refE=self.nodes[0].V0,
@@ -124,10 +127,10 @@ class SEGSM(MainGSM):
                 self.nR += 1
         elif rtype == 2:
             logger.debug(' already created node, opting')
-            self.optimizer[self.nR - 1].conv_grms = self.options.CONV_TOL
-            self.optimizer[self.nR - 1].conv_gmax = self.options.CONV_gmax
-            self.optimizer[self.nR - 1].conv_Ediff = self.options.CONV_Ediff
-            self.optimizer[self.nR - 1].conv_dE = self.options.CONV_dE
+            self.optimizer[self.nR - 1].conv_grms = self.CONV_TOL
+            self.optimizer[self.nR - 1].conv_gmax = self.CONV_gmax
+            self.optimizer[self.nR - 1].conv_Ediff = self.CONV_Ediff
+            self.optimizer[self.nR - 1].conv_dE = self.CONV_dE
             self.optimizer[self.nR - 1].optimize(
                 molecule=self.nodes[self.nR - 1],
                 refE=self.nodes[0].V0,
@@ -150,7 +153,7 @@ class SEGSM(MainGSM):
         )
 
     def grow_nodes(self):
-        if self.nodes[self.nR - 1].gradrms < self.options.ADD_NODE_TOL:
+        if self.nodes[self.nR - 1].gradrms < self.ADD_NODE_TOL:
             if self.nR == self.nnodes:
                 logger.warning(' Ran out of nodes, exiting GSM')
                 raise ValueError
@@ -175,8 +178,8 @@ class SEGSM(MainGSM):
 
     def set_frontier_convergence(self, nR):
         # set
-        self.optimizer[nR].conv_grms = self.options.ADD_NODE_TOL
-        self.optimizer[nR].conv_gmax = 100.0  # self.options.ADD_NODE_TOL # could use some multiplier times CONV_GMAX...
+        self.optimizer[nR].conv_grms = self.ADD_NODE_TOL
+        self.optimizer[nR].conv_gmax = 100.0  # self.ADD_NODE_TOL # could use some multiplier times CONV_GMAX...
         self.optimizer[nR].conv_Ediff = 1000.0  # 2.5
         logger.debug(f' conv_tol of node {nR} is {self.optimizer[nR].conv_grms:.4f}')
 
@@ -308,11 +311,7 @@ class SEGSM(MainGSM):
                 self.tscontinue = False
             output.printcool('Over the hill')
             isDone = True
-        elif (
-            fp == -1
-            and self.energies[self.nR - 1] > 200.0
-            and self.nodes[self.nR - 1].gradrms > self.options.CONV_TOL * 5
-        ):
+        elif fp == -1 and self.energies[self.nR - 1] > 200.0 and self.nodes[self.nR - 1].gradrms > self.CONV_TOL * 5:
             logger.info('growth_iters over: all uphill and high energy')
             self.end_early = 2
             self.tscontinue = False
@@ -330,7 +329,7 @@ class SEGSM(MainGSM):
 
     def is_converged(self, totalgrad, fp, rtype, ts_cgradq):
         if self.TSnode == self.nnodes - 2 and (self.find or totalgrad < 0.2) and fp == 1:
-            if self.nodes[self.nR - 1].gradrms > self.options.CONV_TOL:
+            if self.nodes[self.nR - 1].gradrms > self.CONV_TOL:
                 logger.debug('TS node is second to last node, adding one more node')
                 self.add_last_node(1)
                 self.nnodes = self.nR

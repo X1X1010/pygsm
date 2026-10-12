@@ -86,8 +86,8 @@ class ConjugateGradient(BaseOptimizer):
             actual_step = np.linalg.norm(d)
             logger.debug(f' actual_step= {actual_step:1.2f}')
             d = d / actual_step  # normalize
-            if actual_step > self.options.DMAX:
-                step = self.options.DMAX
+            if actual_step > self.DMAX:
+                step = self.DMAX
                 logger.debug(f' reducing step, new step = {step:1.2f}')
             else:
                 step = actual_step
@@ -103,7 +103,7 @@ class ConjugateGradient(BaseOptimizer):
 
             # line search
             logger.debug(' Linesearch')
-            ls = self.Linesearch(n, x, fx, g, d, step, xp, gp, constraint_steps, self.linesearch_parameters, molecule)
+            ls = self.linesearch(n, x, fx, g, d, step, xp, gp, constraint_steps, self.linesearch_parameters, molecule)
             logger.debug(' Done linesearch')
 
             # revert to the previous point
@@ -122,13 +122,13 @@ class ConjugateGradient(BaseOptimizer):
 
             # control step size
             if step < p_step:
-                self.options.DMAX /= 2.0
+                self.DMAX /= 2.0
             elif step > p_step:
-                self.options.DMAX *= 2.0
-            if self.options.DMAX < 0.01:
-                self.options.DMAX = 0.01
-            elif self.options.DMAX > 0.25:
-                self.options.DMAX = 0.25
+                self.DMAX *= 2.0
+            if self.DMAX < 0.01:
+                self.DMAX = 0.01
+            elif self.DMAX > 0.25:
+                self.DMAX = 0.25
 
             # dE
             dEstep = fx - fxp
@@ -138,9 +138,9 @@ class ConjugateGradient(BaseOptimizer):
             geoms.append(molecule.geometry)
             energies.append(molecule.energy - refE)
 
-            if self.options.print_level > 0:
+            if self.print_level > 0:
                 logger.info(
-                    f' Opt step: {ostep + 1} E: {fx - refE:5.4f} gradrms: {molecule.gradrms:1.5f} ss: {step:1.3f} DMAX: {self.options.DMAX:1.3f}'
+                    f' Opt step: {ostep + 1} E: {fx - refE:5.4f} gradrms: {molecule.gradrms:1.5f} ss: {step:1.3f} DMAX: {self.DMAX:1.3f}'
                 )
 
             gmax = np.max(g) / units.ANGSTROM_TO_AU

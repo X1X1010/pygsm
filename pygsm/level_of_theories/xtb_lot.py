@@ -5,13 +5,11 @@ https://github.com/tblite/tblite
 
 from __future__ import annotations
 
-from dataclasses import dataclass
-
 import numpy as np
 
 from ..utilities import elements, manage_xyz, units
-from ..utilities.config import option
-from .base_lot import Lot, LotConfig, LoTError
+from ..utilities.config import check_choice
+from .base_lot import Lot, LoTError
 
 # Boltzmann constant in Hartree/K, used to convert the electronic temperature.
 KB_HARTREE_PER_KELVIN = 3.166811563455546e-06
@@ -27,30 +25,36 @@ def _require_tblite():
     return Calculator
 
 
-@dataclass(kw_only=True)
-class XTBConfig(LotConfig):
-    xTB_Hamiltonian: str = option('GFN2-xTB', doc='xTB Hamiltonian', choices=('GFN2-xTB', 'GFN1-xTB', 'IPEA1-xTB'))
-    xTB_accuracy: float = option(1.0, doc='xTB numerical accuracy')
-    xTB_electronic_temperature: float = option(300.0, doc='electronic temperature in K')
-    solvent: str | None = option(None, doc='ALPB implicit solvent name')
-
-
 class XTBLoT(Lot):
     """GFN1/GFN2-xTB ground states, one calculation per requested spin multiplicity.
 
     Only adiabatic index 0 is available for each multiplicity, which is enough
     for ground-state strings and for minimum-energy crossing points between
     spin states (``Penalty_PES``).
+
+    Parameters (besides those of :class:`Lot`)
+    ------------------------------------------
+    xTB_Hamiltonian : ``'GFN2-xTB'``, ``'GFN1-xTB'`` or ``'IPEA1-xTB'``.
+    xTB_accuracy : tblite numerical accuracy.
+    xTB_electronic_temperature : electronic temperature in K.
+    solvent : ALPB implicit solvent name, or None.
     """
 
-    config_class = XTBConfig
-
-    def __init__(self, options=None, **kwargs):
-        super().__init__(options, **kwargs)
-        self.xTB_Hamiltonian = self.options.xTB_Hamiltonian
-        self.xTB_accuracy = self.options.xTB_accuracy
-        self.xTB_electronic_temperature = self.options.xTB_electronic_temperature
-        self.solvent = self.options.solvent
+    def __init__(
+        self,
+        *,
+        xTB_Hamiltonian: str = 'GFN2-xTB',
+        xTB_accuracy: float = 1.0,
+        xTB_electronic_temperature: float = 300.0,
+        solvent: str | None = None,
+        **kwargs,
+    ):
+        check_choice('xTB_Hamiltonian', xTB_Hamiltonian, ('GFN2-xTB', 'GFN1-xTB', 'IPEA1-xTB'))
+        super().__init__(**kwargs)
+        self.xTB_Hamiltonian = xTB_Hamiltonian
+        self.xTB_accuracy = xTB_accuracy
+        self.xTB_electronic_temperature = xTB_electronic_temperature
+        self.solvent = solvent
         table = elements.ElementData()
         self.numbers = np.asarray([table.from_symbol(a).atomic_num for a in manage_xyz.get_atoms(self.geom)])
 

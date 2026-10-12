@@ -3,9 +3,7 @@ import math
 import os
 from collections import Counter
 from copy import copy
-from dataclasses import dataclass
 from itertools import chain
-from typing import Any
 
 import numpy as np
 
@@ -13,7 +11,7 @@ from pygsm.coordinate_systems import Angle, Dihedral, Distance, OutOfPlane
 from pygsm.molecule import Molecule
 from pygsm.potential_energy_surfaces import PenaltyPES
 from pygsm.utilities import output
-from pygsm.utilities.config import Config, option
+from pygsm.utilities.config import check_choice
 from pygsm.utilities.manage_xyz import write_molden_geoms
 
 from ._shared import map_method
@@ -35,81 +33,93 @@ def _format_steps(label, values):
 # TODO nconstraints in ic_reparam and write_iters is irrelevant
 
 
-@dataclass(kw_only=True)
-class GSMConfig(Config):
-    reactant: Any = option(doc='Molecule for the reactant (initial) structure')
-    product: Any = option(None, doc='Molecule for the product structure (double-ended methods only)')
-    nnodes: int = option(1, doc='number of string nodes')
-    optimizer: Any = option(
-        doc='optimizer used for every node (e.g. eigenvector_follow); GSM adjusts most of its settings itself'
-    )
-    driving_coords: list = option(
-        default_factory=list, doc='driving coordinates for single-ended methods, e.g. [("ADD", 1, 11)]; atoms 1-indexed'
-    )
-    CONV_TOL: float = option(0.0005, doc='node gradrms convergence threshold')
-    CONV_gmax: float = option(0.001, doc='node max-gradient convergence threshold')
-    CONV_Ediff: float = option(0.1, doc='node energy-change convergence threshold')
-    CONV_dE: float = option(0.5, doc='state energy-difference convergence threshold')
-    ADD_NODE_TOL: float = option(0.1, doc='gradrms below which the frontier node is converged enough to add the next')
-    growth_direction: int = option(
-        0, doc='0: grow from both ends, 1: from the reactant, 2: from the product', choices=(0, 1, 2)
-    )
-    DQMAG_MAX: float = option(0.8, doc='max step along the tangent for single-ended methods')
-    DQMAG_MIN: float = option(0.2, doc='min step along the tangent for single-ended methods')
-    print_level: int = option(1)
-    xyz_writer: Any = option(write_molden_geoms, doc='function used to write string trajectories')
-    mp_cores: int = option(1, doc='processes used for parallel node updates (use with caution)')
-    BDIST_RATIO: float = option(
-        0.5, doc='single-ended growth is complete once bdist drops below (1 - BDIST_RATIO) of its initial value'
-    )
-    ID: int = option(0, doc='string id used in file names')
-    interp_method: str = option('DLC', doc='interpolation/reparametrisation method', choices=('Geodesic', 'DLC'))
-    noise: float = option(100.0, doc='energy noise used when checking for intermediates')
-    output_dir: str | None = option(
-        None,
-        doc='directory for string files (latest string as a restart checkpoint, grown string); None writes no files',
-    )
-
-
 class GSM:
-    """String of nodes (Molecules) with tangents, interpolation and reparametrisation; base of the GSM drivers."""
+    """String of nodes (Molecules) with tangents, interpolation and reparametrisation; base of the GSM drivers.
 
-    config_class = GSMConfig
+    Parameters
+    ----------
+    reactant : Molecule for the reactant (initial) structure.
+    product : Molecule for the product structure (double-ended methods only).
+    optimizer : optimizer template; every node gets its own copy, and GSM adjusts
+        most of the convergence settings itself.
+    nnodes : number of string nodes.
+    driving_coords : driving coordinates for single-ended methods, e.g. ``[('ADD', 1, 11)]``
+        (atoms 1-indexed).
+    CONV_TOL : node gradrms convergence threshold.
+    CONV_gmax : node max-gradient convergence threshold.
+    CONV_Ediff : node energy-change convergence threshold.
+    CONV_dE : state energy-difference convergence threshold.
+    ADD_NODE_TOL : gradrms below which the frontier node is converged enough to add the next.
+    growth_direction : 0 grows from both ends, 1 from the reactant, 2 from the product.
+    DQMAG_MAX : max step along the tangent for single-ended methods.
+    DQMAG_MIN : min step along the tangent for single-ended methods.
+    print_level : diagnostic detail at DEBUG log level.
+    xyz_writer : function that writes string files (see ``output_dir``).
+    mp_cores : processes used for parallel node updates.
+    BDIST_RATIO : single-ended growth is complete once bdist drops below
+        ``(1 - BDIST_RATIO)`` of its initial value.
+    ID : string id used in file names.
+    interp_method : interpolation/reparametrisation method, ``'DLC'`` or ``'Geodesic'``.
+    noise : energy noise used when checking for intermediates.
+    output_dir : directory for string files (latest string as a restart checkpoint,
+        grown string); None writes no files.
+    """
 
     #: True for strings that start from both reactant and product (DE-GSM).
     is_double_ended = False
     #: True for the single-ended crossing search (SE-Cross), which optimises on a penalty PES.
     is_crossing_search = False
 
-    def __init__(self, options=None, **kwargs):
-        self.options = self.config_class.build(options, **kwargs)
-        options = self.options
-
-        self.output_dir = self.options.output_dir
-
-        # Cache attributes
-        self.nnodes: int = self.options.nnodes
+    def __init__(
+        self,
+        reactant: Molecule,
+        product: Molecule | None = None,
+        *,
+        optimizer,
+        nnodes: int = 1,
+        driving_coords: list | None = None,
+        CONV_TOL: float = 0.0005,
+        CONV_gmax: float = 0.001,
+        CONV_Ediff: float = 0.1,
+        CONV_dE: float = 0.5,
+        ADD_NODE_TOL: float = 0.1,
+        growth_direction: int = 0,
+        DQMAG_MAX: float = 0.8,
+        DQMAG_MIN: float = 0.2,
+        print_level: int = 1,
+        xyz_writer=write_molden_geoms,
+        mp_cores: int = 1,
+        BDIST_RATIO: float = 0.5,
+        ID: int = 0,
+        interp_method: str = 'DLC',
+        noise: float = 100.0,
+        output_dir: str | None = None,
+    ):
+        check_choice('growth_direction', growth_direction, (0, 1, 2))
+        check_choice('interp_method', interp_method, ('Geodesic', 'DLC'))
+        self.nnodes: int = nnodes
         self.nodes: list[Molecule] = [None for _ in range(self.nnodes)]
-        self.nodes[0] = self.options.reactant
-        self.nodes[-1] = self.options.product
-        self.driving_coords = self.options.driving_coords
-        self.growth_direction = self.options.growth_direction
+        self.nodes[0] = reactant
+        self.nodes[-1] = product
+        self.driving_coords = [] if driving_coords is None else driving_coords
+        self.CONV_TOL = CONV_TOL
+        self.CONV_gmax = CONV_gmax
+        self.CONV_Ediff = CONV_Ediff
+        self.CONV_dE = CONV_dE
+        self.ADD_NODE_TOL = ADD_NODE_TOL
+        self.growth_direction = growth_direction
+        self.DQMAG_MAX = DQMAG_MAX
+        self.DQMAG_MIN = DQMAG_MIN
+        self.print_level = print_level
+        self.xyz_writer = xyz_writer
+        self.mp_cores = mp_cores
+        self.BDIST_RATIO = BDIST_RATIO
+        self.ID = ID
+        self.interp_method = interp_method
+        self.noise = noise
+        self.output_dir = output_dir
         self.isRestarted = False
-        self.DQMAG_MAX = self.options.DQMAG_MAX
-        self.DQMAG_MIN = self.options.DQMAG_MIN
-        self.BDIST_RATIO = self.options.BDIST_RATIO
-        self.ID = self.options.ID
-        self.optimizer = []
-        self.interp_method = self.options.interp_method
-        self.CONV_TOL = self.options.CONV_TOL
-        self.noise = self.options.noise
-        self.mp_cores = self.options.mp_cores
-        self.xyz_writer = self.options.xyz_writer
-
-        optimizer = options.optimizer
-        for _count in range(self.nnodes):
-            self.optimizer.append(optimizer.__class__(optimizer.options.replace()))
-        self.print_level = options.print_level
+        self.optimizer = [optimizer.clone() for _ in range(self.nnodes)]
 
         # Set initial values
         self.current_nnodes = 2
@@ -123,7 +133,7 @@ class GSM:
         self.tscontinue = True  # whether to continue with TS opt or not
         self.found_ts = False
         self.rn3m6 = np.sqrt(3.0 * self.nodes[0].natoms - 6.0)
-        self.gaddmax = self.options.ADD_NODE_TOL  # self.options.ADD_NODE_TOL/self.rn3m6;
+        self.gaddmax = self.ADD_NODE_TOL  # self.ADD_NODE_TOL/self.rn3m6;
         logger.debug(f' gaddmax: {self.gaddmax}')
         self.ictan = [None] * self.nnodes
         self.active = [False] * self.nnodes

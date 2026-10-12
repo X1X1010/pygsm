@@ -64,14 +64,13 @@ def _merge_block_windows(raw_blocks):
 
 
 class PrimitiveInternalCoordinates(InternalCoordinates):
-    """Primitive internal coordinates (bonds, angles, dihedrals, and TRIC translations/rotations), stored per fragment block."""
+    """Primitive internal coordinates (bonds, angles, dihedrals, and TRIC translations/rotations), stored per fragment block.
 
-    def __init__(self, options=None, **kwargs):
-        super().__init__(options, **kwargs)
-        options = self.options
+    Parameters: see :class:`InternalCoordinates`.
+    """
 
-        # Cache some useful attributes
-        self.atoms = options.atoms
+    def __init__(self, xyz, atoms, **kwargs):
+        super().__init__(xyz, atoms, **kwargs)
 
         # initialize
         self.Internals = []
@@ -87,11 +86,10 @@ class PrimitiveInternalCoordinates(InternalCoordinates):
         # but maybe useful in the future
         # self.top_settings = {
 
-        xyz = options.xyz
-        self.topology = self.options.topology
+        xyz = self.xyz
 
         # setup
-        if self.options.form_topology:
+        if self.form_topology:
             if self.topology is None:
                 logger.warning(
                     " Warning it's better to build the topology before calling PrimitiveInternals\n Only the most basic option is enabled here \n You get better control of the topology by controlling extra bonds, angles etc."
@@ -113,13 +111,12 @@ class PrimitiveInternalCoordinates(InternalCoordinates):
 
     @classmethod
     def copy(cls, Prims):
-        newPrims = cls(Prims.options.replace(form_topology=False))
+        newPrims = cls(**{**Prims.get_params(), 'form_topology': False})
         newPrims.hybrid_idx_start_stop = Prims.hybrid_idx_start_stop
         newPrims.topology = deepcopy(Prims.topology)
         newPrims.Internals = deepcopy(Prims.Internals)
         newPrims.block_info = deepcopy(Prims.block_info)
         newPrims.prim_only_block_info = copy(Prims.prim_only_block_info)
-        newPrims.atoms = newPrims.options.atoms
         newPrims.fragments = [Prims.topology.subgraph(c).copy() for c in nx.connected_components(Prims.topology)]
         for g in newPrims.fragments:
             g.__class__ = MolGraph
@@ -427,7 +424,7 @@ class PrimitiveInternalCoordinates(InternalCoordinates):
             )
         self.Internals = newPrims
 
-        if not self.options.connect:
+        if not self.connect:
             self.reorderPrimsByFrag()
         else:
             # all atoms are considered one "fragment"
@@ -438,9 +435,9 @@ class PrimitiveInternalCoordinates(InternalCoordinates):
         self.block_info = []
         # coordinates in Angstrom
         coords = xyz.flatten()
-        connect = self.options.connect
-        addcart = self.options.addcart
-        addtr = self.options.addtr
+        connect = self.connect
+        addcart = self.addcart
+        addtr = self.addtr
 
         logger.debug(' Creating block info')
         tmp_block_info = []

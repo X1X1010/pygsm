@@ -4,14 +4,13 @@
 
 import logging
 from collections import OrderedDict
-from dataclasses import dataclass
 from typing import Any
 
 # third party
 import numpy as np
 
 from pygsm.utilities import block_matrix, elements
-from pygsm.utilities.config import Config, option
+from pygsm.utilities.config import Configurable
 
 logger = logging.getLogger(__name__)
 
@@ -22,30 +21,41 @@ _CACHE_WARNING_ISSUED = False
 _CACHE_WARNING_SIZE = 1000
 
 
-@dataclass(kw_only=True)
-class CoordinateConfig(Config):
-    xyz: Any = option(doc='cartesian coordinates in angstrom')
-    atoms: list = option(doc='list of elements.Element for each atom')
-    connect: bool = option(
-        False, doc='connect fragments with a minimum spanning bond (DLC); do not use for TRIC or HDLC'
-    )
-    addcart: bool = option(False, doc='add Cartesian coordinates (HDLC); do not use for TRIC or DLC')
-    addtr: bool = option(False, doc='add translation and rotation coordinates (TRIC)')
-    constraints: list | None = option(None, doc='Distance/Angle/Dihedral primitives to constrain (see slots.py)')
-    cVals: list | None = option(None, doc='target values of the constraints')
-    form_topology: bool = option(True, doc='build the topology and primitives on construction')
-    primitives: Any = option(None, doc='PrimitiveInternalCoordinates to reuse instead of building new ones')
-    topology: Any = option(None, doc='molecule topology used to build the primitives')
-    print_level: int = option(1, doc='0: no printing, 1: printing')
+class InternalCoordinates(Configurable):
+    """Base class of the coordinate systems: B-matrix (cached), G-matrix and Cartesian back-transformation.
 
+    Parameters
+    ----------
+    xyz : Cartesian coordinates in Angstrom, shape (natoms, 3).
+    atoms : ``elements.Element`` of each atom.
+    connect : connect fragments with minimum-spanning bonds (DLC); not for TRIC or HDLC.
+    addcart : add Cartesian coordinates (HDLC); not for TRIC or DLC.
+    addtr : add translation and rotation coordinates (TRIC).
+    form_topology : build the topology and primitives on construction.
+    primitives : ``PrimitiveInternalCoordinates`` to reuse instead of building new ones.
+    topology : molecular graph used to build the primitives (built from ``xyz`` when not given).
+    """
 
-class InternalCoordinates:
-    """Base class of the coordinate systems: B-matrix (cached), G-matrix and Cartesian back-transformation."""
-
-    config_class = CoordinateConfig
-
-    def __init__(self, options=None, **kwargs):
-        self.options = self.config_class.build(options, **kwargs)
+    def __init__(
+        self,
+        xyz: np.ndarray,
+        atoms: list,
+        *,
+        connect: bool = False,
+        addcart: bool = False,
+        addtr: bool = False,
+        form_topology: bool = True,
+        primitives: Any = None,
+        topology: Any = None,
+    ):
+        self.xyz = xyz
+        self.atoms = atoms
+        self.connect = connect
+        self.addcart = addcart
+        self.addtr = addtr
+        self.form_topology = form_topology
+        self.primitives = primitives
+        self.topology = topology
         self.stored_wilsonB = OrderedDict()
 
     def addConstraint(self, cPrim, cVal):

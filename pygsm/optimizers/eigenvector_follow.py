@@ -22,7 +22,10 @@ if TYPE_CHECKING:
 
 
 class EigenvectorFollow(BaseOptimizer):
-    """Eigenvector-following (rational function) optimizer with BFGS Hessian updates; supports climbing and TS search."""
+    """Eigenvector-following (rational function) optimizer with BFGS Hessian updates; supports climbing and TS search.
+
+    Parameters: see :class:`BaseOptimizer`.
+    """
 
     supports_ts_search = True
 
@@ -76,7 +79,7 @@ class EigenvectorFollow(BaseOptimizer):
         xyz = np.copy(molecule.xyz)
 
         if opt_type == 'TS':
-            self.Linesearch = NoLineSearch
+            self.linesearch = NoLineSearch
         if opt_type == 'SEAM' or opt_type == 'MECI' or opt_type == 'TS-SEAM':
             self.opt_cross = True
 
@@ -137,7 +140,7 @@ class EigenvectorFollow(BaseOptimizer):
             # => calculate constraint step <= #
             constraint_steps = self.get_constraint_steps(molecule, opt_type, g)
 
-            ls = self.Linesearch(
+            ls = self.linesearch(
                 nconstraints, x, fx, g, dq, step, xp, constraint_steps, self.linesearch_parameters, molecule, verbose
             )
 
@@ -158,11 +161,11 @@ class EigenvectorFollow(BaseOptimizer):
                 molecule.newHess = 5
 
             if ls['step'] > self.DMAX:
-                if ls['step'] <= self.options.abs_max_step:  # absolute max
+                if ls['step'] <= self.abs_max_step:  # absolute max
                     logger.debug(' Increasing DMAX to {}'.format(ls['step']))
                     self.DMAX = ls['step']
                 else:
-                    self.DMAX = self.options.abs_max_step
+                    self.DMAX = self.abs_max_step
             elif ls['step'] < self.DMAX:
                 if ls['step'] >= self.DMIN:  # absolute min
                     logger.debug(' Decreasing DMAX to {}'.format(ls['step']))
@@ -214,7 +217,7 @@ class EigenvectorFollow(BaseOptimizer):
             else:
                 raise NotImplementedError(' ef not implemented for CART')
 
-            if self.options.print_level > 0:
+            if self.print_level > 0:
                 logger.info(
                     f' Node: {molecule.node_id} Opt step: {ostep + 1} E: {fx - refE:5.4f} predE: {dEpre:5.4f} ratio: {ratio:1.3f} gradrms: {molecule.gradrms:1.5f} ss: {step:1.3f} DMAX: {self.DMAX:1.3f}'
                 )

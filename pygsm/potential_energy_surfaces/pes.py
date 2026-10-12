@@ -1,52 +1,56 @@
 # standard library imports
+from __future__ import annotations
+
 import logging
-from dataclasses import dataclass
-from typing import Any
+from typing import TYPE_CHECKING
 
 # third party
 import numpy as np
 
 # local application imports
 from ..utilities import elements, units
-from ..utilities.config import Config, option
+from ..utilities.config import Configurable
+
+if TYPE_CHECKING:
+    from ..level_of_theories.base_lot import Lot
 
 logger = logging.getLogger(__name__)
 
 ELEMENT_TABLE = elements.ElementData()
 
 
-@dataclass(kw_only=True)
-class PESConfig(Config):
-    lot: Any = option(doc='level of theory object')
-    ad_idx: int = option(0, doc='adiabatic index')
-    multiplicity: int = option(1, doc='spin multiplicity')
-    FORCE: list | None = option(
-        None,
-        doc='constant force between atom pairs in AU, e.g. [(1, 2, 0.1214)]; negative is tensile, positive compressive',
-    )
-    RESTRAINTS: list | None = option(None, doc='translational harmonic restraints')
+class PES(Configurable):
+    """Single adiabatic potential energy surface of a level of theory.
 
+    Parameters
+    ----------
+    lot : level of theory that computes the energies and gradients.
+    ad_idx : adiabatic index of the state.
+    multiplicity : spin multiplicity of the state.
+    FORCE : constant forces between atom pairs in au, e.g. ``[(1, 2, 0.1214)]``;
+        negative is tensile, positive compressive.
+    RESTRAINTS : translational harmonic restraints.
+    """
 
-class PES:
-    """Single adiabatic potential energy surface of a level of theory."""
-
-    config_class = PESConfig
-
-    # TODO make kwargs
     @classmethod
-    def create_pes_from(cls, PES, options=None, copy_wavefunction=True):
-        lot = type(PES.lot).copy(PES.lot, options or {}, copy_wavefunction)
+    def create_pes_from(cls, PES, copy_wavefunction=True, **lot_changes):
+        """Copy of ``PES`` on a copy of its level of theory, with ``lot_changes`` (e.g. ``node_id``) applied."""
+        return cls(**{**PES.get_params(), 'lot': PES.lot.clone(**lot_changes)})
 
-        return cls(PES.options.replace(lot=lot))
-
-    def __init__(self, options=None, **kwargs):
-        self.options = self.config_class.build(options, **kwargs)
-
-        self.lot = self.options.lot
-        self.ad_idx = self.options.ad_idx
-        self.multiplicity = self.options.multiplicity
-        self.FORCE = self.options.FORCE
-        self.RESTRAINTS = self.options.RESTRAINTS
+    def __init__(
+        self,
+        lot: Lot,
+        *,
+        ad_idx: int = 0,
+        multiplicity: int = 1,
+        FORCE: list | None = None,
+        RESTRAINTS: list | None = None,
+    ):
+        self.lot = lot
+        self.ad_idx = ad_idx
+        self.multiplicity = multiplicity
+        self.FORCE = FORCE
+        self.RESTRAINTS = RESTRAINTS
         self._dE = 1000.0
 
     @property

@@ -51,8 +51,9 @@ gsm = DEGSM(reactant=reactant, product=product, nnodes=11, optimizer=Eigenvector
 gsm.go_gsm(max_iters=100, opt_steps=3, rtype=2)
 gsm.energies, gsm.geometries, gsm.TSnode     # results
 ```
-Every class takes its options as keyword arguments, validated by a typed config
-(`DEGSM.config_class`, `EigenvectorFollow.config_class`, ...). The library writes no
+Every class takes its settings as constructor arguments (see the class docstrings) and
+keeps them as attributes of the same name; `optimizer.clone(DMAX=0.2)`, `pes.clone(lot=...)`
+or `lot.clone(node_id=3)` copy an object with some settings changed. The library writes no
 files unless asked: pass `output_dir=...` to a GSM for the string checkpoint, or
 `trajectory=...` to `optimizer.optimize`. Complete scripts, including building the
 delocalised internal coordinates, are in [`examples/`](examples).

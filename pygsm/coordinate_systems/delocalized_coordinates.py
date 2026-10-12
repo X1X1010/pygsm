@@ -16,39 +16,37 @@ logger = logging.getLogger(__name__)
 
 
 class DelocalizedInternalCoordinates(InternalCoordinates):
-    """Delocalized internal coordinates: non-redundant linear combinations of primitives (DLC/TRIC/HDLC)."""
+    """Delocalized internal coordinates: non-redundant linear combinations of primitives (DLC/TRIC/HDLC).
 
-    def __init__(self, options=None, **kwargs):
-        super().__init__(options, **kwargs)
-        options = self.options
+    Parameters: see :class:`InternalCoordinates`.
+    """
 
-        # Cache  some useful attributes
-        self.atoms = options.atoms
+    def __init__(self, xyz, atoms, **kwargs):
+        super().__init__(xyz, atoms, **kwargs)
         self.natoms = len(self.atoms)
 
         # The DLC contains an instance of primitive internal coordinates.
-        if self.options.primitives is None:
+        if self.primitives is None:
             logger.debug(' making primitives ')
             t1 = time()
-            self.Prims = PrimitiveInternalCoordinates(options.replace())
+            self.Prims = PrimitiveInternalCoordinates(**self.get_params())
             dt = time() - t1
             logger.debug(f' Time to make prims {dt:.3f}')
-            self.options.primitives = self.Prims
+            self.primitives = self.Prims
         else:
-            logger.debug(' setting primitives from options!')
+            logger.debug(' reusing the given primitives')
             t0 = time()
-            self.Prims = PrimitiveInternalCoordinates.copy(self.options.primitives)
+            self.Prims = PrimitiveInternalCoordinates.copy(self.primitives)
 
             logger.debug(f' num of primitives {len(self.Prims.Internals)}')
             dt = time() - t0
             logger.debug(f' Time to copy prims {dt:.3f}')
             self.Prims.clearCache()
 
-        xyz = options.xyz
-        xyz = xyz.flatten()
-        connect = options.connect
-        addcart = options.addcart
-        addtr = options.addtr
+        xyz = self.xyz.flatten()
+        connect = self.connect
+        addcart = self.addcart
+        addtr = self.addtr
         if addtr:
             if connect:
                 raise RuntimeError(
@@ -80,7 +78,7 @@ class DelocalizedInternalCoordinates(InternalCoordinates):
         return self.Prims.join(other.Prims)
 
     def copy(self, xyz):
-        return type(self)(self.options.replace(xyz=xyz))
+        return self.clone(xyz=xyz)
 
     def addConstraint(self, cPrim, cVal, xyz):
         self.Prims.addConstraint(cPrim, cVal, xyz)

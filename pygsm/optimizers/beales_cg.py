@@ -70,7 +70,7 @@ class BealesCG(BaseOptimizer):
         for ostep in range(opt_steps):
             logger.debug(f' On opt step {ostep + 1} ')
 
-            if update_hess and self.options.update_hess_in_bg:
+            if update_hess and self.update_hess_in_bg:
                 if opt_type != 'TS':
                     self.update_Hessian(molecule, 'BFGS')
                 else:
@@ -115,7 +115,7 @@ class BealesCG(BaseOptimizer):
 
             # line search
             logger.debug(' Linesearch')
-            ls = self.Linesearch(
+            ls = self.linesearch(
                 n, x, fx, g, d, stepsize, xp, constraint_steps, self.linesearch_parameters, molecule, verbose
             )
             logger.debug(' Done linesearch')
@@ -129,18 +129,18 @@ class BealesCG(BaseOptimizer):
             if nconstraints > 0:
                 g = g - np.dot(g.T, molecule.constraints) * molecule.constraints
 
-            if ls['step'] > self.options.DMAX:
-                if ls['step'] <= self.options.abs_max_step:  # absolute max
+            if ls['step'] > self.DMAX:
+                if ls['step'] <= self.abs_max_step:  # absolute max
                     logger.debug(' Increasing DMAX to {}'.format(ls['step']))
-                    self.options.DMAX = ls['step']
+                    self.DMAX = ls['step']
                 else:
-                    self.options.DMAX = self.options.abs_max_step
-            elif ls['step'] < self.options.DMAX:
+                    self.DMAX = self.abs_max_step
+            elif ls['step'] < self.DMAX:
                 if ls['step'] >= self.DMIN:  # absolute min
                     logger.debug(' Decreasing DMAX to {}'.format(ls['step']))
-                    self.options.DMAX = ls['step']
+                    self.DMAX = ls['step']
                 elif ls['step'] <= self.DMIN:
-                    self.options.DMAX = self.DMIN
+                    self.DMAX = self.DMIN
                     logger.debug(f' Decreasing DMAX to {self.DMIN}')
 
             # dE
@@ -179,16 +179,16 @@ class BealesCG(BaseOptimizer):
                 self.write_trajectory(trajectory, geoms, energies)
 
             # save variables for update Hessian!
-            if not isinstance(molecule.coord_obj, CartesianCoordinates) or self.options.update_hess_in_bg:
+            if not isinstance(molecule.coord_obj, CartesianCoordinates) or self.update_hess_in_bg:
                 self.dx_prim = molecule.coord_obj.Prims.calcDiff(xyz, xyzp)
                 self.dx_prim = np.reshape(self.dx_prim, (-1, 1))
                 self.dg_prim = g_prim - gp_prim
             else:
                 raise NotImplementedError(' ef not implemented for CART')
 
-            if self.options.print_level > 0:
+            if self.print_level > 0:
                 logger.info(
-                    f' Opt step: {ostep + 1} E: {fx - refE:5.4f} gradrms: {molecule.gradrms:1.5f} ss: {step:1.3f} DMAX: {self.options.DMAX:1.3f}'
+                    f' Opt step: {ostep + 1} E: {fx - refE:5.4f} gradrms: {molecule.gradrms:1.5f} ss: {step:1.3f} DMAX: {self.DMAX:1.3f}'
                 )
 
             # check for convergence TODO

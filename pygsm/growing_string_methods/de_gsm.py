@@ -12,12 +12,6 @@ class DEGSM(MainGSM):
 
     is_double_ended = True
 
-    def __init__(self, options=None, **kwargs):
-        super().__init__(options, **kwargs)
-
-        logger.debug(' Assuming primitives are union!')
-        logger.debug(f' number of primitives is {self.nodes[0].num_primitives}')
-
     def _grow_phase(self, max_iters, opt_steps):
         if self.growth_direction == 0:
             self.add_GSM_nodes(2)
@@ -56,8 +50,8 @@ class DEGSM(MainGSM):
         for i in range(self.nnodes):
             if self.nodes[i] is not None:
                 self.optimizer[i].conv_grms = self.CONV_TOL * 2.0
-        self.optimizer[nR].conv_grms = self.options.ADD_NODE_TOL
-        self.optimizer[nP].conv_grms = self.options.ADD_NODE_TOL
+        self.optimizer[nR].conv_grms = self.ADD_NODE_TOL
+        self.optimizer[nP].conv_grms = self.ADD_NODE_TOL
         logger.debug(f' conv_tol of node {nR} is {self.optimizer[nR].conv_grms:.4f}')
         logger.debug(f' conv_tol of node {nP} is {self.optimizer[nP].conv_grms:.4f}')
         self.active[nR] = True

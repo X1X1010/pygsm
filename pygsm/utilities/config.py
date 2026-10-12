@@ -1,54 +1,52 @@
-"""Typed, validated option containers for pygsm objects.
+"""Constructor-parameter helpers shared by the configurable pygsm classes.
 
-Each configurable class owns a ``@dataclass(kw_only=True)`` subclass of
-:class:`Config`. Fields carry their defaults and documentation; allowed values
-are declared with :func:`option` and checked when the config is created or
-replaced. Copies are shallow (field values are shared), matching how pygsm
-objects share level-of-theory, coordinate and molecule objects.
+Configurable classes take their settings as keyword arguments of ``__init__``
+and store each one in an attribute of the same name (the scikit-learn
+convention). :meth:`Configurable.get_params` reads them back from the
+signature, so :meth:`Configurable.clone` can build a new object with the same
+(current) settings without the defaults being written down twice.
 """
 
 from __future__ import annotations
 
-import dataclasses
-from dataclasses import dataclass, field, fields
+import inspect
 from typing import Any, TypeVar
 
-C = TypeVar('C', bound='Config')
+T = TypeVar('T', bound='Configurable')
+
+_PARAMETER_KINDS = (inspect.Parameter.POSITIONAL_OR_KEYWORD, inspect.Parameter.KEYWORD_ONLY)
 
 
-def option(
-    default: Any = dataclasses.MISSING, *, doc: str = '', choices=None, default_factory: Any = dataclasses.MISSING
-):
-    """Declare a config field with documentation and, optionally, the allowed values."""
-    metadata = {'doc': doc}
-    if choices is not None:
-        metadata['choices'] = tuple(choices)
-    if default_factory is not dataclasses.MISSING:
-        return field(default_factory=default_factory, metadata=metadata)
-    return field(default=default, metadata=metadata)
+def check_choice(name: str, value: Any, choices) -> None:
+    """Raise ``ValueError`` unless ``value`` is one of ``choices``."""
+    if value not in choices:
+        raise ValueError(f'{name} must be one of {tuple(choices)!r}, got {value!r}')
 
 
-@dataclass(kw_only=True)
-class Config:
-    def __post_init__(self):
-        for f in fields(self):
-            choices = f.metadata.get('choices')
-            if choices is not None and getattr(self, f.name) not in choices:
-                raise ValueError(
-                    f'{type(self).__name__}.{f.name} must be one of {choices!r}, got {getattr(self, f.name)!r}'
-                )
+class Configurable:
+    """Mixin for classes whose ``__init__`` arguments are stored as attributes of the same name."""
 
     @classmethod
-    def build(cls: type[C], config: C | None = None, **changes) -> C:
-        """Return ``config`` with ``changes`` applied, or a new config from ``changes``."""
-        if config is None:
-            return cls(**changes)
-        return config.replace(**changes) if changes else config
+    def param_names(cls) -> list[str]:
+        """Names of the constructor parameters, including those of base-class constructors."""
+        names: list[str] = []
+        for klass in reversed(cls.__mro__):
+            init = klass.__dict__.get('__init__')
+            if init is None:
+                continue
+            for parameter in list(inspect.signature(init).parameters.values())[1:]:
+                if parameter.kind in _PARAMETER_KINDS and parameter.name not in names:
+                    names.append(parameter.name)
+        return names
 
-    def replace(self: C, **changes) -> C:
-        """Shallow copy with some fields changed (validated)."""
-        return dataclasses.replace(self, **changes)
+    def get_params(self) -> dict[str, Any]:
+        """The current value of every constructor parameter."""
+        return {name: getattr(self, name) for name in self.param_names()}
 
-    def as_kwargs(self) -> dict[str, Any]:
-        """Field values as a dict, without copying the values."""
-        return {f.name: getattr(self, f.name) for f in fields(self)}
+    def clone(self: T, **changes) -> T:
+        """A new object built with this one's current parameters, some of them changed."""
+        params = self.get_params()
+        unknown = set(changes) - set(params)
+        if unknown:
+            raise TypeError(f'{type(self).__name__} has no parameter(s) {sorted(unknown)}')
+        return type(self)(**{**params, **changes})

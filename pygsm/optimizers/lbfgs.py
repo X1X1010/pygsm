@@ -31,10 +31,13 @@ class IterationData:
 
 
 class LBFGS(BaseOptimizer):
-    """Limited-memory BFGS optimizer in delocalized internal coordinates."""
+    """Limited-memory BFGS optimizer in delocalized internal coordinates.
 
-    def __init__(self, options=None, **kwargs):
-        super().__init__(options, **kwargs)
+    Parameters: see :class:`BaseOptimizer`.
+    """
+
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
         self.k = 0
         self.end = 0
 
@@ -106,9 +109,9 @@ class LBFGS(BaseOptimizer):
         for ostep in range(opt_steps):
             logger.debug(f' On opt step {ostep + 1} ')
 
-            SCALE = self.options.SCALEQN
+            SCALE = self.SCALEQN
             if molecule.newHess > 0:
-                SCALE = self.options.SCALEQN * molecule.newHess
+                SCALE = self.SCALEQN * molecule.newHess
 
             if self.k != 0:
                 # update vectors s and y:
@@ -157,7 +160,7 @@ class LBFGS(BaseOptimizer):
             self.cstep_prim = block_matrix.dot(molecule.coord_basis, constraint_steps)
 
             # line search
-            ls = self.Linesearch(
+            ls = self.linesearch(
                 nconstraints, x, fx, gc, d, step, xp, constraint_steps, self.linesearch_parameters, molecule, verbose
             )
 
@@ -252,11 +255,11 @@ class LBFGS(BaseOptimizer):
                     dgradrms = molecule.gradrms - pgradrms
                     logger.debug(f'dgradrms  {dgradrms}')
                     if ls['step'] > self.DMAX:
-                        if ls['step'] <= self.options.abs_max_step:  # absolute max
+                        if ls['step'] <= self.abs_max_step:  # absolute max
                             logger.debug(' Increasing DMAX to {}'.format(ls['step']))
                             self.DMAX = ls['step']
                         else:
-                            self.DMAX = self.options.abs_max_step
+                            self.DMAX = self.abs_max_step
                     elif ls['step'] < self.DMAX:
                         if ls['step'] >= self.DMIN:  # absolute min
                             logger.debug(' Decreasing DMAX to {}'.format(ls['step']))
@@ -267,8 +270,8 @@ class LBFGS(BaseOptimizer):
                     elif ratio > 0.85 and ratio < 1.1 and actual_step > self.DMAX and dgradrms < -0.00005:
                         logger.debug(' HERE increasing DMAX')
                         self.DMAX *= 1.1
-                        if self.options.abs_max_step < self.DMAX:
-                            self.DMAX = self.options.abs_max_step
+                        if self.abs_max_step < self.DMAX:
+                            self.DMAX = self.abs_max_step
                 else:
                     logger.debug('status not zero')
 
@@ -277,7 +280,7 @@ class LBFGS(BaseOptimizer):
                 energies.append(molecule.energy - refE)
                 self.write_trajectory(trajectory, geoms, energies)
 
-            if self.options.print_level > 0:
+            if self.print_level > 0:
                 logger.info(
                     f' Node: {molecule.node_id} Opt step: {ostep + 1} E: {fx - refE:5.4f} predE: {dEpre:5.4f} ratio: {ratio:1.3f} gradrms: {molecule.gradrms:1.5f} ss: {step:1.3f} DMAX: {self.DMAX:1.3f}'
                 )

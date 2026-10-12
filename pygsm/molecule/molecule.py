@@ -5,15 +5,12 @@ This class is the combination of Martinez group and Lee Ping's molecule class.
 from __future__ import annotations
 
 import logging
-from dataclasses import dataclass
 from time import time
-from typing import Any
 
 import numpy as np
 
 from pygsm.coordinate_systems import CartesianCoordinates
 from pygsm.utilities import block_matrix, elements, manage_xyz, units
-from pygsm.utilities.config import Config, option
 
 from ._helpers import copy_geometry_inputs, copy_pes, load_geometry_inputs, validate_geometry_inputs
 
@@ -31,64 +28,53 @@ and spin multiplicities.
 """
 
 
-@dataclass(kw_only=True)
-class MoleculeConfig(Config):
-    PES: Any = option(doc='potential energy surface used to evaluate energies, gradients, etc.')
-    geom: list | None = option(None, doc='geometry as (symbol, x, y, z) tuples in Angstrom')
-    fnm: str | None = option(None, doc='xyz file to read the geometry from when geom is not given')
-    ftype: str | None = option(None, doc='file type (inferred from the extension if not given)')
-    xyz: np.ndarray | None = option(None, doc='Cartesian coordinates in Angstrom')
-    coord_obj: Any = option(None, doc='coordinate system object (required)')
-    coordinate_type: str = option(
-        'Cartesian', doc='type of coordinate system', choices=('Cartesian', 'DLC', 'HDLC', 'TRIC')
-    )
-    copy_wavefunction: bool = option(
-        True, doc='copy the level-of-theory data when copying the PES (not always helpful, e.g. at the start of DE-GSM)'
-    )
-    Primitive_Hessian: Any = option(None, doc='primitive Hessian to start from')
-    Hessian: Any = option(None, doc='Hessian in the current coordinate basis')
-    Form_Hessian: bool = option(True, doc='form the Hessian in the current basis (slow for large molecules)')
-    top_settings: dict = option(default_factory=dict, doc='extra settings for forming the coordinate object')
-    comment: str = option('', doc='descriptive comment saved on the molecule')
-    node_id: int = option(0, doc='node id passed on to the level of theory')
-    frozen_atoms: list | None = option(None, doc='indices of frozen atoms')
-
-
 class Molecule:
-    """Geometry + PES + coordinate system of one string node."""
+    """Geometry + PES + coordinate system of one string node.
 
-    config_class = MoleculeConfig
+    Parameters
+    ----------
+    PES : potential energy surface; the molecule gets its own copy for ``node_id``.
+    coord_obj : coordinate system (e.g. ``DelocalizedInternalCoordinates``).
+    geom : geometry as (symbol, x, y, z) rows in Angstrom.
+    fnm : xyz file to read the geometry from when ``geom`` is not given.
+    Form_Hessian : form the Hessian in the current basis (slow for large molecules).
+    Primitive_Hessian : primitive Hessian to start from.
+    Hessian : Hessian in the current coordinate basis to start from.
+    node_id : index of the string node, passed on to the level of theory.
+    frozen_atoms : indices of frozen atoms.
+    copy_wavefunction : copy the level-of-theory data when copying the PES
+        (not always helpful, e.g. at the start of DE-GSM).
+    comment : descriptive comment.
+    """
 
     @staticmethod
     def _copy_coord_object(coord_obj, xyz=None):
-        coord_options = coord_obj.options.replace() if xyz is None else coord_obj.options.replace(xyz=xyz)
-        return type(coord_obj)(coord_options)
+        return coord_obj.clone() if xyz is None else coord_obj.clone(xyz=xyz)
 
     @classmethod
     def _copy_fast(cls, source, xyz=None, fnm=None, new_node_id=1, copy_wavefunction=True):
-        new_geom, xyz_array = copy_geometry_inputs(source.geometry, source.xyz, xyz=xyz, fnm=fnm)
+        _geom, xyz_array = copy_geometry_inputs(source.geometry, source.xyz, xyz=xyz, fnm=fnm)
         pes = copy_pes(source.PES, new_node_id, copy_wavefunction)
         coord_obj = cls._copy_coord_object(source.coord_obj, xyz_array if xyz is not None or fnm is not None else None)
 
         new = cls.__new__(cls)
-        new.options = source.options.replace(
-            PES=pes,
-            coord_obj=coord_obj,
-            geom=new_geom,
-            node_id=new_node_id,
-            copy_wavefunction=copy_wavefunction,
-        )
         new.PES = pes
         new.coord_obj = coord_obj
-        new.options.xyz = xyz_array.copy()
-        new.options.coord_obj = coord_obj
+        new.Form_Hessian = source.Form_Hessian
+        new.Primitive_Hessian = source.Primitive_Hessian
+        new.Hessian = source.Hessian
+        new._node_id = new_node_id
+        new.frozen_atoms = source.frozen_atoms
+        new.copy_wavefunction = copy_wavefunction
+        new.comment = source.comment
+        new._xyz = xyz_array.copy()
         new.atoms = list(source.atoms)
         new._initialize_runtime_state()
 
-        if new.options.Hessian is None and new.options.Form_Hessian:
-            if new.options.Primitive_Hessian is None and type(new.coord_obj) is not CartesianCoordinates:
+        if new.Hessian is None and new.Form_Hessian:
+            if new.Primitive_Hessian is None and type(new.coord_obj) is not CartesianCoordinates:
                 new.form_Primitive_Hessian()
-            if new.options.Primitive_Hessian is not None:
+            if new.Primitive_Hessian is not None:
                 new.form_Hessian_in_basis()
             else:
                 new.form_Hessian()
@@ -96,9 +82,7 @@ class Molecule:
         return new
 
     def __repr__(self):
-        lines = [' molecule object']
-        lines.append(self.options.__str__())
-        return '\n'.join(lines)
+        return f'{type(self).__name__}(node_id={self.node_id}, natoms={self.natoms}, coord_obj={type(self.coord_obj).__name__})'
 
     @classmethod
     def copy_from(
@@ -119,55 +103,56 @@ class Molecule:
             copy_wavefunction=copy_wavefunction,
         )
 
-    def __init__(self, options=None, **kwargs):
-        self.options = self.config_class.build(options, **kwargs)
-
-        # => Read in the coordinates <= #
-        # important first try to read in geom
+    def __init__(
+        self,
+        PES,
+        coord_obj,
+        *,
+        geom: list | None = None,
+        fnm: str | None = None,
+        Form_Hessian: bool = True,
+        Primitive_Hessian=None,
+        Hessian=None,
+        node_id: int = 0,
+        frozen_atoms: list | None = None,
+        copy_wavefunction: bool = True,
+        comment: str = '',
+    ):
+        if coord_obj is None:
+            raise ValueError('Molecule needs a coordinate system (coord_obj)')
+        if not isinstance(comment, str):
+            raise TypeError('comment for a Molecule must be a string')
+        self.Form_Hessian = Form_Hessian
+        self.Primitive_Hessian = Primitive_Hessian
+        self.Hessian = Hessian
+        self._node_id = node_id
+        self.frozen_atoms = frozen_atoms
+        self.copy_wavefunction = copy_wavefunction
+        self.comment = comment
 
         t0 = time()
-        _geom, atoms, xyz = load_geometry_inputs(self.options)
-
+        _geom, atoms, xyz = load_geometry_inputs(geom, fnm)
         t1 = time()
         logger.debug(f' Time to get coords= {t1 - t0:.3f}')
 
-        # Perform all the sanity checks and cache some useful attributes
-
-        # TODO make PES property
-        self.PES = copy_pes(self.options.PES, self.options.node_id, self.options.copy_wavefunction)
+        self.PES = copy_pes(PES, node_id, copy_wavefunction)
         validate_geometry_inputs(atoms, xyz)
-        self.options.xyz = xyz.copy()
+        self._xyz = xyz.copy()
 
-        # create a dictionary from atoms
         # atoms contain info you need to know about the atoms
         self.atoms = [ELEMENT_TABLE.from_symbol(atom) for atom in atoms]
+        logger.debug(f' Time to create PES,elements {time() - t1:.3f}')
 
-        tx = time()
-        logger.debug(f' Time to create PES,elements {tx - t1:.3f}')
-        t1 = tx
-
-        if not isinstance(self.options.comment, str):
-            raise TypeError('comment for a Molecule must be a string')
-
-        # Create the coordinate system
-        if self.options.coord_obj is not None:
-            logger.debug(' getting coord_object from options')
-            self.coord_obj = self.options.coord_obj
-        else:
-            logger.debug(' Disabling this feature, Molecule cannot create coordinate system')
-            raise NotImplementedError
-        self.options.coord_obj = self.coord_obj
-
+        self.coord_obj = coord_obj
         t2 = time()
-        logger.debug(f' Time  to build coordinate system= {t2 - t1:.3f}')
         self._initialize_runtime_state()
 
-        if self.options.Hessian is None and self.options.Form_Hessian:
-            if self.options.Primitive_Hessian is None and type(self.coord_obj) is not CartesianCoordinates:
+        if self.Hessian is None and self.Form_Hessian:
+            if self.Primitive_Hessian is None and type(self.coord_obj) is not CartesianCoordinates:
                 self.form_Primitive_Hessian()
             t3 = time()
             logger.debug(f' Time to build Prim Hessian {t3 - t2:.3f}')
-            if self.options.Primitive_Hessian is not None:
+            if self.Primitive_Hessian is not None:
                 logger.debug(' forming Hessian in basis')
                 self.form_Hessian_in_basis()
             else:
@@ -271,17 +256,9 @@ class Molecule:
         _ = self.energy  # evaluating the energy refreshes PES.dE
         return self.PES.dE
 
-    @property
-    def Primitive_Hessian(self):
-        return self.options.Primitive_Hessian
-
-    @Primitive_Hessian.setter
-    def Primitive_Hessian(self, value):
-        self.options.Primitive_Hessian = value
-
     def form_Primitive_Hessian(self):
         logger.debug(' making primitive Hessian')
-        self.options.Primitive_Hessian = self.coord_obj.Prims.guess_hessian(self.xyz)
+        self.Primitive_Hessian = self.coord_obj.Prims.guess_hessian(self.xyz)
         self.newHess = 10
 
     def update_Primitive_Hessian(self, change=None):
@@ -290,16 +267,8 @@ class Molecule:
             self.Primitive_Hessian += change
         return self.Primitive_Hessian
 
-    @property
-    def Hessian(self):
-        return self.options.Hessian
-
-    @Hessian.setter
-    def Hessian(self, value):
-        self.options.Hessian = value
-
     def form_Hessian(self):
-        self.options.Hessian = self.coord_obj.guess_hessian(self.xyz)
+        self.Hessian = self.coord_obj.guess_hessian(self.xyz)
         self.newHess = 5
 
     def update_Hessian(self, change=None):
@@ -315,17 +284,13 @@ class Molecule:
 
     @property
     def xyz(self):
-        return self.options.xyz
+        return self._xyz
 
     @xyz.setter
     def xyz(self, newxyz=None):
         if newxyz is not None:
-            self.options.xyz = np.asarray(newxyz)
+            self._xyz = np.asarray(newxyz)
             self._invalidate_runtime_caches()
-
-    @property
-    def frozen_atoms(self):
-        return self.options.frozen_atoms
 
     @property
     def num_frozen_atoms(self):
@@ -391,11 +356,11 @@ class Molecule:
 
     @property
     def node_id(self):
-        return self.options.node_id
+        return self._node_id
 
     @node_id.setter
     def node_id(self, value):
-        self.options.node_id = value
+        self._node_id = value
         self.PES.lot.node_id = value
 
     @property

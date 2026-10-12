@@ -19,8 +19,8 @@ class PenaltyPES(PES):
         sigma=1.0,
         alpha=0.02 * units.KCAL_MOL_PER_AU,
     ):
-        self.PES1 = PES(PES1.options.replace(lot=lot))
-        self.PES2 = PES(PES2.options.replace(lot=lot))
+        self.PES1 = PES1.clone(lot=lot)
+        self.PES2 = PES2.clone(lot=lot)
         self.lot = lot
         self.alpha = alpha
         self.dE = 1000.0
@@ -30,8 +30,8 @@ class PenaltyPES(PES):
         )
 
     @classmethod
-    def create_pes_from(cls, PES, options=None, copy_wavefunction=True):
-        lot = type(PES.lot).copy(PES.lot, options or {}, copy_wavefunction)
+    def create_pes_from(cls, PES, copy_wavefunction=True, **lot_changes):
+        lot = PES.lot.clone(**lot_changes)
         return cls(PES.PES1, PES.PES2, lot, PES.sigma, PES.alpha)
 
     def get_energy(self, geom):

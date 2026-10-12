@@ -20,17 +20,16 @@ class AvgPES(PES):
         PES2,
         lot,
     ):
-        self.options = PES1.options
-        self.PES1 = PES(PES1.options.replace(lot=lot))
-        self.PES2 = PES(PES2.options.replace(lot=lot))
+        self.PES1 = PES1.clone(lot=lot)
+        self.PES2 = PES2.clone(lot=lot)
         self._dE = 1000.0
         self.lot = lot
         self.lot.do_coupling = True
         self.lot.coupling_states = (PES1.ad_idx, PES2.ad_idx)
 
     @classmethod
-    def create_pes_from(cls, PES, options=None, copy_wavefunction=True):
-        lot = type(PES.lot).copy(PES.lot, options or {}, copy_wavefunction)
+    def create_pes_from(cls, PES, copy_wavefunction=True, **lot_changes):
+        lot = PES.lot.clone(**lot_changes)
         return cls(PES.PES1, PES.PES2, lot)
 
     def get_energy(self, xyz):

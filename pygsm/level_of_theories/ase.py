@@ -30,20 +30,15 @@ def _require_ase():
 
 
 class ASELoT(Lot):
+    """Level of theory backed by any ASE calculator.
+
+    ``calculator`` is the ASE calculator; the other parameters are those of :class:`Lot`.
+    The calculator ignores the multiplicity.
     """
-    Warning:
-        multiplicity is not implemented, the calculator ignores it
-    """
 
-    def __init__(self, calculator: Calculator, options=None, **kwargs):
-        super().__init__(options, **kwargs)
-
-        self.ase_calculator = calculator
-
-    @classmethod
-    def copy(cls, lot, options=None, copy_wavefunction=True):
-        assert isinstance(lot, ASELoT)
-        return cls(lot.ase_calculator, lot.options.replace(**(options or {})))
+    def __init__(self, calculator: Calculator, **kwargs):
+        super().__init__(**kwargs)
+        self.calculator = calculator
 
     @classmethod
     def from_calculator_string(cls, calculator_import: str, calculator_kwargs=None, **kwargs):
@@ -67,7 +62,7 @@ class ASELoT(Lot):
         else:
             raise LoTError(f"ASE-calculator's class ({class_name}) not found in module {module_name}")
 
-        # make sure there is no calculator in the options
+        # the calculator is built here, so drop one passed by mistake
         _ = kwargs.pop('calculator', None)
 
         # construct from the constructor
@@ -80,7 +75,7 @@ class ASELoT(Lot):
     def run_ase_atoms(self, atoms: Atoms, mult, ad_idx, runtype='gradient'):
         _, _, _, units = _require_ase()
         # set the calculator
-        atoms.calc = self.ase_calculator
+        atoms.calc = self.calculator
 
         # perform gradient calculation if needed
         if runtype == 'gradient':

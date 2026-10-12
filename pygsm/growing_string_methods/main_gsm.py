@@ -392,6 +392,6 @@ class MainGSM(GrowthMixin, OptimizationMixin, GSM):
         for n in range(1, self.nnodes - 1):
             self.active[n] = True
             self.optimizer[n].conv_grms = self.CONV_TOL * 2.5
-            self.optimizer[n].options.DMAX = 0.05
+            self.optimizer[n].DMAX = 0.05
 
         return

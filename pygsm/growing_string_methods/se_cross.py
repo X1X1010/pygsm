@@ -49,7 +49,7 @@ class SECross(SEGSM):
 
         # doing extra constrained penalty optimization for MECI, tightening the penalty step by step
         logger.info(f' extra constrained optimization for the nnR-1 = {self.nR - 1}')
-        self.optimizer[self.nR - 1].conv_grms = self.options.CONV_TOL * 5
+        self.optimizer[self.nR - 1].conv_grms = self.CONV_TOL * 5
         for sigma in (1.5, 2.5, 3.5):
             ictan = self.get_tangent_xyz(
                 self.nodes[self.nR - 1].xyz, self.nodes[self.nR - 2].xyz, self.newic.primitive_internal_coordinates
@@ -70,10 +70,10 @@ class SECross(SEGSM):
             self.nodes[self.nR] = Molecule.copy_from(self.nodes[self.nR - 1], new_node_id=self.nR)
             avg_pes = AvgPES.create_pes_from(self.nodes[self.nR].PES)
             self.nodes[self.nR].PES = avg_pes
-            self.optimizer[self.nR].conv_grms = self.options.CONV_TOL
-            self.optimizer[self.nR].conv_gmax = 0.1  # self.options.CONV_gmax
-            self.optimizer[self.nR].conv_Ediff = self.options.CONV_Ediff
-            self.optimizer[self.nR].conv_dE = self.options.CONV_dE
+            self.optimizer[self.nR].conv_grms = self.CONV_TOL
+            self.optimizer[self.nR].conv_gmax = 0.1  # self.CONV_gmax
+            self.optimizer[self.nR].conv_Ediff = self.CONV_Ediff
+            self.optimizer[self.nR].conv_dE = self.CONV_dE
             self.optimizer[self.nR].optimize(
                 molecule=self.nodes[self.nR],
                 refE=self.nodes[0].V0,
@@ -98,9 +98,9 @@ class SECross(SEGSM):
             self.nodes[self.nR].PES.sigma = 10.0
             logger.debug(f' sigma for node {self.nR} is {self.nodes[self.nR].PES.sigma:.3f}')
             self.optimizer[self.nR].opt_cross = True
-            self.optimizer[self.nR].conv_grms = self.options.CONV_TOL
-            self.optimizer[self.nR].conv_Ediff = self.options.CONV_Ediff
-            self.optimizer[self.nR].conv_dE = self.options.CONV_dE
+            self.optimizer[self.nR].conv_grms = self.CONV_TOL
+            self.optimizer[self.nR].conv_Ediff = self.CONV_Ediff
+            self.optimizer[self.nR].conv_dE = self.CONV_dE
             self.optimizer[self.nR].optimize(
                 molecule=self.nodes[self.nR],
                 refE=self.nodes[0].V0,
@@ -121,7 +121,7 @@ class SECross(SEGSM):
 
             # Convert all the PES to excited-states
             for n in range(self.nnodes):
-                self.nodes[n].PES = PES.create_pes_from(self.nodes[n].PES.PES2, options={'gradient_states': [(1, 1)]})
+                self.nodes[n].PES = PES.create_pes_from(self.nodes[n].PES.PES2, gradient_states=[(1, 1)])
 
             logger.debug(' initial ic_reparam')
             self.reparameterize(ic_reparam_steps=25)
@@ -165,7 +165,7 @@ class SECross(SEGSM):
         return isDone
 
     def set_frontier_convergence(self, nR):
-        self.optimizer[nR].conv_grms = self.options.ADD_NODE_TOL
-        self.optimizer[nR].conv_gmax = 100.0  # self.options.ADD_NODE_TOL # could use some multiplier times CONV_GMAX...
+        self.optimizer[nR].conv_grms = self.ADD_NODE_TOL
+        self.optimizer[nR].conv_gmax = 100.0  # self.ADD_NODE_TOL # could use some multiplier times CONV_GMAX...
         self.optimizer[nR].conv_Ediff = 1000.0  # 2.5
         logger.debug(f' conv_tol of node {nR} is {self.optimizer[nR].conv_grms:.4f}')

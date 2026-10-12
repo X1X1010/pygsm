@@ -2,15 +2,13 @@
 import logging
 import os
 from collections import namedtuple
-from dataclasses import dataclass
-from typing import Any
 
 # third party
 import numpy as np
 
 # local application imports
 from ..utilities import manage_xyz, units
-from ..utilities.config import Config, option
+from ..utilities.config import Configurable
 from ._lot_helpers import infer_gradient_states, normalize_states
 
 logger = logging.getLogger(__name__)
@@ -25,32 +23,50 @@ Gradient = namedtuple('Gradient', 'value unit')
 Coupling = namedtuple('Coupling', 'value unit')
 
 
-@dataclass(kw_only=True)
-class LotConfig(Config):
-    fnm: str | None = option(None, doc='File name to create the LOT object from. Only used if geom is none.')
-    geom: Any = option(None, doc='geometry object required to get the atom names and initial coords')
-    states: list = option(
-        default_factory=lambda: [(1, 0)], doc='list of (multiplicity, adiabatic index) states, 0-indexed'
-    )
-    gradient_states: list | None = option(None, doc='states to calculate gradients for; defaults to states')
-    coupling_states: Any = option(
-        None, doc='states to calculate the derivative coupling between (one pair per level of theory)'
-    )
-    charge: int = option(0, doc='charge of molecule')
-    nproc: int = option(1, doc='number of processors')
-    do_coupling: bool = option(False, doc='calculate the derivative coupling')
-    node_id: int = option(0, doc='node id used for storing orbs, etc.')
-    ID: int = option(0, doc='string id used for storing orbs, etc.')
-    calc_grad: bool = option(True, doc='calculate gradient or not')
+class Lot(Configurable):
+    """Level-of-theory base class: caches energies/gradients/couplings per (multiplicity, state).
 
+    Parameters
+    ----------
+    geom : geometry as (symbol, x, y, z) rows; gives the atoms and initial coordinates.
+    fnm : xyz file to read the geometry from when ``geom`` is not given.
+    states : (multiplicity, adiabatic index) states to compute, 0-indexed; default ``[(1, 0)]``.
+    gradient_states : states to compute gradients for; defaults to ``states``.
+    coupling_states : pair of states to compute the derivative coupling between.
+    charge : molecular charge.
+    nproc : number of processors.
+    do_coupling : compute the derivative coupling.
+    node_id : index of the string node this level of theory belongs to.
+    ID : string id.
+    calc_grad : compute gradients.
+    """
 
-class Lot:
-    """Level-of-theory base class: caches energies/gradients/couplings per (multiplicity, state)."""
+    def __init__(
+        self,
+        *,
+        geom: list | None = None,
+        fnm: str | None = None,
+        states: list | None = None,
+        gradient_states: list | None = None,
+        coupling_states: tuple | None = None,
+        charge: int = 0,
+        nproc: int = 1,
+        do_coupling: bool = False,
+        node_id: int = 0,
+        ID: int = 0,
+        calc_grad: bool = True,
+    ):
+        self.geom = geom
+        self.fnm = fnm
+        self.states = [(1, 0)] if states is None else states
+        self.coupling_states = coupling_states
+        self.charge = charge
+        self.nproc = nproc
+        self.do_coupling = do_coupling
+        self.node_id = node_id
+        self.ID = ID
+        self.calc_grad = calc_grad
 
-    config_class = LotConfig
-
-    def __init__(self, options=None, **kwargs):
-        self.options = self.config_class.build(options, **kwargs)
         # properties
         self.Energy = Energy
         self.Gradient = Gradient
@@ -60,35 +76,26 @@ class Lot:
         self._Couplings = {}
 
         # count number of states
-        self.options.gradient_states = infer_gradient_states(
-            self.states,
-            self.options.gradient_states,
-            self.calc_grad,
-        )
+        self.gradient_states = infer_gradient_states(self.states, gradient_states, self.calc_grad)
         normalized_states, did_normalize = normalize_states(self.states)
         if did_normalize:
             logger.debug('fixing states to be proper length')
             self.states = normalized_states
             logger.debug(f' New states  {self.states}')
 
-        self.geom = self.options.geom
         if self.geom is not None:
             logger.debug(' initializing LOT from geom')
-        elif self.options.fnm is not None:
+        elif self.fnm is not None:
             logger.debug(' initializing LOT from file')
-            if not os.path.exists(self.options.fnm):
+            if not os.path.exists(self.fnm):
                 raise OSError
-            self.geom = manage_xyz.read_xyz(self.options.fnm, scale=1.0)
+            self.geom = manage_xyz.read_xyz(self.fnm, scale=1.0)
         else:
             raise RuntimeError('Need to initialize LOT object')
 
         # Cache some useful atributes - other useful attributes are properties
         self.currentCoords = manage_xyz.xyz_to_np(self.geom)
         self.atoms = manage_xyz.get_atoms(self.geom)
-        self.ID = self.options.ID
-        self.nproc = self.options.nproc
-        self.charge = self.options.charge
-        self.node_id = self.options.node_id
 
         # Bools for running
         self.hasRanForCurrentCoords = False
@@ -125,55 +132,6 @@ class Lot:
     @Couplings.setter
     def Couplings(self, value):
         self._Couplings = value
-
-    @property
-    def do_coupling(self):
-        return self.options.do_coupling
-
-    @do_coupling.setter
-    def do_coupling(self, value):
-        assert isinstance(value, bool), 'incorrect type for do_coupling'
-        self.options.do_coupling = value
-
-    @property
-    def coupling_states(self):
-        return self.options.coupling_states
-
-    @coupling_states.setter
-    def coupling_states(self, value):
-        assert isinstance(value, tuple), 'incorrect type for coupling,currently only support a tuple'
-        self.options.coupling_states = value
-
-    @property
-    def gradient_states(self):
-        return self.options.gradient_states
-
-    @gradient_states.setter
-    def gradient_states(self, value):
-        assert isinstance(value, list), 'incorrect type for gradient'
-        self.options.gradient_states = value
-
-    @property
-    def states(self):
-        return self.options.states
-
-    @states.setter
-    def states(self, value):
-        assert isinstance(value, list), 'incorrect type for gradient'
-        self.options.states = value
-
-    @property
-    def calc_grad(self):
-        return self.options.calc_grad
-
-    @calc_grad.setter
-    def calc_grad(self, value):
-        assert isinstance(value, bool), 'incorrect type for calc_grad'
-        self.options.calc_grad = value
-
-    @classmethod
-    def copy(cls, lot, options=None, copy_wavefunction=True):
-        return cls(lot.options.replace(**(options or {})))
 
     def get_energy(self, coords, multiplicity, state, runtype=None):
         if self._coords_changed(coords):

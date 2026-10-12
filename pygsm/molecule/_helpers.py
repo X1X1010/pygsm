@@ -12,26 +12,23 @@ from pygsm.utilities import manage_xyz
 logger = logging.getLogger(__name__)
 
 
-def load_geometry_inputs(data):
-    if data.geom is not None:
+def load_geometry_inputs(geom, fnm):
+    if geom is not None:
         logger.debug(' getting cartesian coordinates from geom')
-        geom = data.geom
         atoms = manage_xyz.get_atoms(geom)
         xyz = manage_xyz.xyz_to_np(geom)
         return geom, atoms, xyz
 
-    if data.fnm is not None:
+    if fnm is not None:
         logger.debug(' reading cartesian coordinates from file')
-        if data.ftype is None:
-            data.ftype = os.path.splitext(data.fnm)[1][1:]
-        if not os.path.exists(data.fnm):
-            raise OSError
-        geom = manage_xyz.read_xyz(data.fnm, scale=1.0)
+        if not os.path.exists(fnm):
+            raise OSError(f'geometry file not found: {fnm}')
+        geom = manage_xyz.read_xyz(fnm, scale=1.0)
         atoms = manage_xyz.get_atoms(geom)
         xyz = manage_xyz.xyz_to_np(geom)
         return geom, atoms, xyz
 
-    raise RuntimeError
+    raise ValueError('Molecule needs a geometry: pass geom or fnm')
 
 
 def copy_geometry_inputs(source_geometry, source_xyz, xyz=None, fnm=None):
@@ -62,8 +59,4 @@ def validate_geometry_inputs(atoms, xyz):
 
 
 def copy_pes(pes, node_id, copy_wavefunction):
-    return type(pes).create_pes_from(
-        PES=pes,
-        options={'node_id': node_id},
-        copy_wavefunction=copy_wavefunction,
-    )
+    return type(pes).create_pes_from(pes, copy_wavefunction, node_id=node_id)

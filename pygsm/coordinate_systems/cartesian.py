@@ -10,18 +10,18 @@ class CartesianCoordinates(InternalCoordinates):
     Cartesian coordinate system, written as a kind of internal coordinate class.
     This one does not support constraints, because that requires adding some
     primitive internal coordinates.
+
+    Parameters: see :class:`InternalCoordinates`.
     """
 
-    def __init__(self, options=None, **kwargs):
-        super().__init__(options, **kwargs)
-        options = self.options
+    def __init__(self, xyz, atoms, **kwargs):
+        super().__init__(xyz, atoms, **kwargs)
         self.Internals = []
         self.cPrims = []
         self.cVals = []
-        self.atoms = options.atoms
         self.natoms = len(self.atoms)
         # Cartesian primitives only: skip topology and internal primitives
-        self.Prims = PrimitiveInternalCoordinates(options.replace(form_topology=False))
+        self.Prims = PrimitiveInternalCoordinates(**{**self.get_params(), 'form_topology': False})
 
         for i in range(self.natoms):
             self.Prims.add(CartesianX(i, w=1.0))
