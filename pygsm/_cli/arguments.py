@@ -177,7 +177,7 @@ def _build_parser() -> argparse.ArgumentParser:
     parser.add_argument('-no_climb', action='store_true', help="Don't climb to the TS")
     parser.add_argument('-optimize_mesx', action='store_true', help='optimize to the MESX')
     parser.add_argument('-optimize_meci', action='store_true', help='optimize to the MECI')
-    parser.add_argument('-restart_file', help='restart file', type=str)
+    parser.add_argument('-restart_file', help='string file to restart from, e.g. string_000.xyz', type=str)
     parser.add_argument(
         '-mp_cores',
         type=int,

@@ -7,8 +7,8 @@ be ported -- the stored baselines are the contract and must not move unless a
 commit intentionally changes numerics.
 
 All scenarios use tblite GFN2-xTB through ASE (deterministic with
-``OMP_NUM_THREADS=1``) and must be run from an empty scratch directory,
-because pygsm writes ``scratch/`` relative to the working directory.
+``OMP_NUM_THREADS=1``). They are run from an empty temporary directory
+because the CLI scenarios write their result files to the working directory.
 """
 
 from __future__ import annotations
@@ -198,11 +198,10 @@ def _optimizer(method, **opts):
 def _opt(method, linesearch):
     counter = CallCounter()
     geom = _da_geoms()[0]
-    Path('scratch/opt').mkdir(parents=True)
     with _quiet():
         mol = _molecule(geom, form_hessian=method == 'ef', counter=counter)
         opt = _optimizer(method, Linesearch=linesearch, DMAX=0.1, print_level=1)
-        _geoms, energies = opt.optimize(molecule=mol, refE=mol.energy, opt_steps=15, path='scratch/opt')
+        _geoms, energies = opt.optimize(molecule=mol, refE=mol.energy, opt_steps=15)
     return {
         'energies': np.asarray(energies, dtype=float),
         'final_xyz': np.asarray(mol.xyz),
@@ -286,10 +285,8 @@ def _de_gsm(
             interp_method='DLC',
         )
         if optimize_endpoints:
-            Path('scratch/000/0').mkdir(parents=True, exist_ok=True)
-            Path(f'scratch/000/{num_nodes - 1}').mkdir(parents=True, exist_ok=True)
-            opt.optimize(molecule=reactant, refE=reactant.energy, opt_steps=100, path='scratch/000/0')
-            opt.optimize(molecule=product, refE=product.energy, opt_steps=100, path=f'scratch/000/{num_nodes - 1}')
+            opt.optimize(molecule=reactant, refE=reactant.energy, opt_steps=100)
+            opt.optimize(molecule=product, refE=product.energy, opt_steps=100)
         gsm.go_gsm(max_iters=max_gsm_steps, opt_steps=3, rtype=1 if climb else 2)
     return _gsm_result(gsm, counter)
 
@@ -369,8 +366,7 @@ def segsm_ef():
             mp_cores=1,
             interp_method='DLC',
         )
-        Path('scratch/000/0').mkdir(parents=True, exist_ok=True)
-        opt.optimize(molecule=reactant, refE=reactant.energy, opt_steps=100, path='scratch/000/0')
+        opt.optimize(molecule=reactant, refE=reactant.energy, opt_steps=100)
         gsm.go_gsm(max_iters=20, opt_steps=10, rtype=2)
     return _gsm_result(gsm, counter)
 
@@ -394,7 +390,6 @@ def _two_state_lot_class():
                 atoms.calc = _tblite(multiplicity=m)
                 self._Gradients[(m, 0)] = self.Gradient(-atoms.get_forces() / units.Ha * units.Bohr, 'Hartree/Bohr')
                 self._Energies[(m, 0)] = self.Energy(atoms.get_potential_energy() / units.Ha, 'Hartree')
-            self.write_E_to_file()
             self.hasRanForCurrentCoords = True
 
     return TwoStateTBLite
@@ -415,7 +410,6 @@ def mecp_penalty_ethylene():
     geom = manage_xyz.np_to_xyz(geom, xyz)
     atoms = _atoms_of(geom)
 
-    Path('scratch/mecp').mkdir(parents=True)
     with _quiet():
         TwoStateTBLite = _two_state_lot_class()
         lot = TwoStateTBLite(
@@ -432,9 +426,7 @@ def mecp_penalty_ethylene():
         opt = _optimizer(
             'ef', Linesearch='backtrack', DMAX=0.05, conv_Ediff=0.1, conv_dE=0.1, conv_gmax=0.005, opt_cross=True
         )
-        _geoms, energies = opt.optimize(
-            molecule=mol, refE=mol.energy, opt_steps=30, opt_type='UNCONSTRAINED', path='scratch/mecp'
-        )
+        _geoms, energies = opt.optimize(molecule=mol, refE=mol.energy, opt_steps=30, opt_type='UNCONSTRAINED')
     return {
         'energies': np.asarray(energies, dtype=float),
         'final_xyz': np.asarray(mol.xyz),
@@ -447,7 +439,7 @@ def mecp_penalty_ethylene():
 # ---------------------------------------------------------------------------
 
 
-def _cli(argv, result_file='TSnode_0.xyz'):
+def _cli(argv, result_file='TSnode_000.xyz'):
     from pygsm.cli import main
     from pygsm.utilities import manage_xyz
 
@@ -494,7 +486,7 @@ def cli_se_cross():
             '-xyzfile', xyz, '-mode', 'SE_Cross', '-isomers', 'isomers.txt', '-package', 'xTB',
             '-multiplicity', '1', '3', '-adiabatic_index', '0', '0', '-num_nodes', '20', '-max_gsm_iters', '15',
         ],
-        result_file='meci_0.xyz',
+        result_file='meci_000.xyz',
     )  # fmt: skip
 
 

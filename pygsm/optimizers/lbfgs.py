@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 # standard library imports
-import os
 import sys
 from io import StringIO
 
@@ -12,7 +11,7 @@ import numpy as np
 from scipy.optimize import LbfgsInvHessProduct
 
 from ..coordinate_systems import CartesianCoordinates
-from ..utilities import block_matrix, manage_xyz, units
+from ..utilities import block_matrix, units
 
 # local application imports
 from .base_optimizer import BaseOptimizer
@@ -48,10 +47,8 @@ class LBFGS(BaseOptimizer):
         ictan=None,
         xyzframerate=4,
         verbose=False,
-        path: str | None = None,
+        trajectory: str | None = None,
     ) -> tuple[list, list]:
-        if path is None:
-            path = os.getcwd()
         # stash/initialize some useful attributes
         print(f' initial E {molecule.energy - refE:5.4f}')
         geoms = []
@@ -278,7 +275,7 @@ class LBFGS(BaseOptimizer):
             if ostep % xyzframerate == 0:
                 geoms.append(molecule.geometry)
                 energies.append(molecule.energy - refE)
-                manage_xyz.write_xyzs_w_comments(f'{path}/opt_{molecule.node_id}.xyz', geoms, energies, scale=1.0)
+                self.write_trajectory(trajectory, geoms, energies)
 
             if self.options.print_level > 0:
                 print(
@@ -328,7 +325,7 @@ class LBFGS(BaseOptimizer):
                 if ostep % xyzframerate != 0:
                     geoms.append(molecule.geometry)
                     energies.append(molecule.energy - refE)
-                    manage_xyz.write_xyzs_w_comments(f'{path}/opt_{molecule.node_id}.xyz', geoms, energies, scale=1.0)
+                    self.write_trajectory(trajectory, geoms, energies)
                 break
 
             # update DLC  --> this changes q, g, Hint

@@ -1,8 +1,6 @@
-"""Internal helpers for level-of-theory state and scratch management."""
+"""Internal helpers for level-of-theory state bookkeeping."""
 
 from __future__ import annotations
-
-import os
 
 
 def normalize_states(states):
@@ -35,18 +33,3 @@ def infer_gradient_states(states, gradient_states, calc_grad):
         print(' Assuming gradient states are ', states)
         return states
     return gradient_states
-
-
-def node_scratch_dir(scratch_root, string_id, node_id):
-    return os.path.join(scratch_root, f'{string_id:03}', str(node_id))
-
-
-def energy_file_path(scratch_root, string_id, node_id):
-    return os.path.join(scratch_root, f'{string_id:03}', f'E_{node_id}.txt')
-
-
-def ensure_node_scratch_dir(scratch_root, string_id, node_id):
-    scratch_dir = node_scratch_dir(scratch_root, string_id, node_id)
-    print(f' making folder {scratch_dir}')
-    os.makedirs(scratch_dir, exist_ok=True)
-    return scratch_dir

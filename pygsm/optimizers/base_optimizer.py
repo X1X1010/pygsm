@@ -4,7 +4,7 @@ from dataclasses import dataclass
 import numpy as np
 
 from ..coordinate_systems import CartesianCoordinates, DelocalizedInternalCoordinates
-from ..utilities import block_matrix, units
+from ..utilities import block_matrix, manage_xyz, units
 from ..utilities.config import Config, option
 
 # local application imports
@@ -160,6 +160,12 @@ class BaseOptimizer:
     @DMAX.setter
     def DMAX(self, value):
         self.options.DMAX = value
+
+    @staticmethod
+    def write_trajectory(trajectory, geoms, energies):
+        """Write the optimisation frames to ``trajectory``; does nothing when it is None."""
+        if trajectory is not None:
+            manage_xyz.write_xyzs_w_comments(trajectory, geoms, energies, scale=1.0)
 
     def get_nconstraints(self, opt_type):
         if opt_type in ['ICTAN', 'CLIMB']:

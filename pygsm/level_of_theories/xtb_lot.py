@@ -72,5 +72,4 @@ class XTBLoT(Lot):
 
         self._Energies[(multiplicity, state)] = self.Energy(res.get('energy'), 'Hartree')
         self._Gradients[(multiplicity, state)] = self.Gradient(res.get('gradient'), 'Hartree/Bohr')
-        self.write_E_to_file()
         return res

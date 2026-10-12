@@ -1,4 +1,3 @@
-import os
 from itertools import chain
 
 import numpy as np
@@ -31,7 +30,6 @@ class MainGSM(GrowthMixin, OptimizationMixin, GSM):
         """
         if opt_steps is None:
             opt_steps = self.default_growth_opt_steps
-        os.makedirs(self.scratch_dir, exist_ok=True)
         self.set_V0()
 
         if not self.isRestarted:
@@ -43,7 +41,7 @@ class MainGSM(GrowthMixin, OptimizationMixin, GSM):
             print('Exiting early')
             self.end_early = True
 
-        self._finish()
+        self.write_string('string')
         print('Finished GSM!')
 
     def set_V0(self):
@@ -56,9 +54,6 @@ class MainGSM(GrowthMixin, OptimizationMixin, GSM):
     def _string_opt_steps(self, opt_steps):
         """Node optimisation steps per iteration in the optimisation phase."""
         return opt_steps
-
-    def _finish(self):
-        """Hook run after the optimisation phase."""
 
     def refresh_coordinates(self, update_TS=False):
         """
@@ -140,7 +135,6 @@ class MainGSM(GrowthMixin, OptimizationMixin, GSM):
         for n in range(self.nnodes):
             if self.nodes[n] and self.active[n]:
                 print()
-                path = self.node_scratch_path(n)
                 printcool(f'Optimizing node {n}')
                 opt_type = self.set_opt_type(n)
                 osteps = self.mult_steps(n, opt_steps)
@@ -151,7 +145,6 @@ class MainGSM(GrowthMixin, OptimizationMixin, GSM):
                     opt_steps=osteps,
                     ictan=self.ictan[n],
                     xyzframerate=1,
-                    path=path,
                 )
 
         # FIXME: 'SE-GSM' (hyphen) never matches the SE_GSM class, so this block never runs.
@@ -164,14 +157,12 @@ class MainGSM(GrowthMixin, OptimizationMixin, GSM):
                 and self.nodes[self.nnodes - 1].gradrms > self.CONV_TOL
             ):
                 printcool('Last node is not a minimum, Might need to verify that the last node is a minimum')
-                path = self.node_scratch_path(self.nnodes - 1)
                 self.optimizer[self.nnodes - 1].optimize(
                     molecule=self.nodes[self.nnodes - 1],
                     refE=refE,
                     opt_type='UNCONSTRAINED',
                     opt_steps=osteps,
                     ictan=None,
-                    path=path,
                 )
 
     # Refactor this code!
@@ -392,7 +383,6 @@ class MainGSM(GrowthMixin, OptimizationMixin, GSM):
         if reparametrize:
             printcool('Reparametrizing')
             self.reparameterize(ic_reparam_steps=8)
-            self.xyz_writer(f'grown_string_{self.ID:03}.xyz', self.geometries, self.energies, self.gradrmss, self.dEs)
 
         self.ictan, self.dqmaga = self.get_tangents(self.nodes)
         self.refresh_coordinates()

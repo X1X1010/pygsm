@@ -10,13 +10,7 @@ import numpy as np
 # local application imports
 from ..utilities import manage_xyz, units
 from ..utilities.config import Config, option
-from ._lot_helpers import (
-    energy_file_path,
-    ensure_node_scratch_dir,
-    infer_gradient_states,
-    node_scratch_dir,
-    normalize_states,
-)
+from ._lot_helpers import infer_gradient_states, normalize_states
 
 
 class LoTError(Exception):
@@ -45,8 +39,6 @@ class LotConfig(Config):
     node_id: int = option(0, doc='node id used for storing orbs, etc.')
     ID: int = option(0, doc='string id used for storing orbs, etc.')
     calc_grad: bool = option(True, doc='calculate gradient or not')
-    scratch_root: str = option('scratch', doc='root directory for scratch outputs')
-    write_energy_file: bool = option(True, doc='write cached state energies to scratch output')
 
 
 class Lot:
@@ -94,12 +86,9 @@ class Lot:
         self.nproc = self.options.nproc
         self.charge = self.options.charge
         self.node_id = self.options.node_id
-        self.scratch_root = self.options.scratch_root
 
         # Bools for running
         self.hasRanForCurrentCoords = False
-
-        ensure_node_scratch_dir(self.scratch_root, self.ID, self.node_id)
 
     @property
     def Energies(self):
@@ -237,13 +226,6 @@ class Lot:
         else:
             return None
 
-    def write_E_to_file(self):
-        if not self.options.write_energy_file:
-            return
-        with open(self.energy_file_path, 'w') as f:
-            for key, Energy in self.Energies.items():
-                f.write(f'{key[0]} {key[1]} {Energy.value:9.7f} Hartree\n')
-
     def run(self, geom, mult, ad_idx, runtype='gradient'):
         raise NotImplementedError
 
@@ -259,14 +241,6 @@ class Lot:
                 self.run(geom, mult, ad_idx, 'coupling')
             else:
                 self.run(geom, mult, ad_idx, 'energy')
-
-    @property
-    def node_scratch_dir(self):
-        return node_scratch_dir(self.scratch_root, self.ID, self.node_id)
-
-    @property
-    def energy_file_path(self):
-        return energy_file_path(self.scratch_root, self.ID, self.node_id)
 
     def _coords_changed(self, coords):
         return self.hasRanForCurrentCoords is False or not np.array_equal(coords, self.currentCoords)

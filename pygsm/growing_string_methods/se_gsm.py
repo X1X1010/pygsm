@@ -78,7 +78,7 @@ class SEGSM(MainGSM):
 
         print(' Number of nodes is ', self.nnodes)
         print(' Warning last node still not optimized fully')
-        self.xyz_writer(f'grown_string_{self.ID:03}.xyz', self.geometries, self.energies, self.gradrmss, self.dEs)
+        self.write_string('grown_string')
         print(' SSM growth phase over')
         self.done_growing = True
 
@@ -96,16 +96,10 @@ class SEGSM(MainGSM):
         for n in range(self.nnodes):
             print(f' {float(energies[n]):7.3f}', end=' ')
         print()
-        self.xyz_writer(f'grown_string1_{self.ID:03}.xyz', self.geometries, self.energies, self.gradrmss, self.dEs)
 
     def _string_opt_steps(self, opt_steps):
         # opt steps are fixed at 3 in the optimisation phase
         return 3
-
-    def _finish(self):
-        filename = f'opt_converged_{self.ID:03d}.xyz'
-        print(' Printing string to ' + filename)
-        self.xyz_writer(filename, self.geometries, self.energies, self.gradrmss, self.dEs)
 
     def add_last_node(self, rtype):
         assert rtype == 1 or rtype == 2, 'rtype must be 1 or 2'
@@ -123,13 +117,11 @@ class SEGSM(MainGSM):
             self.optimizer[self.nR].conv_gmax = self.options.CONV_gmax
             self.optimizer[self.nR].conv_Ediff = self.options.CONV_Ediff
             self.optimizer[self.nR].conv_dE = self.options.CONV_dE
-            path = self.node_scratch_path(self.nR)
             self.optimizer[self.nR].optimize(
                 molecule=self.nodes[self.nR],
                 refE=self.nodes[0].V0,
                 opt_steps=noptsteps,
                 opt_type=opt_type,
-                path=path,
             )
             self.active[self.nR] = True
             if (self.nodes[self.nR].xyz == self.nodes[self.nR - 1].xyz).all():
@@ -142,13 +134,11 @@ class SEGSM(MainGSM):
             self.optimizer[self.nR - 1].conv_gmax = self.options.CONV_gmax
             self.optimizer[self.nR - 1].conv_Ediff = self.options.CONV_Ediff
             self.optimizer[self.nR - 1].conv_dE = self.options.CONV_dE
-            path = self.node_scratch_path(self.nR - 1)
             self.optimizer[self.nR - 1].optimize(
                 molecule=self.nodes[self.nR - 1],
                 refE=self.nodes[0].V0,
                 opt_steps=noptsteps,
                 opt_type=opt_type,
-                path=path,
             )
         return
 
@@ -158,13 +148,11 @@ class SEGSM(MainGSM):
         print(' optimizing last node')
         self.optimizer[self.nR - 1].conv_grms = self.CONV_TOL
         print(self.optimizer[self.nR - 1].conv_grms)
-        path = self.node_scratch_path(self.nR - 1)
         self.optimizer[self.nR - 1].optimize(
             molecule=self.nodes[self.nR - 1],
             refE=self.nodes[0].V0,
             opt_steps=50,
             opt_type=opt_type,
-            path=path,
         )
 
     def grow_nodes(self):

@@ -10,7 +10,7 @@ from typing import TYPE_CHECKING
 import numpy as np
 
 from ..coordinate_systems import CartesianCoordinates
-from ..utilities import block_matrix, manage_xyz
+from ..utilities import block_matrix
 
 # local application imports
 from .base_optimizer import BaseOptimizer
@@ -33,6 +33,7 @@ class BealesCG(BaseOptimizer):
         ictan=None,
         xyzframerate=4,
         verbose=False,
+        trajectory: str | None = None,
     ) -> tuple[list, list]:
         print(f' initial E {molecule.energy - refE:5.4f}')
         sys.stdout.flush()
@@ -179,7 +180,7 @@ class BealesCG(BaseOptimizer):
             if ostep % xyzframerate == 0:
                 geoms.append(molecule.geometry)
                 energies.append(molecule.energy - refE)
-                manage_xyz.write_xyzs_w_comments(f'opt_{molecule.node_id}.xyz', geoms, energies, scale=1.0)
+                self.write_trajectory(trajectory, geoms, energies)
 
             # save variables for update Hessian!
             if not isinstance(molecule.coord_obj, CartesianCoordinates) or self.options.update_hess_in_bg:
@@ -227,7 +228,7 @@ class BealesCG(BaseOptimizer):
                 if ostep % xyzframerate != 0:
                     geoms.append(molecule.geometry)
                     energies.append(molecule.energy - refE)
-                    manage_xyz.write_xyzs_w_comments(f'opt_{molecule.node_id}.xyz', geoms, energies, scale=1.0)
+                    self.write_trajectory(trajectory, geoms, energies)
                 break
 
             # update DLC  --> this changes q, g, Hint

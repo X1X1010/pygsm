@@ -57,7 +57,10 @@ class GSMConfig(Config):
     ID: int = option(0, doc='string id used in file names')
     interp_method: str = option('DLC', doc='interpolation/reparametrisation method', choices=('Geodesic', 'DLC'))
     noise: float = option(100.0, doc='energy noise used when checking for intermediates')
-    scratch_dir: str = option('scratch', doc='directory for per-node optimisation output and string trajectories')
+    output_dir: str | None = option(
+        None,
+        doc='directory for string files (latest string as a restart checkpoint, grown string); None writes no files',
+    )
 
 
 class GSM:
@@ -74,7 +77,7 @@ class GSM:
         self.options = self.config_class.build(options, **kwargs)
         options = self.options
 
-        self.scratch_dir = self.options.scratch_dir
+        self.output_dir = self.options.output_dir
 
         # Cache attributes
         self.nnodes: int = self.options.nnodes
@@ -137,9 +140,13 @@ class GSM:
 
         self.newic = Molecule.copy_from(self.nodes[0])  # newic object is used for coordinate transformations
 
-    def node_scratch_path(self, n):
-        """Scratch directory for node ``n`` of this string (used for optimisation trajectories)."""
-        return os.path.join(os.getcwd(), self.scratch_dir, f'{self.ID:03d}', str(n))
+    def write_string(self, name: str) -> None:
+        """Write the current string to ``output_dir/name_<ID>.xyz``; does nothing without ``output_dir``."""
+        if self.output_dir is None:
+            return
+        os.makedirs(self.output_dir, exist_ok=True)
+        filename = os.path.join(self.output_dir, f'{name}_{self.ID:03d}.xyz')
+        self.xyz_writer(filename, self.geometries, self.energies, self.gradrmss, self.dEs)
 
     @property
     def TSnode(self):

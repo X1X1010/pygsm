@@ -2,9 +2,7 @@
 
 from __future__ import annotations
 
-import os
 from collections.abc import Sequence
-from pathlib import Path
 
 import numpy as np
 
@@ -204,6 +202,7 @@ def _build_gsm(inpfileq: dict, reactant: Molecule, product: Molecule | None, opt
             ID=inpfileq['ID'],
             print_level=inpfileq['gsm_print_level'],
             xyz_writer=xyz_writer,
+            output_dir='.',
             mp_cores=inpfileq['mp_cores'],
             interp_method=inpfileq['interp_method'],
         )
@@ -221,6 +220,7 @@ def _build_gsm(inpfileq: dict, reactant: Molecule, product: Molecule | None, opt
         driving_coords=driving_coordinates,
         ID=inpfileq['ID'],
         xyz_writer=xyz_writer,
+        output_dir='.',
         mp_cores=inpfileq['mp_cores'],
         interp_method=inpfileq['interp_method'],
     )
@@ -236,12 +236,11 @@ def _run_only_drive_mode(gsm) -> None:
     manage_xyz.write_xyzs('interpolated.xyz', geometries)
 
 
-def _optimize_endpoint_if_needed(optimizer, molecule: Molecule, ref_energy: float, opt_steps: int, path: str) -> None:
+def _optimize_endpoint_if_needed(optimizer, molecule: Molecule, ref_energy: float, opt_steps: int) -> None:
     optimizer.optimize(
         molecule=molecule,
         refE=ref_energy,
         opt_steps=opt_steps,
-        path=path,
     )
 
 
@@ -329,14 +328,12 @@ def main(argv: Sequence[str] | None = None):
         optimizer.opt_cross = True
 
     if not inpfileq['reactant_geom_fixed'] and inpfileq['gsm_type'] != 'SE_Cross':
-        path = os.path.join(os.getcwd(), f'scratch/{inpfileq["ID"]:03}/0')
         output.printcool('REACTANT GEOMETRY NOT FIXED!!! OPTIMIZING')
-        _optimize_endpoint_if_needed(optimizer, reactant, reactant.energy, 100, path)
+        _optimize_endpoint_if_needed(optimizer, reactant, reactant.energy, 100)
 
     if product is not None and not inpfileq['product_geom_fixed']:
-        path = os.path.join(os.getcwd(), f'scratch/{inpfileq["ID"]:03}/{inpfileq["num_nodes"] - 1}')
         output.printcool('PRODUCT GEOMETRY NOT FIXED!!! OPTIMIZING')
-        _optimize_endpoint_if_needed(optimizer, product, reactant.energy, 100, path)
+        _optimize_endpoint_if_needed(optimizer, product, reactant.energy, 100)
 
     if inpfileq['max_opt_steps'] is None:
         inpfileq['max_opt_steps'] = 3 if inpfileq['gsm_type'] == 'DE_GSM' else 20
@@ -351,15 +348,12 @@ def main(argv: Sequence[str] | None = None):
     gsm.go_gsm(inpfileq['max_gsm_iters'], inpfileq['max_opt_steps'], _resolve_rtype(inpfileq))
     if inpfileq['gsm_type'] == 'SE_Cross':
         post_processing(gsm, analyze_ICs=inpfileq['dont_analyze_ICs'], have_TS=False)
-        manage_xyz.write_xyz(f'meci_{gsm.ID}.xyz', gsm.nodes[gsm.nR].geometry)
+        manage_xyz.write_xyz(f'meci_{gsm.ID:03d}.xyz', gsm.nodes[gsm.nR].geometry)
         if not gsm.end_early:
-            manage_xyz.write_xyz(f'TSnode_{gsm.ID}.xyz', gsm.nodes[gsm.TSnode].geometry)
+            manage_xyz.write_xyz(f'TSnode_{gsm.ID:03d}.xyz', gsm.nodes[gsm.TSnode].geometry)
     else:
         post_processing(gsm, analyze_ICs=inpfileq['dont_analyze_ICs'], have_TS=True)
-        manage_xyz.write_xyz(f'TSnode_{gsm.ID}.xyz', gsm.nodes[gsm.TSnode].geometry)
-
-    cleanup_scratch(gsm.ID)
-    return
+        manage_xyz.write_xyz(f'TSnode_{gsm.ID:03d}.xyz', gsm.nodes[gsm.TSnode].geometry)
 
 
 def read_isomers_file(isomers_file):
@@ -397,13 +391,6 @@ def read_isomers_file(isomers_file):
     return driving_coordinates
 
 
-def cleanup_scratch(ID):
-    scratch_root = Path('scratch')
-    for pattern in (f'growth_iters_{ID:03d}_*.xyz', f'opt_iters_{ID:03d}_*.xyz'):
-        for path in scratch_root.glob(pattern):
-            path.unlink(missing_ok=True)
-
-
 def post_processing(gsm, analyze_ICs=False, have_TS=True):
     plot(fx=gsm.energies, x=range(len(gsm.energies)), title=gsm.ID)
 
@@ -419,7 +406,7 @@ def post_processing(gsm, analyze_ICs=False, have_TS=True):
         internals.append(gsm.nodes[minnodeR].primitive_internal_values)
         internals.append(gsm.nodes[gsm.TSnode].primitive_internal_values)
         internals.append(gsm.nodes[minnodeP].primitive_internal_values)
-        with open(f'IC_data_{gsm.ID:04d}.txt', 'w') as handle:
+        with open(f'IC_data_{gsm.ID:03d}.txt', 'w') as handle:
             handle.write(f'Internals \t minnodeR: {minnodeR} \t TSnode: {gsm.TSnode} \t minnodeP: {minnodeP}\n')
             for record in zip(*internals):
                 handle.write('\t'.join(str(v) for v in record) + '\n')
@@ -430,7 +417,7 @@ def post_processing(gsm, analyze_ICs=False, have_TS=True):
         print(f' difference energy end node {gsm.nodes[gsm.nR].difference_energy:5.4f}')
         internals.append(gsm.nodes[minnodeR].primitive_internal_values)
         internals.append(gsm.nodes[minnodeP].primitive_internal_values)
-        with open(f'IC_data_{gsm.ID}.txt', 'w') as handle:
+        with open(f'IC_data_{gsm.ID:03d}.txt', 'w') as handle:
             handle.write(f'Internals \t Beginning: {minnodeR} \t End: {minnodeP}')
             for record in zip(*internals):
                 handle.write('\t'.join(str(v) for v in record) + '\n')

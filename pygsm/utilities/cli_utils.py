@@ -1,13 +1,15 @@
 def plot(fx, x, title):
+    """Save the string energy profile to ``string_<title>.png`` (skipped without matplotlib)."""
     try:
         import matplotlib.pyplot as plt
     except ModuleNotFoundError:
         print(' matplotlib is not installed; skipping the string energy plot (pip install pygsm[plot])')
         return
-    plt.figure(1)
-    plt.title(f'String {title:04d}')
-    plt.plot(x, fx, color='b', label='Energy', linewidth=2, marker='o', markersize=12)
-    plt.xlabel('Node Number')
-    plt.ylabel('Energy (kcal/mol)')
-    plt.legend(loc='best')
-    plt.savefig(f'{title:04d}_string.png', dpi=600)
+    fig, ax = plt.subplots()
+    ax.set_title(f'String {title:03d}')
+    ax.plot(x, fx, color='b', label='Energy', linewidth=2, marker='o', markersize=12)
+    ax.set_xlabel('Node Number')
+    ax.set_ylabel('Energy (kcal/mol)')
+    ax.legend(loc='best')
+    fig.savefig(f'string_{title:03d}.png', dpi=200)
+    plt.close(fig)

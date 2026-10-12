@@ -1,5 +1,3 @@
-import os
-
 from ..molecule import Molecule
 
 # local application imports
@@ -24,7 +22,6 @@ class SECross(SEGSM):
         rtype=1 MESX search
         """
         assert rtype in [0, 1], 'rtype not defined'
-        os.makedirs(self.scratch_dir, exist_ok=True)
         if rtype == 0:
             output.printcool('Doing SE-MECI search')
         else:
@@ -46,7 +43,6 @@ class SECross(SEGSM):
         print(' SE_Cross growth phase over')
         print(' Warning last node still not fully optimized')
 
-        path = self.node_scratch_path(self.nR - 1)
         # doing extra constrained penalty optimization for MECI, tightening the penalty step by step
         print(f' extra constrained optimization for the nnR-1 = {self.nR - 1}')
         self.optimizer[self.nR - 1].conv_grms = self.options.CONV_TOL * 5
@@ -61,10 +57,8 @@ class SECross(SEGSM):
                 opt_type='ICTAN',
                 opt_steps=5,
                 ictan=ictan,
-                path=path,
             )
 
-        self.xyz_writer(f'after_penalty_{self.ID:03}.xyz', self.geometries, self.energies, self.gradrmss, self.dEs)
         self.optimizer[self.nR].opt_cross = True
         self.nodes[0].V0 = self.nodes[0].PES.PES2.energy
         if rtype == 0:
@@ -72,7 +66,6 @@ class SECross(SEGSM):
             self.nodes[self.nR] = Molecule.copy_from(self.nodes[self.nR - 1], new_node_id=self.nR)
             avg_pes = AvgPES.create_pes_from(self.nodes[self.nR].PES)
             self.nodes[self.nR].PES = avg_pes
-            path = self.node_scratch_path(self.nR)
             self.optimizer[self.nR].conv_grms = self.options.CONV_TOL
             self.optimizer[self.nR].conv_gmax = 0.1  # self.options.CONV_gmax
             self.optimizer[self.nR].conv_Ediff = self.options.CONV_Ediff
@@ -83,7 +76,6 @@ class SECross(SEGSM):
                 opt_type='MECI',
                 opt_steps=100,
                 verbose=True,
-                path=path,
             )
             if not self.optimizer[self.nR].converged:
                 print('doing extra optimization in hopes that the MECI will converge.')
@@ -94,7 +86,6 @@ class SECross(SEGSM):
                         opt_type='MECI',
                         opt_steps=100,
                         verbose=True,
-                        path=path,
                     )
         else:
             # unconstrained penalty optimization
@@ -102,7 +93,6 @@ class SECross(SEGSM):
             self.nodes[self.nR] = Molecule.copy_from(self.nodes[self.nR - 1], new_node_id=self.nR)
             self.nodes[self.nR].PES.sigma = 10.0
             print(f' sigma for node {self.nR} is {self.nodes[self.nR].PES.sigma:.3f}')
-            path = self.node_scratch_path(self.nR)
             self.optimizer[self.nR].opt_cross = True
             self.optimizer[self.nR].conv_grms = self.options.CONV_TOL
             self.optimizer[self.nR].conv_Ediff = self.options.CONV_Ediff
@@ -113,9 +103,8 @@ class SECross(SEGSM):
                 opt_type='UNCONSTRAINED',
                 opt_steps=200,
                 verbose=True,
-                path=path,
             )
-        self.xyz_writer(f'grown_string_{self.ID:03}.xyz', self.geometries, self.energies, self.gradrmss, self.dEs)
+        self.write_string('grown_string')
 
         if self.optimizer[self.nR].converged:
             self.nnodes = self.nR + 1
@@ -137,7 +126,6 @@ class SECross(SEGSM):
             for n in range(self.nnodes):
                 print(f' {float(energies[n]):7.3f}', end=' ')
             print()
-            self.xyz_writer(f'grown_string1_{self.ID:03}.xyz', self.geometries, self.energies, self.gradrmss, self.dEs)
 
             deltaE = energies[-1] - energies[0]
             if deltaE > 20:
@@ -158,6 +146,7 @@ class SECross(SEGSM):
         else:
             print('Exiting early')
             self.end_early = True
+        self.write_string('string')
 
     def check_if_grown(self):
         isDone = False

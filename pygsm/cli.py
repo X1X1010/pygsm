@@ -2,10 +2,9 @@
 
 from __future__ import annotations
 
-from ._cli import cleanup_scratch, main, parse_arguments, post_processing
+from ._cli import main, parse_arguments, post_processing
 
 __all__ = [
-    'cleanup_scratch',
     'main',
     'parse_arguments',
     'post_processing',
