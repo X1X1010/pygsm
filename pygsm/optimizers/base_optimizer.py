@@ -55,7 +55,6 @@ class OptimizerConfig(Config):
     conv_gmax: float = option(100.0, doc='max gradient convergence threshold')
     conv_disp: float = option(100.0, doc='max atomic displacement threshold')
     opt_cross: bool = option(False, doc='used for state crossing calculations')
-    opt_climb: bool = option(False, doc='optimize the TS with the climbing criterion')
     DMAX: float = option(0.1, doc='step size controller; adapts to the performance of the optimization')
     DMIN: float = option(0.0001, doc='minimum step size')
     abs_max_step: float = option(
@@ -104,7 +103,6 @@ class BaseOptimizer:
 
         # MECI
         self.opt_cross = self.options.opt_cross
-        self.opt_climb = self.options.opt_climb
 
         # Hessian
         self.update_hess_in_bg = self.options.update_hess_in_bg

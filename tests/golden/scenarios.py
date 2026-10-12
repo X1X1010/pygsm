@@ -267,7 +267,6 @@ def _de_gsm(
             conv_Ediff=100.0,
             conv_gmax=100.0,
             DMAX=0.1,
-            opt_climb=climb,
         )
         gsm = DEGSM(
             reactant=reactant,
