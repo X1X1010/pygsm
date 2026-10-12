@@ -29,10 +29,16 @@ class MainGSM(GrowthMixin, OptimizationMixin, GSM):
         """Grow the string, then optimise it.
 
         rtype=2 finds and climbs to the TS, 1 climbs without the exact TS search,
-        0 turns off the climbing image and TS search.
+        0 turns off the climbing image and TS search. The exact TS search needs an
+        optimizer that supports it (EigenvectorFollow); otherwise rtype=2 falls back to 1.
         """
         if opt_steps is None:
             opt_steps = self.default_growth_opt_steps
+        if rtype == 2 and not self.optimizer[0].supports_ts_search:
+            logger.warning(
+                f' {type(self.optimizer[0]).__name__} cannot do the exact TS search; using the climbing image only (rtype=1)'
+            )
+            rtype = 1
         self.set_V0()
 
         if not self.isRestarted:

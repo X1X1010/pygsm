@@ -82,6 +82,9 @@ class BaseOptimizer:
 
     config_class = OptimizerConfig
 
+    #: Whether the optimizer can take eigenvector-following TS steps (the exact TS search, go_gsm rtype=2).
+    supports_ts_search = False
+
     def __init__(self, options=None, **kwargs):
         self.options = self.config_class.build(options, **kwargs)
         options = self.options

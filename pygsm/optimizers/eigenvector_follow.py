@@ -24,6 +24,8 @@ if TYPE_CHECKING:
 class EigenvectorFollow(BaseOptimizer):
     """Eigenvector-following (rational function) optimizer with BFGS Hessian updates; supports climbing and TS search."""
 
+    supports_ts_search = True
+
     def optimize(
         self,
         molecule: Molecule,

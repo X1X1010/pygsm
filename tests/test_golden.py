@@ -32,8 +32,20 @@ def test_golden(name):
     path = BASELINE_DIR / f'{name}.npz'
     if not path.exists():
         pytest.skip(f'no baseline recorded for {name}')
-    expected = dict(np.load(path))
-    actual = run_scenario(name)
+    _assert_matches(name, run_scenario(name), dict(np.load(path)))
+
+
+@pytest.mark.golden
+def test_lbfgs_exact_ts_search_falls_back_to_climbing(tmp_path, monkeypatch):
+    """LBFGS cannot do the exact TS search: rtype=2 must run as rtype=1 (it used to crash)."""
+    from .golden.scenarios import _de_gsm
+
+    monkeypatch.chdir(tmp_path)
+    expected = dict(np.load(BASELINE_DIR / 'degsm_lbfgs_climb.npz'))
+    _assert_matches('lbfgs rtype=2', _de_gsm('lbfgs', climb=False), expected)
+
+
+def _assert_matches(name, actual, expected):
     assert sorted(actual) == sorted(expected)
     for key, ref in expected.items():
         got = np.asarray(actual[key])
