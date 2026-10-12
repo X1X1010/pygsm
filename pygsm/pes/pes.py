@@ -29,7 +29,8 @@ class PES(Configurable):
     multiplicity : spin multiplicity of the state.
     FORCE : constant forces between atom pairs in au, e.g. ``[(1, 2, 0.1214)]``;
         negative is tensile, positive compressive.
-    RESTRAINTS : translational harmonic restraints.
+    RESTRAINTS : harmonic position restraints ``[(atom, k), ...]`` (0-based atom, k in kcal/mol/A^2)
+        holding each atom near its position in the level of theory's input geometry.
     """
 
     @classmethod
@@ -51,6 +52,7 @@ class PES(Configurable):
         self.multiplicity = multiplicity
         self.FORCE = FORCE
         self.RESTRAINTS = RESTRAINTS
+        self.reference_xyz = np.array(lot.currentCoords) if RESTRAINTS is not None else None
         self._dE = 1000.0
 
     @property
@@ -77,8 +79,8 @@ class PES(Configurable):
         if self.RESTRAINTS is not None:
             for i in self.RESTRAINTS:
                 a = i[0]
-                force = i[1]  # In kcal/mol/Ang^2?
-                kdE += 0.5 * force * (xyz[a] - self.reference_xyz[a]) ** 2
+                force = i[1]  # kcal/mol/Ang^2
+                kdE += 0.5 * force * np.sum((xyz[a] - self.reference_xyz[a]) ** 2)
         return self.lot.get_energy(xyz, self.multiplicity, self.ad_idx) + fdE + kdE  # Kcal/mol
 
     def get_finite_difference_hessian(self, coords, qm_region=None):
@@ -157,7 +159,7 @@ class PES(Configurable):
             for i in self.RESTRAINTS:
                 a = i[0]
                 force = i[1]
-                grad[a] += force * (xyz[a] - self.reference_xyz[a])
+                grad[a] += force * (xyz[a] - self.reference_xyz[a]) * units.KCAL_MOL_TO_AU  # Ha/ang
 
         grad = np.reshape(grad, (-1, 1))
         return grad  # Ha/ang
