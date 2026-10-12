@@ -248,6 +248,17 @@ class DelocalizedInternalCoordinates(InternalCoordinates):
         Gxc = multi_dot([Bmat.T, Gqc.T]).flatten()
         return Gxc
 
+    def step_along(self, xyz, tangent, step, frozen_atoms=None, verbose=False):
+        """Rebuild the basis with ``tangent`` as the constraint and move ``step`` along it.
+
+        Returns the new basis and Cartesian coordinates, so the result is the same
+        whether this runs in-process or on a copy in a worker process.
+        """
+        self.clearCache()
+        self.build_dlc(xyz, tangent)
+        new_xyz = self.newCartesian(xyz, step * self.Vecs.cnorms[:, 0], frozen_atoms=frozen_atoms, verbose=verbose)
+        return self.Vecs, new_xyz
+
     def build_dlc(self, xyz, C=None):
         """
         Build the delocalized internal coordinates (DLCs) which are linear

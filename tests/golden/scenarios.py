@@ -304,7 +304,7 @@ def degsm_lbfgs_climb():
 
 
 def degsm_ef_mp2():
-    """Parallel node updates (mp_cores=2); differs from serial by design."""
+    """Parallel node updates (mp_cores=2); must reproduce the serial run exactly."""
     return _de_gsm('ef', climb=True, mp_cores=2, max_gsm_steps=10)
 
 

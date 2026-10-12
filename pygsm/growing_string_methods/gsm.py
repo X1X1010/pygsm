@@ -585,6 +585,25 @@ class GSM:
         return ictan, dqmaga
 
     @staticmethod
+    def step_nodes(nodes, moves, mp_cores=1, verbose=False):
+        """For each ``(n, tangent, step)`` in ``moves``, move ``nodes[n]`` by ``step`` along ``tangent``.
+
+        The node's basis is rebuilt with the tangent as the constraint (see
+        ``DelocalizedInternalCoordinates.step_along``); serial and parallel runs give identical results.
+        """
+        for n, _, step in moves:
+            logger.debug(f' Moving node {n} along its tangent this much {step}')
+        calls = (
+            (nodes[n].coord_obj, 'step_along', nodes[n].xyz, tan, step, nodes[n].frozen_atoms, verbose)
+            for n, tan, step in moves
+        )
+        for (n, _, _), (vecs, xyz) in zip(moves, map_method(calls, mp_cores), strict=True):
+            if mp_cores > 1:  # the step ran on a copy of the coordinate object
+                nodes[n].coord_obj.clearCache()
+                nodes[n].coord_basis = vecs
+            nodes[n].xyz = xyz
+
+    @staticmethod
     def ic_reparam(nodes, energies, climbing=False, ic_reparam_steps=8, print_level=1, NUM_CORE=1, MAXRE=0.25):
         """
         Reparameterizes the string using Delocalizedin internal coordinatesusing three-way tangents at the TS node
@@ -685,50 +704,6 @@ class GSM:
                     if abs(deltadqs[n]) > MAXRE:
                         deltadqs[n] = np.sign(deltadqs[n]) * MAXRE
 
-                if NUM_CORE > 1:
-                    # 5/14/2021 TS node this up?!
-                    tans = [
-                        ictan[n] if deltadqs[n] < 0 else ictan[n + 1]
-                        for n in chain(range(1, TSnode), range(TSnode + 1, nnodes - 1))
-                    ]  # + [ ictan[n] if deltadqs[n]<0 else ictan[n+1] for n in range(TSnode+1,nnodes-1)]
-                    Vecs = map_method(
-                        (
-                            (nodes[0].coord_obj, 'build_dlc', node.xyz, tan)
-                            for node, tan in zip(nodes[1:TSnode] + nodes[TSnode + 1 : nnodes - 1], tans)
-                        ),
-                        NUM_CORE,
-                    )
-                    for n, node in enumerate(nodes[1:TSnode] + nodes[TSnode + 1 : nnodes - 1]):
-                        node.coord_basis = Vecs[n]
-
-                    # move the positions
-                    dqs = [
-                        deltadqs[n] * nodes[n].constraints[:, 0]
-                        for n in chain(range(1, TSnode), range(TSnode + 1, nnodes - 1))
-                    ]
-                    newXyzs = map_method(
-                        (
-                            (node.coord_obj, 'newCartesian', node.xyz, dq)
-                            for node, dq in zip(nodes[1:TSnode] + nodes[TSnode + 1 : nnodes - 1], dqs)
-                        ),
-                        NUM_CORE,
-                    )
-                    for n, node in enumerate(nodes[1:TSnode] + nodes[TSnode + 1 : nnodes - 1]):
-                        node.xyz = newXyzs[n]
-                else:
-                    for n in chain(range(1, TSnode), range(TSnode + 1, nnodes - 1)):
-                        if deltadqs[n] < 0:
-                            logger.debug(f' Moving node {n} along tan[{n}] this much {deltadqs[n]}')
-                            nodes[n].update_coordinate_basis(ictan[n])
-                            constraint = nodes[n].constraints[:, 0]
-                            dq = deltadqs[n] * constraint
-                            nodes[n].update_xyz(dq, verbose=(print_level > 1))
-                        elif deltadqs[n] > 0:
-                            logger.debug(f' Moving node {n} along tan[{n + 1}] this much {deltadqs[n]}')
-                            nodes[n].update_coordinate_basis(ictan[n + 1])
-                            constraint = nodes[n].constraints[:, 0]
-                            dq = deltadqs[n] * constraint
-                            nodes[n].update_xyz(dq, verbose=(print_level > 1))
             else:
                 # e.g 11-2 = 9, deltadq[9] -= deltadqs[10]
                 deltadqs[nnodes - 2] -= deltadqs[nnodes - 1]
@@ -741,43 +716,12 @@ class GSM:
                     if abs(deltadqs[n]) > MAXRE:
                         deltadqs[n] = np.sign(deltadqs[n]) * MAXRE
 
-                if NUM_CORE > 1:
-                    # Update the coordinate basis
-                    tans = [ictan[n] if deltadqs[n] < 0 else ictan[n + 1] for n in range(1, nnodes - 1)]
-                    Vecs = map_method(
-                        (
-                            (nodes[0].coord_obj, 'build_dlc', node.xyz, tan)
-                            for node, tan in zip(nodes[1 : nnodes - 1], tans)
-                        ),
-                        NUM_CORE,
-                    )
-                    for n, node in enumerate(nodes[1 : nnodes - 1]):
-                        node.coord_basis = Vecs[n]
-                    # move the positions
-                    dqs = [deltadqs[n] * nodes[n].constraints[:, 0] for n in range(1, nnodes - 1)]
-                    newXyzs = map_method(
-                        (
-                            (node.coord_obj, 'newCartesian', node.xyz, dq)
-                            for node, dq in zip(nodes[1 : nnodes - 1], dqs)
-                        ),
-                        NUM_CORE,
-                    )
-                    for n, node in enumerate(nodes[1 : nnodes - 1]):
-                        node.xyz = newXyzs[n]
-                else:
-                    for n in range(1, nnodes - 1):
-                        if deltadqs[n] < 0:
-                            logger.debug(f' Moving node {n} along tan[{n}] this much {deltadqs[n]}')
-                            nodes[n].update_coordinate_basis(ictan[n])
-                            constraint = nodes[n].constraints[:, 0]
-                            dq = deltadqs[n] * constraint
-                            nodes[n].update_xyz(dq, verbose=(print_level > 1))
-                        elif deltadqs[n] > 0:
-                            logger.debug(f' Moving node {n} along tan[{n + 1}] this much {deltadqs[n]}')
-                            nodes[n].update_coordinate_basis(ictan[n + 1])
-                            constraint = nodes[n].constraints[:, 0]
-                            dq = deltadqs[n] * constraint
-                            nodes[n].update_xyz(dq, verbose=(print_level > 1))
+            # move each node along the tangent towards the neighbour it moves to
+            movable = chain(range(1, TSnode), range(TSnode + 1, nnodes - 1)) if climbing else range(1, nnodes - 1)
+            moves = [
+                (n, ictan[n] if deltadqs[n] < 0 else ictan[n + 1], deltadqs[n]) for n in movable if deltadqs[n] != 0
+            ]
+            GSM.step_nodes(nodes, moves, NUM_CORE, verbose=print_level > 1)
 
         if climbing:
             ictan, dqmaga = GSM.get_tangents(nodes)

@@ -7,8 +7,6 @@ import numpy as np
 from pygsm.molecule.molecule import Molecule
 from pygsm.utilities.output import printcool
 
-from ._shared import map_method
-
 logger = logging.getLogger(__name__)
 
 
@@ -281,49 +279,8 @@ class GrowthMixin:
             move_list = self.make_move_list()
             tan_list = self.make_tan_list()
 
-            if self.mp_cores > 1:
-                Vecs = map_method(
-                    (
-                        (self.nodes[0].coord_obj, 'build_dlc', self.nodes[n].xyz, self.ictan[ntan])
-                        for n, ntan in zip(move_list, tan_list)
-                        if rpmove[n] < 0
-                    ),
-                    self.mp_cores,
-                )
-
-                i = 0
-                for n in move_list:
-                    if rpmove[n] < 0:
-                        self.nodes[n].coord_basis = Vecs[i]
-                        i += 1
-
-                # move the positions
-                newXyzs = map_method(
-                    (
-                        (
-                            self.nodes[n].coord_obj,
-                            'newCartesian',
-                            self.nodes[n].xyz,
-                            rpmove[n] * self.nodes[n].constraints[:, 0],
-                        )
-                        for n in move_list
-                        if rpmove[n] < 0
-                    ),
-                    self.mp_cores,
-                )
-                i = 0
-                for n in move_list:
-                    if rpmove[n] < 0:
-                        self.nodes[n].xyz = newXyzs[i]
-                        i += 1
-            else:
-                for nmove, ntan in zip(move_list, tan_list):
-                    if rpmove[nmove] < 0:
-                        logger.debug(f'Moving {nmove} along ictan[{ntan}]')
-                        self.nodes[nmove].update_coordinate_basis(constraints=self.ictan[ntan])
-                        constraint = self.nodes[nmove].constraints[:, 0]
-                        dq0 = rpmove[nmove] * constraint
-                        self.nodes[nmove].update_xyz(dq0, verbose=True)
+            moves = [(n, self.ictan[ntan], rpmove[n]) for n, ntan in zip(move_list, tan_list) if rpmove[n] < 0]
+            self.step_nodes(self.nodes, moves, self.mp_cores, verbose=True)
 
         logger.debug(
             f' spacings (end ic_reparam, steps: {i + 1}/{ic_reparam_steps}): '
