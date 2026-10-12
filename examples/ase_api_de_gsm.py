@@ -63,9 +63,7 @@ def run_de_gsm(
 
     # Endpoints
     reactant_mol = Molecule(geom=geom, PES=pes, coord_obj=coords, Form_Hessian=optimizer_method == 'eigenvector_follow')
-    product_mol = Molecule.copy_from(
-        reactant_mol, xyz=product.get_positions(), new_node_id=num_nodes - 1, copy_wavefunction=False
-    )
+    product_mol = Molecule.copy_from(reactant_mol, xyz=product.get_positions(), new_node_id=num_nodes - 1)
 
     optimizer_class = {'eigenvector_follow': EigenvectorFollow, 'lbfgs': LBFGS}[optimizer_method]
     optimizer = optimizer_class(

@@ -33,7 +33,7 @@ class PES(Configurable):
     """
 
     @classmethod
-    def create_pes_from(cls, PES, copy_wavefunction=True, **lot_changes):
+    def create_pes_from(cls, PES, **lot_changes):
         """Copy of ``PES`` on a copy of its level of theory, with ``lot_changes`` (e.g. ``node_id``) applied."""
         return cls(**{**PES.get_params(), 'lot': PES.lot.clone(**lot_changes)})
 

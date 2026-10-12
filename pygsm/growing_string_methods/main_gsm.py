@@ -369,7 +369,7 @@ class MainGSM(GrowthMixin, OptimizationMixin, GSM):
         self.nodes[nstructs - 1].xyz = xyz_to_np(geoms[-1])
         for struct in range(1, nstructs - 1):
             self.nodes[struct] = Molecule.copy_from(
-                self.nodes[struct - 1], xyz_to_np(geoms[struct]), new_node_id=struct, copy_wavefunction=False
+                self.nodes[struct - 1], xyz_to_np(geoms[struct]), new_node_id=struct
             )
             self.nodes[struct].newHess = 5
             # Turning this off

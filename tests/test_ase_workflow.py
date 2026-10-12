@@ -96,8 +96,8 @@ def test_gsm_energy_cache_invalidates_when_node_geometry_changes():
     displaced[0, 1] += 0.05
     midpoint = 0.5 * (xyz + displaced)
 
-    middle = Molecule.copy_from(reactant, xyz=midpoint, new_node_id=1, copy_wavefunction=False)
-    product = Molecule.copy_from(reactant, xyz=displaced, new_node_id=2, copy_wavefunction=False)
+    middle = Molecule.copy_from(reactant, xyz=midpoint, new_node_id=1)
+    product = Molecule.copy_from(reactant, xyz=displaced, new_node_id=2)
     optimizer = EigenvectorFollow(Linesearch='backtrack', OPTTHRESH=0.0005, DMAX=0.1)
     gsm = GSM(reactant=reactant, product=product, nnodes=3, optimizer=optimizer)
     gsm.nodes[1] = middle

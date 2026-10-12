@@ -42,8 +42,6 @@ class Molecule:
     Hessian : Hessian in the current coordinate basis to start from.
     node_id : index of the string node, passed on to the level of theory.
     frozen_atoms : indices of frozen atoms.
-    copy_wavefunction : copy the level-of-theory data when copying the PES
-        (not always helpful, e.g. at the start of DE-GSM).
     comment : descriptive comment.
     """
 
@@ -52,9 +50,9 @@ class Molecule:
         return coord_obj.clone() if xyz is None else coord_obj.clone(xyz=xyz)
 
     @classmethod
-    def _copy_fast(cls, source, xyz=None, fnm=None, new_node_id=1, copy_wavefunction=True):
+    def _copy_fast(cls, source, xyz=None, fnm=None, new_node_id=1):
         _geom, xyz_array = copy_geometry_inputs(source.geometry, source.xyz, xyz=xyz, fnm=fnm)
-        pes = copy_pes(source.PES, new_node_id, copy_wavefunction)
+        pes = copy_pes(source.PES, new_node_id)
         coord_obj = cls._copy_coord_object(source.coord_obj, xyz_array if xyz is not None or fnm is not None else None)
 
         new = cls.__new__(cls)
@@ -65,7 +63,6 @@ class Molecule:
         new.Hessian = source.Hessian
         new._node_id = new_node_id
         new.frozen_atoms = source.frozen_atoms
-        new.copy_wavefunction = copy_wavefunction
         new.comment = source.comment
         new._xyz = xyz_array.copy()
         new.atoms = list(source.atoms)
@@ -91,16 +88,14 @@ class Molecule:
         xyz: np.ndarray | None = None,
         fnm: str | None = None,
         new_node_id: int = 1,
-        copy_wavefunction: bool = True,
     ) -> Molecule:
-        """Copy ``MoleculeA``, optionally with new coordinates, node id and a fresh wavefunction."""
+        """Copy ``MoleculeA`` for string node ``new_node_id``, optionally with new coordinates."""
         logger.debug(f' Copying from MoleculA {MoleculeA.node_id}')
         return cls._copy_fast(
             MoleculeA,
             xyz=xyz,
             fnm=fnm,
             new_node_id=new_node_id,
-            copy_wavefunction=copy_wavefunction,
         )
 
     def __init__(
@@ -115,7 +110,6 @@ class Molecule:
         Hessian=None,
         node_id: int = 0,
         frozen_atoms: list | None = None,
-        copy_wavefunction: bool = True,
         comment: str = '',
     ):
         if coord_obj is None:
@@ -127,7 +121,6 @@ class Molecule:
         self.Hessian = Hessian
         self._node_id = node_id
         self.frozen_atoms = frozen_atoms
-        self.copy_wavefunction = copy_wavefunction
         self.comment = comment
 
         t0 = time()
@@ -135,7 +128,7 @@ class Molecule:
         t1 = time()
         logger.debug(f' Time to get coords= {t1 - t0:.3f}')
 
-        self.PES = copy_pes(PES, node_id, copy_wavefunction)
+        self.PES = copy_pes(PES, node_id)
         validate_geometry_inputs(atoms, xyz)
         self._xyz = xyz.copy()
 

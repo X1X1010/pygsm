@@ -30,7 +30,7 @@ class PenaltyPES(PES):
         )
 
     @classmethod
-    def create_pes_from(cls, PES, copy_wavefunction=True, **lot_changes):
+    def create_pes_from(cls, PES, **lot_changes):
         lot = PES.lot.clone(**lot_changes)
         return cls(PES.PES1, PES.PES2, lot, PES.sigma, PES.alpha)
 

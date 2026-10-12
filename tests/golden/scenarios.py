@@ -258,7 +258,7 @@ def _de_gsm(
             form_hessian=method == 'ef',
             counter=counter,
         )
-        product = Molecule.copy_from(reactant, xyz=_xyz(geoms[1]), new_node_id=num_nodes - 1, copy_wavefunction=False)
+        product = Molecule.copy_from(reactant, xyz=_xyz(geoms[1]), new_node_id=num_nodes - 1)
         opt = _optimizer(
             method,
             print_level=1,

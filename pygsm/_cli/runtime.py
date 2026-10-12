@@ -312,7 +312,6 @@ def main(argv: Sequence[str] | None = None):
             reactant,
             xyz=xyz2,
             new_node_id=inpfileq['num_nodes'] - 1,
-            copy_wavefunction=False,
         )
 
     output.printcool('Building the Optimizer object')

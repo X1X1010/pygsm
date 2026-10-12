@@ -58,5 +58,5 @@ def validate_geometry_inputs(atoms, xyz):
         raise ValueError('xyz must have shape natoms x 3')
 
 
-def copy_pes(pes, node_id, copy_wavefunction):
-    return type(pes).create_pes_from(pes, copy_wavefunction, node_id=node_id)
+def copy_pes(pes, node_id):
+    return type(pes).create_pes_from(pes, node_id=node_id)
