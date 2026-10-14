@@ -30,11 +30,11 @@ def optimize(atoms, calculator, opt_steps=500):
         atoms=[element_table.from_symbol(symbol) for symbol in atoms.get_chemical_symbols()],
         addtr=False,
     )
-    molecule = Molecule(geom=geom, PES=pes, coord_obj=coords, Form_Hessian=True)
+    molecule = Molecule(geom=geom, pes=pes, coord_obj=coords, form_hessian=True)
 
-    optimizer = EigenvectorFollow(Linesearch='backtrack', OPTTHRESH=0.0005, DMAX=0.5, abs_max_step=0.5, conv_Ediff=0.5)
+    optimizer = EigenvectorFollow(linesearch='backtrack', conv_grms=0.0005, dmax=0.5, abs_max_step=0.5, conv_ediff=0.5)
     output.printcool(f'Initial energy is {molecule.energy:5.4f} kcal/mol')
-    geoms, energies = optimizer.optimize(molecule=molecule, refE=molecule.energy, opt_steps=opt_steps)
+    geoms, energies = optimizer.optimize(molecule=molecule, ref_energy=molecule.energy, opt_steps=opt_steps)
     output.printcool(f'Final energy is {molecule.energy:5.4f} kcal/mol')
     return geoms[-1], energies[-1]
 

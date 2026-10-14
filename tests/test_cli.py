@@ -111,7 +111,7 @@ def test_post_processing_ic_data(tmp_path, monkeypatch, analyze):
         )
         for n, e in enumerate(energies)
     ]
-    gsm = SimpleNamespace(ID=0, nodes=nodes, energies=energies, TSnode=2)
+    gsm = SimpleNamespace(string_id=0, nodes=nodes, energies=energies, TSnode=2)
     post_processing(gsm, analyze_ICs=analyze, have_TS=True)
 
     path = tmp_path / 'IC_data_000.txt'

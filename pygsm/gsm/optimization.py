@@ -87,7 +87,7 @@ class OptimizationMixin:
                 printcool(' There is no TS, turning off TS search')
                 rtype = 0
                 self.climber = self.finder = self.find = self.climb = False
-                self.CONV_TOL = self.CONV_TOL * 5
+                self.conv_tol = self.conv_tol * 5
 
             self.isConverged = self.is_converged(totalgrad, fp, rtype, ts_cgradq)
             stage_changed = self.set_stage(totalgrad, sum_gradrms, ts_cgradq, ts_gradrms, fp)
@@ -118,7 +118,7 @@ class OptimizationMixin:
                     )
                     and not self.optimizer[self.TSnode].converged
                 ):
-                    self.nodes[self.TSnode].form_Primitive_Hessian()
+                    self.nodes[self.TSnode].form_primitive_hessian()
                     if self.hessrcount < 1 and self.pTSnode == self.TSnode:
                         logger.debug(' resetting TS node coords Ut (and Hessian)')
                         self.ictan, self.dqmaga = self.get_three_way_tangents(self.nodes, self.energies)
@@ -194,9 +194,9 @@ class OptimizationMixin:
                 and self.finder
                 and self.nclimb < 1
                 and (
-                    (totalgrad < 0.3 and ts_gradrms < self.CONV_TOL * 20.0)  # I hate totalgrad  and ts_cgradq < 0.02
+                    (totalgrad < 0.3 and ts_gradrms < self.conv_tol * 20.0)  # I hate totalgrad  and ts_cgradq < 0.02
                     or (all_converged)
-                    or (ts_gradrms < self.CONV_TOL * 2.5 and ts_cgradq < 0.01)  # used to be 5
+                    or (ts_gradrms < self.conv_tol * 2.5 and ts_cgradq < 0.01)  # used to be 5
                 )
             ) and self.dE_iter < 5.0:
                 logger.info(' ** starting exact climb **')
@@ -207,10 +207,10 @@ class OptimizationMixin:
                 self.ictan, self.dqmaga = self.get_three_way_tangents(self.nodes, self.energies)
                 self.modify_TS_Hess()
 
-                if self.optimizer[self.TSnode].DMAX > 0.1:
-                    self.optimizer[self.TSnode].DMAX = 0.1
+                if self.optimizer[self.TSnode].dmax > 0.1:
+                    self.optimizer[self.TSnode].dmax = 0.1
                 self.optimizer[self.TSnode] = EigenvectorFollow(**self.optimizer[self.TSnode].get_params())
-                self.optimizer[self.TSnode].SCALEQN = 1.0
+                self.optimizer[self.TSnode].scale_qn = 1.0
                 self.nhessreset = 10  # are these used??? TODO
                 self.hessrcount = 0  # are these used?!  TODO
                 stage_changed = True
@@ -262,11 +262,11 @@ class OptimizationMixin:
         # Go to non-constrained basis
         self.newic.xyz = self.nodes[TSnode].xyz.copy()
         self.newic.coord_basis = Vecs
-        self.newic.Primitive_Hessian = self.nodes[TSnode].Primitive_Hessian.copy()
-        self.newic.form_Hessian_in_basis()
+        self.newic.primitive_hessian = self.nodes[TSnode].primitive_hessian.copy()
+        self.newic.form_hessian_in_basis()
 
         tan = block_matrix.dot(block_matrix.transpose(Vecs), tan0)  # (nicd,1
-        Ht = np.dot(self.newic.Hessian, tan)  # (nicd,nicd)(nicd,1) = nicd,1
+        Ht = np.dot(self.newic.hessian, tan)  # (nicd,nicd)(nicd,1) = nicd,1
         tHt = np.dot(tan.T, Ht)
 
         a = abs(q0 - qm1)
@@ -284,8 +284,8 @@ class OptimizationMixin:
         # print eig
 
         # Finalize Hessian
-        self.newic.Hessian += (c - tHt) * ttt
-        self.nodes[TSnode].Hessian = self.newic.Hessian.copy()
+        self.newic.hessian += (c - tHt) * ttt
+        self.nodes[TSnode].hessian = self.newic.hessian.copy()
 
         # Hint after
 
@@ -293,7 +293,7 @@ class OptimizationMixin:
 
         if False:
             logger.debug(f'newHess of node {TSnode} {self.nodes[TSnode].newHess}')
-            eigen, _tmph = np.linalg.eigh(self.nodes[TSnode].Hessian)  # nicd,nicd
+            eigen, _tmph = np.linalg.eigh(self.nodes[TSnode].hessian)  # nicd,nicd
             logger.debug('eigenvalues of new Hess')
             logger.debug(eigen)
 
@@ -315,11 +315,11 @@ class OptimizationMixin:
     def set_opt_type(self, n, quiet=False):
         # TODO error for seam climb
         opt_type = 'ICTAN'
-        if self.climb and n == self.TSnode and not self.find and not isinstance(self.nodes[n].PES, AvgPES):
+        if self.climb and n == self.TSnode and not self.find and not isinstance(self.nodes[n].pes, AvgPES):
             opt_type = 'CLIMB'
         elif self.find and n == self.TSnode:
             opt_type = 'TS'
-        elif isinstance(self.nodes[n].PES, AvgPES):
+        elif isinstance(self.nodes[n].pes, AvgPES):
             opt_type = 'SEAM'
             if self.climb and n == self.TSnode:
                 opt_type = 'TS-SEAM'
@@ -348,7 +348,7 @@ class OptimizationMixin:
         """
 
         # Important the factor 5 here corresponds to the same convergence criteria in the TS optimizer
-        TS_conv = self.CONV_TOL * 5
+        TS_conv = self.conv_tol * 5
         # => Check if intermediate exists
         # ALEX REMOVED CLIMB REQUIREMENT
         if self.has_intermediate(self.noise):
@@ -375,17 +375,17 @@ class OptimizationMixin:
         # 5/10/2022 self.optimizer[self.TSnode].nneg < 3
         if self.finder and self.find:
             return (
-                self.nodes[self.TSnode].gradrms < self.CONV_TOL
-                and self.dE_iter < self.optimizer[self.TSnode].conv_Ediff * 3
+                self.nodes[self.TSnode].gradrms < self.conv_tol
+                and self.dE_iter < self.optimizer[self.TSnode].conv_ediff * 3
             )
         elif self.climber and self.climb:
             return (
-                self.nodes[self.TSnode].gradrms < self.CONV_TOL
+                self.nodes[self.TSnode].gradrms < self.conv_tol
                 and abs(ts_cgradq) < TS_conv
-                and self.dE_iter < self.optimizer[self.TSnode].conv_Ediff * 3
+                and self.dE_iter < self.optimizer[self.TSnode].conv_ediff * 3
             )
         elif not self.climber and not self.finder:
-            logger.debug(f' CONV_TOL={self.CONV_TOL:.4f}')
+            logger.debug(f' CONV_TOL={self.conv_tol:.4f}')
             return all([self.optimizer[n].converged for n in range(1, self.nnodes - 1)])
 
         return False
@@ -411,7 +411,7 @@ class OptimizationMixin:
         new_optimizers[self.TSnode] = self.optimizer[0].clone()
 
         for n in range(self.TSnode + 1, self.nnodes + 1):
-            new_node_list[n] = Molecule.copy_from(MoleculeA=self.nodes[n - 1], new_node_id=n)
+            new_node_list[n] = Molecule.copy_from(molecule=self.nodes[n - 1], new_node_id=n)
             new_optimizers[n] = self.optimizer[n - 1]
 
         self.nodes = new_node_list
@@ -445,7 +445,7 @@ class OptimizationMixin:
         new_optimizers[self.TSnode + 1] = self.optimizer[0].clone()
 
         for n in range(self.TSnode + 2, self.nnodes + 1):
-            new_node_list[n] = Molecule.copy_from(MoleculeA=self.nodes[n - 1], new_node_id=n)
+            new_node_list[n] = Molecule.copy_from(molecule=self.nodes[n - 1], new_node_id=n)
             new_optimizers[n] = self.optimizer[n - 1]
         self.nodes = new_node_list
         self.optimizer = new_optimizers
@@ -462,30 +462,30 @@ class OptimizationMixin:
         TSnode = self.TSnode
         for n in range(1, self.nnodes - 1):
             if self.nodes[n] is not None:
-                self.optimizer[n].conv_grms = self.CONV_TOL * factor
-                self.optimizer[n].conv_gmax = self.CONV_gmax * factor
-                self.optimizer[n].conv_Ediff = self.CONV_Ediff * factor
+                self.optimizer[n].conv_grms = self.conv_tol * factor
+                self.optimizer[n].conv_gmax = self.conv_gmax * factor
+                self.optimizer[n].conv_ediff = self.conv_ediff * factor
                 if self.optimizer[n].converged and n != TSnode:
                     self.optimizer[n].check_only_grad_converged = True
                 if (self.climb or self.find) and self.energies[n] > self.energies[TSnode] * 0.75 and n != TSnode:
-                    self.optimizer[n].conv_grms = self.CONV_TOL
-                    self.optimizer[n].conv_gmax = self.CONV_gmax
-                    self.optimizer[n].conv_Ediff = self.CONV_Ediff
+                    self.optimizer[n].conv_grms = self.conv_tol
+                    self.optimizer[n].conv_gmax = self.conv_gmax
+                    self.optimizer[n].conv_ediff = self.conv_ediff
                     self.optimizer[n].check_only_grad_converged = False
                 if n == self.TSnode and (self.climb or self.find):
-                    self.optimizer[n].conv_grms = self.CONV_TOL
-                    self.optimizer[n].conv_gmax = self.CONV_gmax
-                    self.optimizer[n].conv_Ediff = self.CONV_Ediff
+                    self.optimizer[n].conv_grms = self.conv_tol
+                    self.optimizer[n].conv_gmax = self.conv_gmax
+                    self.optimizer[n].conv_ediff = self.conv_ediff
                     self.optimizer[n].check_only_grad_converged = False
 
     def slow_down_climb(self):
         if self.climb and not self.find:
             logger.debug(' slowing down climb optimization')
-            self.optimizer[self.TSnode].DMAX /= self.newclimbscale
-            self.optimizer[self.TSnode].SCALEQN = 2.0
-            if self.optimizer[self.TSnode].SCALE_CLIMB < 5.0:
-                self.optimizer[self.TSnode].SCALE_CLIMB += 1.0
-            self.optimizer[self.pTSnode].SCALEQN = 1.0
+            self.optimizer[self.TSnode].dmax /= self.newclimbscale
+            self.optimizer[self.TSnode].scale_qn = 2.0
+            if self.optimizer[self.TSnode].scale_climb < 5.0:
+                self.optimizer[self.TSnode].scale_climb += 1.0
+            self.optimizer[self.pTSnode].scale_qn = 1.0
             self.ts_exsteps = 1
             if self.newclimbscale < 5.0:
                 self.newclimbscale += 1.0

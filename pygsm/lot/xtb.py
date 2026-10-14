@@ -34,26 +34,26 @@ class XTBLoT(Lot):
 
     Parameters (besides those of :class:`Lot`)
     ------------------------------------------
-    xTB_Hamiltonian : ``'GFN2-xTB'``, ``'GFN1-xTB'`` or ``'IPEA1-xTB'``.
-    xTB_accuracy : tblite numerical accuracy.
-    xTB_electronic_temperature : electronic temperature in K.
+    hamiltonian : ``'GFN2-xTB'``, ``'GFN1-xTB'`` or ``'IPEA1-xTB'``.
+    accuracy : tblite numerical accuracy.
+    electronic_temperature : electronic temperature in K.
     solvent : ALPB implicit solvent name, or None.
     """
 
     def __init__(
         self,
         *,
-        xTB_Hamiltonian: str = 'GFN2-xTB',
-        xTB_accuracy: float = 1.0,
-        xTB_electronic_temperature: float = 300.0,
+        hamiltonian: str = 'GFN2-xTB',
+        accuracy: float = 1.0,
+        electronic_temperature: float = 300.0,
         solvent: str | None = None,
         **kwargs,
     ):
-        check_choice('xTB_Hamiltonian', xTB_Hamiltonian, ('GFN2-xTB', 'GFN1-xTB', 'IPEA1-xTB'))
+        check_choice('hamiltonian', hamiltonian, ('GFN2-xTB', 'GFN1-xTB', 'IPEA1-xTB'))
         super().__init__(**kwargs)
-        self.xTB_Hamiltonian = xTB_Hamiltonian
-        self.xTB_accuracy = xTB_accuracy
-        self.xTB_electronic_temperature = xTB_electronic_temperature
+        self.hamiltonian = hamiltonian
+        self.accuracy = accuracy
+        self.electronic_temperature = electronic_temperature
         self.solvent = solvent
         table = elements.ElementData()
         self.numbers = np.asarray([table.from_symbol(a).atomic_num for a in manage_xyz.get_atoms(self.geom)])
@@ -66,10 +66,10 @@ class XTBLoT(Lot):
         Calculator = _require_tblite()
 
         positions = manage_xyz.xyz_to_np(geom) * units.ANGSTROM_TO_AU
-        calc = Calculator(self.xTB_Hamiltonian, self.numbers, positions, charge=self.charge, uhf=multiplicity - 1)
+        calc = Calculator(self.hamiltonian, self.numbers, positions, charge=self.charge, uhf=multiplicity - 1)
         calc.set('verbosity', 0)
-        calc.set('accuracy', self.xTB_accuracy)
-        calc.set('temperature', self.xTB_electronic_temperature * KB_HARTREE_PER_KELVIN)
+        calc.set('accuracy', self.accuracy)
+        calc.set('temperature', self.electronic_temperature * KB_HARTREE_PER_KELVIN)
         if self.solvent is not None:
             calc.add('alpb-solvation', self.solvent)
         res = calc.singlepoint()

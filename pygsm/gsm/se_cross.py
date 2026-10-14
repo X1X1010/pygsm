@@ -49,44 +49,44 @@ class SECross(SEGSM):
 
         # doing extra constrained penalty optimization for MECI, tightening the penalty step by step
         logger.info(f' extra constrained optimization for the nnR-1 = {self.nR - 1}')
-        self.optimizer[self.nR - 1].conv_grms = self.CONV_TOL * 5
+        self.optimizer[self.nR - 1].conv_grms = self.conv_tol * 5
         for sigma in (1.5, 2.5, 3.5):
             ictan = self.get_tangent_xyz(
                 self.nodes[self.nR - 1].xyz, self.nodes[self.nR - 2].xyz, self.newic.primitive_internal_coordinates
             )
-            self.nodes[self.nR - 1].PES.sigma = sigma
+            self.nodes[self.nR - 1].pes.sigma = sigma
             self.optimizer[self.nR - 1].optimize(
                 molecule=self.nodes[self.nR - 1],
-                refE=self.nodes[0].V0,
+                ref_energy=self.nodes[0].V0,
                 opt_type='ICTAN',
                 opt_steps=5,
                 ictan=ictan,
             )
 
         self.optimizer[self.nR].opt_cross = True
-        self.nodes[0].V0 = self.nodes[0].PES.PES2.energy
+        self.nodes[0].V0 = self.nodes[0].pes.pes2.energy
         if rtype == 0:
             # MECI optimization
             self.nodes[self.nR] = Molecule.copy_from(self.nodes[self.nR - 1], new_node_id=self.nR)
-            avg_pes = AvgPES.create_pes_from(self.nodes[self.nR].PES)
-            self.nodes[self.nR].PES = avg_pes
-            self.optimizer[self.nR].conv_grms = self.CONV_TOL
+            avg_pes = AvgPES.create_pes_from(self.nodes[self.nR].pes)
+            self.nodes[self.nR].pes = avg_pes
+            self.optimizer[self.nR].conv_grms = self.conv_tol
             self.optimizer[self.nR].conv_gmax = 0.1  # self.CONV_gmax
-            self.optimizer[self.nR].conv_Ediff = self.CONV_Ediff
-            self.optimizer[self.nR].conv_dE = self.CONV_dE
+            self.optimizer[self.nR].conv_ediff = self.conv_ediff
+            self.optimizer[self.nR].conv_de = self.conv_de
             self.optimizer[self.nR].optimize(
                 molecule=self.nodes[self.nR],
-                refE=self.nodes[0].V0,
+                ref_energy=self.nodes[0].V0,
                 opt_type='MECI',
                 opt_steps=100,
                 verbose=True,
             )
             if not self.optimizer[self.nR].converged:
                 logger.info('doing extra optimization in hopes that the MECI will converge.')
-                if self.nodes[self.nR].PES.PES2.energy - self.nodes[0].V0 < 20:
+                if self.nodes[self.nR].pes.pes2.energy - self.nodes[0].V0 < 20:
                     self.optimizer[self.nR].optimize(
                         molecule=self.nodes[self.nR],
-                        refE=self.nodes[0].V0,
+                        ref_energy=self.nodes[0].V0,
                         opt_type='MECI',
                         opt_steps=100,
                         verbose=True,
@@ -95,15 +95,15 @@ class SECross(SEGSM):
             # unconstrained penalty optimization
             # TODO make unctonstrained "CROSSING" which checks for dE convergence
             self.nodes[self.nR] = Molecule.copy_from(self.nodes[self.nR - 1], new_node_id=self.nR)
-            self.nodes[self.nR].PES.sigma = 10.0
-            logger.debug(f' sigma for node {self.nR} is {self.nodes[self.nR].PES.sigma:.3f}')
+            self.nodes[self.nR].pes.sigma = 10.0
+            logger.debug(f' sigma for node {self.nR} is {self.nodes[self.nR].pes.sigma:.3f}')
             self.optimizer[self.nR].opt_cross = True
-            self.optimizer[self.nR].conv_grms = self.CONV_TOL
-            self.optimizer[self.nR].conv_Ediff = self.CONV_Ediff
-            self.optimizer[self.nR].conv_dE = self.CONV_dE
+            self.optimizer[self.nR].conv_grms = self.conv_tol
+            self.optimizer[self.nR].conv_ediff = self.conv_ediff
+            self.optimizer[self.nR].conv_de = self.conv_de
             self.optimizer[self.nR].optimize(
                 molecule=self.nodes[self.nR],
-                refE=self.nodes[0].V0,
+                ref_energy=self.nodes[0].V0,
                 opt_type='UNCONSTRAINED',
                 opt_steps=200,
                 verbose=True,
@@ -121,7 +121,7 @@ class SECross(SEGSM):
 
             # Convert all the PES to excited-states
             for n in range(self.nnodes):
-                self.nodes[n].PES = PES.create_pes_from(self.nodes[n].PES.PES2, gradient_states=[(1, 1)])
+                self.nodes[n].pes = PES.create_pes_from(self.nodes[n].pes.pes2, gradient_states=[(1, 1)])
 
             logger.debug(' initial ic_reparam')
             self.reparameterize(ic_reparam_steps=25)
@@ -151,21 +151,21 @@ class SECross(SEGSM):
 
     def check_if_grown(self):
         isDone = False
-        pes1dE = self.nodes[self.nR - 1].PES.dE
-        pes2dE = self.nodes[self.nR - 2].PES.dE
-        condition1 = abs(self.nodes[self.nR - 1].bdist) <= (1 - self.BDIST_RATIO) * abs(self.nodes[0].bdist) and (
+        pes1dE = self.nodes[self.nR - 1].pes.dE
+        pes2dE = self.nodes[self.nR - 2].pes.dE
+        condition1 = abs(self.nodes[self.nR - 1].bdist) <= (1 - self.bdist_ratio) * abs(self.nodes[0].bdist) and (
             abs(pes1dE) > abs(pes2dE)
         )
         if condition1:
             logger.debug(' Condition 1 satisfied')
             logger.debug(f' bdist current {abs(self.nodes[self.nR - 1].bdist):1.3f}')
-            logger.debug(f' bdist target {abs(self.nodes[0].bdist) * (1 - self.BDIST_RATIO):1.3f}')
+            logger.debug(f' bdist target {abs(self.nodes[0].bdist) * (1 - self.bdist_ratio):1.3f}')
             logger.info(' Growth-phase over')
             isDone = True
         return isDone
 
     def set_frontier_convergence(self, nR):
-        self.optimizer[nR].conv_grms = self.ADD_NODE_TOL
+        self.optimizer[nR].conv_grms = self.add_node_tol
         self.optimizer[nR].conv_gmax = 100.0  # self.ADD_NODE_TOL # could use some multiplier times CONV_GMAX...
-        self.optimizer[nR].conv_Ediff = 1000.0  # 2.5
+        self.optimizer[nR].conv_ediff = 1000.0  # 2.5
         logger.debug(f' conv_tol of node {nR} is {self.optimizer[nR].conv_grms:.4f}')

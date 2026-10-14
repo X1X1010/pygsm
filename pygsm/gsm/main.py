@@ -139,7 +139,7 @@ class MainGSM(GrowthMixin, OptimizationMixin, GSM):
         Optimize string iteration
         """
 
-        refE = self.nodes[0].energy
+        ref_energy = self.nodes[0].energy
 
         for n in range(self.nnodes):
             if self.nodes[n] and self.active[n]:
@@ -148,7 +148,7 @@ class MainGSM(GrowthMixin, OptimizationMixin, GSM):
                 osteps = self.mult_steps(n, opt_steps)
                 self.optimizer[n].optimize(
                     molecule=self.nodes[n],
-                    refE=refE,
+                    ref_energy=ref_energy,
                     opt_type=opt_type,
                     opt_steps=osteps,
                     ictan=self.ictan[n],
@@ -161,12 +161,12 @@ class MainGSM(GrowthMixin, OptimizationMixin, GSM):
             if (
                 self.energies[self.nnodes - 1] > self.energies[self.nnodes - 2]
                 and fp > 0
-                and self.nodes[self.nnodes - 1].gradrms > self.CONV_TOL
+                and self.nodes[self.nnodes - 1].gradrms > self.conv_tol
             ):
                 printcool('Last node is not a minimum, Might need to verify that the last node is a minimum')
                 self.optimizer[self.nnodes - 1].optimize(
                     molecule=self.nodes[self.nnodes - 1],
-                    refE=refE,
+                    ref_energy=ref_energy,
                     opt_type='UNCONSTRAINED',
                     opt_steps=opt_steps,
                     ictan=None,
@@ -391,7 +391,7 @@ class MainGSM(GrowthMixin, OptimizationMixin, GSM):
         logger.debug(' setting all interior nodes to active')
         for n in range(1, self.nnodes - 1):
             self.active[n] = True
-            self.optimizer[n].conv_grms = self.CONV_TOL * 2.5
-            self.optimizer[n].DMAX = 0.05
+            self.optimizer[n].conv_grms = self.conv_tol * 2.5
+            self.optimizer[n].dmax = 0.05
 
         return

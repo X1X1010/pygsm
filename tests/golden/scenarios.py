@@ -183,9 +183,9 @@ def _molecule(geom, xyz2=None, coordinate_type='TRIC', form_hessian=True, counte
     calc = calc if calc is not None else _tblite()
     if counter is not None:
         counter.wrap(calc)
-    lot = ASELoT(calculator=calc, geom=geom, ID=0)
+    lot = ASELoT(calculator=calc, geom=geom, string_id=0)
     pes = PES(lot=lot, ad_idx=0)
-    return Molecule(geom=geom, PES=pes, coord_obj=dlc, Form_Hessian=form_hessian)
+    return Molecule(geom=geom, pes=pes, coord_obj=dlc, form_hessian=form_hessian)
 
 
 def _optimizer(method, **opts):
@@ -200,8 +200,8 @@ def _opt(method, linesearch):
     geom = _da_geoms()[0]
     with _quiet():
         mol = _molecule(geom, form_hessian=method == 'ef', counter=counter)
-        opt = _optimizer(method, Linesearch=linesearch, DMAX=0.1, print_level=1)
-        _geoms, energies = opt.optimize(molecule=mol, refE=mol.energy, opt_steps=15)
+        opt = _optimizer(method, linesearch=linesearch, dmax=0.1, print_level=1)
+        _geoms, energies = opt.optimize(molecule=mol, ref_energy=mol.energy, opt_steps=15)
     return {
         'energies': np.asarray(energies, dtype=float),
         'final_xyz': np.asarray(mol.xyz),
@@ -262,30 +262,30 @@ def _de_gsm(
         opt = _optimizer(
             method,
             print_level=1,
-            Linesearch='NoLineSearch',
+            linesearch='NoLineSearch',
             update_hess_in_bg=not (climb or method == 'lbfgs'),
-            conv_Ediff=100.0,
+            conv_ediff=100.0,
             conv_gmax=100.0,
-            DMAX=0.1,
+            dmax=0.1,
         )
         gsm = DEGSM(
             reactant=reactant,
             product=product,
             nnodes=num_nodes,
-            CONV_TOL=5e-4,
-            CONV_gmax=100.0,
-            CONV_Ediff=100.0,
-            ADD_NODE_TOL=0.1,
+            conv_tol=5e-4,
+            conv_gmax=100.0,
+            conv_ediff=100.0,
+            add_node_tol=0.1,
             growth_direction=0,
             optimizer=opt,
-            ID=0,
+            string_id=0,
             print_level=1,
             mp_cores=mp_cores,
             interp_method='DLC',
         )
         if optimize_endpoints:
-            opt.optimize(molecule=reactant, refE=reactant.energy, opt_steps=100)
-            opt.optimize(molecule=product, refE=product.energy, opt_steps=100)
+            opt.optimize(molecule=reactant, ref_energy=reactant.energy, opt_steps=100)
+            opt.optimize(molecule=product, ref_energy=product.energy, opt_steps=100)
         gsm.go_gsm(max_iters=max_gsm_steps, opt_steps=3, rtype=1 if climb else 2)
     return _gsm_result(gsm, counter)
 
@@ -347,25 +347,25 @@ def segsm_ef():
         p1 = PrimitiveInternalCoordinates(xyz=xyz1, atoms=atoms, topology=top, **flags)
         p1.newMakePrimitives(xyz1)
         dlc = DelocalizedInternalCoordinates(xyz=xyz1, atoms=atoms, primitives=p1, **flags)
-        lot = ASELoT(calculator=counter.wrap(_tblite()), geom=geom, ID=0)
+        lot = ASELoT(calculator=counter.wrap(_tblite()), geom=geom, string_id=0)
         pes = PES(lot=lot, ad_idx=0)
-        reactant = Molecule(geom=geom, PES=pes, coord_obj=dlc, Form_Hessian=True)
-        opt = _optimizer('ef', Linesearch='NoLineSearch', DMAX=0.1, conv_Ediff=100.0, conv_gmax=100.0, print_level=1)
+        reactant = Molecule(geom=geom, pes=pes, coord_obj=dlc, form_hessian=True)
+        opt = _optimizer('ef', linesearch='NoLineSearch', dmax=0.1, conv_ediff=100.0, conv_gmax=100.0, print_level=1)
         gsm = SEGSM(
             reactant=reactant,
             nnodes=30,
-            DQMAG_MAX=0.8,
-            BDIST_RATIO=0.5,
-            CONV_TOL=5e-4,
-            ADD_NODE_TOL=0.01,
+            dqmag_max=0.8,
+            bdist_ratio=0.5,
+            conv_tol=5e-4,
+            add_node_tol=0.01,
             optimizer=opt,
             print_level=1,
             driving_coords=driving,
-            ID=0,
+            string_id=0,
             mp_cores=1,
             interp_method='DLC',
         )
-        opt.optimize(molecule=reactant, refE=reactant.energy, opt_steps=100)
+        opt.optimize(molecule=reactant, ref_energy=reactant.energy, opt_steps=100)
         gsm.go_gsm(max_iters=20, opt_steps=10, rtype=2)
     return _gsm_result(gsm, counter)
 
@@ -412,20 +412,20 @@ def mecp_penalty_ethylene():
     with _quiet():
         TwoStateTBLite = _two_state_lot_class()
         lot = TwoStateTBLite(
-            calculator=_tblite(), geom=geom, ID=0, states=[(1, 0), (3, 0)], gradient_states=[(1, 0), (3, 0)]
+            calculator=_tblite(), geom=geom, string_id=0, states=[(1, 0), (3, 0)], gradient_states=[(1, 0), (3, 0)]
         )
         pes1 = PES(lot=lot, multiplicity=1, ad_idx=0)
         pes2 = PES(lot=lot, multiplicity=3, ad_idx=0)
-        pes = PenaltyPES(PES1=pes1, PES2=pes2, lot=lot, sigma=3.5)
+        pes = PenaltyPES(pes1=pes1, pes2=pes2, lot=lot, sigma=3.5)
         top = build_topology(xyz, atoms)
         flags = _coord_flags('TRIC')
         p1 = PrimitiveInternalCoordinates(xyz=xyz, atoms=atoms, topology=top, **flags)
         dlc = DelocalizedInternalCoordinates(xyz=xyz, atoms=atoms, primitives=p1, **flags)
-        mol = Molecule(geom=geom, PES=pes, coord_obj=dlc, Form_Hessian=True)
+        mol = Molecule(geom=geom, pes=pes, coord_obj=dlc, form_hessian=True)
         opt = _optimizer(
-            'ef', Linesearch='backtrack', DMAX=0.05, conv_Ediff=0.1, conv_dE=0.1, conv_gmax=0.005, opt_cross=True
+            'ef', linesearch='backtrack', dmax=0.05, conv_ediff=0.1, conv_de=0.1, conv_gmax=0.005, opt_cross=True
         )
-        _geoms, energies = opt.optimize(molecule=mol, refE=mol.energy, opt_steps=30, opt_type='UNCONSTRAINED')
+        _geoms, energies = opt.optimize(molecule=mol, ref_energy=mol.energy, opt_steps=30, opt_type='UNCONSTRAINED')
     return {
         'energies': np.asarray(energies, dtype=float),
         'final_xyz': np.asarray(mol.xyz),

@@ -57,7 +57,7 @@ class GrowthMixin:
         if self.growth_direction == 1:
             logger.debug('Setting LOT of last node')
             self.nodes[-1] = Molecule.copy_from(
-                MoleculeA=self.nodes[-2],
+                molecule=self.nodes[-2],
                 xyz=self.nodes[-1].xyz,
                 new_node_id=self.nnodes - 1,
             )
@@ -159,8 +159,8 @@ class GrowthMixin:
                 self.nodes[iP],
                 stepsize,
                 iN,
-                DQMAG_MAX=self.DQMAG_MAX,
-                DQMAG_MIN=self.DQMAG_MIN,
+                dqmag_max=self.dqmag_max,
+                dqmag_min=self.dqmag_min,
                 driving_coords=self.driving_coords,
             )
 
@@ -175,7 +175,7 @@ class GrowthMixin:
                 )
                 self.nodes[self.nR].bdist = bdist
 
-            self.optimizer[self.nR].DMAX = self.optimizer[self.nR - 1].DMAX
+            self.optimizer[self.nR].dmax = self.optimizer[self.nR - 1].dmax
             self.current_nnodes += 1
             self.nR += 1
             logger.debug(f' nn={self.current_nnodes},nR={self.nR}')
@@ -203,7 +203,7 @@ class GrowthMixin:
             if self.nodes[-self.nP - 1] is None:
                 raise RuntimeError('Ran out of space')
 
-            self.optimizer[n2].DMAX = self.optimizer[n1].DMAX
+            self.optimizer[n2].dmax = self.optimizer[n1].dmax
             self.current_nnodes += 1
             self.nP += 1
             logger.debug(f' nn={self.current_nnodes},nP={self.nP}')

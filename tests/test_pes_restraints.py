@@ -17,7 +17,7 @@ def _pes(**kwargs):
 
 
 def test_restraints_energy_and_gradient_are_consistent():
-    pes, xyz0 = _pes(RESTRAINTS=[(0, 50.0), (3, 20.0)])
+    pes, xyz0 = _pes(restraints=[(0, 50.0), (3, 20.0)])
     plain = PES(pes.lot.clone())
     x = xyz0 + 0.05 * np.random.default_rng(0).standard_normal(xyz0.shape)
 
@@ -39,7 +39,7 @@ def test_restraints_energy_and_gradient_are_consistent():
 
 
 def test_restraint_reference_is_the_input_geometry_for_every_copy():
-    pes, xyz0 = _pes(RESTRAINTS=[(0, 50.0)])
+    pes, xyz0 = _pes(restraints=[(0, 50.0)])
     copy = PES.create_pes_from(pes, node_id=4)
     np.testing.assert_array_equal(pes.reference_xyz, xyz0)
     np.testing.assert_array_equal(copy.reference_xyz, xyz0)

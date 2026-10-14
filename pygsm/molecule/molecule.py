@@ -33,13 +33,13 @@ class Molecule:
 
     Parameters
     ----------
-    PES : potential energy surface; the molecule gets its own copy for ``node_id``.
+    pes : potential energy surface; the molecule gets its own copy for ``node_id``.
     coord_obj : coordinate system (e.g. ``DelocalizedInternalCoordinates``).
     geom : geometry as (symbol, x, y, z) rows in Angstrom.
     fnm : xyz file to read the geometry from when ``geom`` is not given.
-    Form_Hessian : form the Hessian in the current basis (slow for large molecules).
-    Primitive_Hessian : primitive Hessian to start from.
-    Hessian : Hessian in the current coordinate basis to start from.
+    form_hessian : form the Hessian in the current basis (slow for large molecules).
+    primitive_hessian : primitive Hessian to start from.
+    hessian : Hessian in the current coordinate basis to start from.
     node_id : index of the string node, passed on to the level of theory.
     frozen_atoms : indices of frozen atoms.
     comment : descriptive comment.
@@ -52,15 +52,15 @@ class Molecule:
     @classmethod
     def _copy_fast(cls, source, xyz=None, fnm=None, new_node_id=1):
         _geom, xyz_array = copy_geometry_inputs(source.geometry, source.xyz, xyz=xyz, fnm=fnm)
-        pes = copy_pes(source.PES, new_node_id)
+        pes = copy_pes(source.pes, new_node_id)
         coord_obj = cls._copy_coord_object(source.coord_obj, xyz_array if xyz is not None or fnm is not None else None)
 
         new = cls.__new__(cls)
-        new.PES = pes
+        new.pes = pes
         new.coord_obj = coord_obj
-        new.Form_Hessian = source.Form_Hessian
-        new.Primitive_Hessian = source.Primitive_Hessian
-        new.Hessian = source.Hessian
+        new.form_hessian = source.form_hessian
+        new.primitive_hessian = source.primitive_hessian
+        new.hessian = source.hessian
         new._node_id = new_node_id
         new.frozen_atoms = source.frozen_atoms
         new.comment = source.comment
@@ -68,13 +68,13 @@ class Molecule:
         new.atoms = list(source.atoms)
         new._initialize_runtime_state()
 
-        if new.Hessian is None and new.Form_Hessian:
-            if new.Primitive_Hessian is None and type(new.coord_obj) is not CartesianCoordinates:
-                new.form_Primitive_Hessian()
-            if new.Primitive_Hessian is not None:
-                new.form_Hessian_in_basis()
+        if new.hessian is None and new.form_hessian:
+            if new.primitive_hessian is None and type(new.coord_obj) is not CartesianCoordinates:
+                new.form_primitive_hessian()
+            if new.primitive_hessian is not None:
+                new.form_hessian_in_basis()
             else:
-                new.form_Hessian()
+                new.form_hessian()
 
         return new
 
@@ -84,15 +84,15 @@ class Molecule:
     @classmethod
     def copy_from(
         cls,
-        MoleculeA: Molecule,
+        molecule: Molecule,
         xyz: np.ndarray | None = None,
         fnm: str | None = None,
         new_node_id: int = 1,
     ) -> Molecule:
-        """Copy ``MoleculeA`` for string node ``new_node_id``, optionally with new coordinates."""
-        logger.debug(f' Copying from MoleculA {MoleculeA.node_id}')
+        """Copy ``molecule`` for string node ``new_node_id``, optionally with new coordinates."""
+        logger.debug(f' Copying from node {molecule.node_id}')
         return cls._copy_fast(
-            MoleculeA,
+            molecule,
             xyz=xyz,
             fnm=fnm,
             new_node_id=new_node_id,
@@ -100,14 +100,14 @@ class Molecule:
 
     def __init__(
         self,
-        PES,
+        pes,
         coord_obj,
         *,
         geom: list | None = None,
         fnm: str | None = None,
-        Form_Hessian: bool = True,
-        Primitive_Hessian=None,
-        Hessian=None,
+        form_hessian: bool = True,
+        primitive_hessian=None,
+        hessian=None,
         node_id: int = 0,
         frozen_atoms: list | None = None,
         comment: str = '',
@@ -116,9 +116,9 @@ class Molecule:
             raise ValueError('Molecule needs a coordinate system (coord_obj)')
         if not isinstance(comment, str):
             raise TypeError('comment for a Molecule must be a string')
-        self.Form_Hessian = Form_Hessian
-        self.Primitive_Hessian = Primitive_Hessian
-        self.Hessian = Hessian
+        self.form_hessian = form_hessian
+        self.primitive_hessian = primitive_hessian
+        self.hessian = hessian
         self._node_id = node_id
         self.frozen_atoms = frozen_atoms
         self.comment = comment
@@ -128,7 +128,7 @@ class Molecule:
         t1 = time()
         logger.debug(f' Time to get coords= {t1 - t0:.3f}')
 
-        self.PES = copy_pes(PES, node_id)
+        self.pes = copy_pes(pes, node_id)
         validate_geometry_inputs(atoms, xyz)
         self._xyz = xyz.copy()
 
@@ -140,16 +140,16 @@ class Molecule:
         t2 = time()
         self._initialize_runtime_state()
 
-        if self.Hessian is None and self.Form_Hessian:
-            if self.Primitive_Hessian is None and type(self.coord_obj) is not CartesianCoordinates:
-                self.form_Primitive_Hessian()
+        if self.hessian is None and self.form_hessian:
+            if self.primitive_hessian is None and type(self.coord_obj) is not CartesianCoordinates:
+                self.form_primitive_hessian()
             t3 = time()
             logger.debug(f' Time to build Prim Hessian {t3 - t2:.3f}')
-            if self.Primitive_Hessian is not None:
+            if self.primitive_hessian is not None:
                 logger.debug(' forming Hessian in basis')
-                self.form_Hessian_in_basis()
+                self.form_hessian_in_basis()
             else:
-                self.form_Hessian()
+                self.form_hessian()
 
         logger.debug(' molecule constructed')
 
@@ -220,60 +220,60 @@ class Molecule:
     @property
     def energy(self):
         if self._cached_energy_token != self._state_token:
-            self._cached_energy = self.PES.get_energy(self.xyz)
+            self._cached_energy = self.pes.get_energy(self.xyz)
             self._cached_energy_token = self._state_token
         return self._cached_energy
 
     @property
     def gradx(self):
-        return np.reshape(self.PES.get_gradient(self.xyz, frozen_atoms=self.frozen_atoms), (-1, 3))
+        return np.reshape(self.pes.get_gradient(self.xyz, frozen_atoms=self.frozen_atoms), (-1, 3))
 
     @property
     def gradient(self):
-        gradx = self.PES.get_gradient(self.xyz, frozen_atoms=self.frozen_atoms)
+        gradx = self.pes.get_gradient(self.xyz, frozen_atoms=self.frozen_atoms)
         return self.coord_obj.calcGrad(self.xyz, gradx)  # CartesianCoordinate just returns gradx
 
     # for PES seams
     @property
     def derivative_coupling(self):
-        dvecx = self.PES.get_coupling(self.xyz, frozen_atoms=self.frozen_atoms)
+        dvecx = self.pes.get_coupling(self.xyz, frozen_atoms=self.frozen_atoms)
         return self.coord_obj.calcGrad(self.xyz, dvecx)
 
     @property
     def difference_gradient(self):
-        dgradx = self.PES.get_dgrad(self.xyz, frozen_atoms=self.frozen_atoms)
+        dgradx = self.pes.get_dgrad(self.xyz, frozen_atoms=self.frozen_atoms)
         return self.coord_obj.calcGrad(self.xyz, dgradx)
 
     @property
     def difference_energy(self):
         _ = self.energy  # evaluating the energy refreshes PES.dE
-        return self.PES.dE
+        return self.pes.dE
 
-    def form_Primitive_Hessian(self):
+    def form_primitive_hessian(self):
         logger.debug(' making primitive Hessian')
-        self.Primitive_Hessian = self.coord_obj.Prims.guess_hessian(self.xyz)
+        self.primitive_hessian = self.coord_obj.Prims.guess_hessian(self.xyz)
         self.newHess = 10
 
-    def update_Primitive_Hessian(self, change=None):
+    def update_primitive_hessian(self, change=None):
         logger.debug(' updating prim hess')
         if change is not None:
-            self.Primitive_Hessian += change
-        return self.Primitive_Hessian
+            self.primitive_hessian += change
+        return self.primitive_hessian
 
-    def form_Hessian(self):
-        self.Hessian = self.coord_obj.guess_hessian(self.xyz)
+    def form_hessian(self):
+        self.hessian = self.coord_obj.guess_hessian(self.xyz)
         self.newHess = 5
 
-    def update_Hessian(self, change=None):
+    def update_hessian(self, change=None):
         if change is not None:
-            self.Hessian += change
-        return self.Hessian
+            self.hessian += change
+        return self.hessian
 
-    def form_Hessian_in_basis(self):
-        self.Hessian = block_matrix.dot(
-            block_matrix.dot(block_matrix.transpose(self.coord_basis), self.Primitive_Hessian), self.coord_basis
+    def form_hessian_in_basis(self):
+        self.hessian = block_matrix.dot(
+            block_matrix.dot(block_matrix.transpose(self.coord_basis), self.primitive_hessian), self.coord_basis
         )
-        return self.Hessian
+        return self.hessian
 
     @property
     def xyz(self):
@@ -354,7 +354,7 @@ class Molecule:
     @node_id.setter
     def node_id(self, value):
         self._node_id = value
-        self.PES.lot.node_id = value
+        self.pes.lot.node_id = value
 
     @property
     def state_token(self):

@@ -32,7 +32,7 @@ class EigenvectorFollow(BaseOptimizer):
     def optimize(
         self,
         molecule: Molecule,
-        refE: float = 0.0,
+        ref_energy: float = 0.0,
         opt_type: str = 'UNCONSTRAINED',
         opt_steps: int = 3,
         ictan=None,
@@ -44,19 +44,19 @@ class EigenvectorFollow(BaseOptimizer):
         self.check_inputs(molecule, opt_type, ictan)
         nconstraints = self.get_nconstraints(opt_type)
 
-        logger.debug(f' initial E {molecule.energy - refE:5.4f}')
+        logger.debug(f' initial E {molecule.energy - ref_energy:5.4f}')
         logger.debug(f' CONV_TOL {self.conv_grms:1.5f}')
         geoms = []
         energies = []
         geoms.append(molecule.geometry)
-        energies.append(molecule.energy - refE)
+        energies.append(molecule.energy - ref_energy)
         self.converged = False
 
         # form initial coord basis
         if opt_type != 'TS':
             constraints = self.get_constraint_vectors(molecule, opt_type, ictan)
             molecule.update_coordinate_basis(constraints=constraints)
-            molecule.form_Hessian_in_basis()
+            molecule.form_hessian_in_basis()
 
         # Evaluate the function value and its gradient.
         fx = molecule.energy
@@ -79,7 +79,7 @@ class EigenvectorFollow(BaseOptimizer):
         xyz = np.copy(molecule.xyz)
 
         if opt_type == 'TS':
-            self.linesearch = NoLineSearch
+            self._linesearch = NoLineSearch
         if opt_type == 'SEAM' or opt_type == 'MECI' or opt_type == 'TS-SEAM':
             self.opt_cross = True
 
@@ -103,9 +103,9 @@ class EigenvectorFollow(BaseOptimizer):
             # update Hess
             if update_hess:
                 if opt_type != 'TS':
-                    self.update_Hessian(molecule, 'BFGS')
+                    self.update_hessian(molecule, 'BFGS')
                 else:
-                    self.update_Hessian(molecule, 'BOFILL')
+                    self.update_hessian(molecule, 'BOFILL')
             update_hess = True
 
             # => Form eigenvector step <= #
@@ -123,8 +123,8 @@ class EigenvectorFollow(BaseOptimizer):
 
             actual_step = np.linalg.norm(dq)
             dq = dq / actual_step  # normalize
-            if actual_step > self.DMAX:
-                step = self.DMAX
+            if actual_step > self.dmax:
+                step = self.dmax
             else:
                 step = actual_step
 
@@ -140,7 +140,7 @@ class EigenvectorFollow(BaseOptimizer):
             # => calculate constraint step <= #
             constraint_steps = self.get_constraint_steps(molecule, opt_type, g)
 
-            ls = self.linesearch(
+            ls = self._linesearch(
                 nconstraints, x, fx, g, dq, step, xp, constraint_steps, self.linesearch_parameters, molecule, verbose
             )
 
@@ -160,23 +160,23 @@ class EigenvectorFollow(BaseOptimizer):
                 ratio = 0.0
                 molecule.newHess = 5
 
-            if ls['step'] > self.DMAX:
+            if ls['step'] > self.dmax:
                 if ls['step'] <= self.abs_max_step:  # absolute max
                     logger.debug(' Increasing DMAX to {}'.format(ls['step']))
-                    self.DMAX = ls['step']
+                    self.dmax = ls['step']
                 else:
-                    self.DMAX = self.abs_max_step
-            elif ls['step'] < self.DMAX:
-                if ls['step'] >= self.DMIN:  # absolute min
+                    self.dmax = self.abs_max_step
+            elif ls['step'] < self.dmax:
+                if ls['step'] >= self.dmin:  # absolute min
                     logger.debug(' Decreasing DMAX to {}'.format(ls['step']))
-                    self.DMAX = ls['step']
-                elif ls['step'] <= self.DMIN:
-                    self.DMAX = self.DMIN
-                    logger.debug(f' Decreasing DMAX to {self.DMIN}')
+                    self.dmax = ls['step']
+                elif ls['step'] <= self.dmin:
+                    self.dmax = self.dmin
+                    logger.debug(f' Decreasing DMAX to {self.dmin}')
 
             # calculate predicted value from Hessian, gp is previous constrained gradient
             scaled_dq = dq * step
-            dEtemp = np.dot(self.Hessian, scaled_dq)
+            dEtemp = np.dot(self.hessian, scaled_dq)
             dEpre = np.dot(np.transpose(scaled_dq), gc) + 0.5 * np.dot(np.transpose(dEtemp), scaled_dq)
             dEpre *= units.KCAL_MOL_PER_AU
             constraint_energy = np.dot(gp.T, constraint_steps) * units.KCAL_MOL_PER_AU
@@ -199,7 +199,7 @@ class EigenvectorFollow(BaseOptimizer):
             xyz = molecule.update_xyz(x - xp)
             if ostep % xyzframerate == 0:
                 geoms.append(molecule.geometry)
-                energies.append(molecule.energy - refE)
+                energies.append(molecule.energy - ref_energy)
                 self.write_trajectory(trajectory, geoms, energies)
 
             # save variables for update Hessian!
@@ -219,7 +219,7 @@ class EigenvectorFollow(BaseOptimizer):
 
             if self.print_level > 0:
                 logger.info(
-                    f' Node: {molecule.node_id} Opt step: {ostep + 1} E: {fx - refE:5.4f} predE: {dEpre:5.4f} ratio: {ratio:1.3f} gradrms: {molecule.gradrms:1.5f} ss: {step:1.3f} DMAX: {self.DMAX:1.3f}'
+                    f' Node: {molecule.node_id} Opt step: {ostep + 1} E: {fx - ref_energy:5.4f} predE: {dEpre:5.4f} ratio: {ratio:1.3f} gradrms: {molecule.gradrms:1.5f} ss: {step:1.3f} DMAX: {self.dmax:1.3f}'
                 )
 
             # check for convergence TODO
@@ -238,10 +238,10 @@ class EigenvectorFollow(BaseOptimizer):
             # TODO turn back on conv_DE
             if (
                 self.opt_cross
-                and abs(dE) < self.conv_dE
+                and abs(dE) < self.conv_de
                 and molecule.gradrms < self.conv_grms
                 and abs(gmax) < self.conv_gmax
-                and abs(dEstep) < self.conv_Ediff
+                and abs(dEstep) < self.conv_ediff
                 and abs(disp) < self.conv_disp
             ):
                 if opt_type == 'TS-SEAM':
@@ -255,7 +255,7 @@ class EigenvectorFollow(BaseOptimizer):
                 not self.opt_cross
                 and molecule.gradrms < self.conv_grms
                 and abs(gmax) < self.conv_gmax
-                and abs(dEstep) < self.conv_Ediff
+                and abs(dEstep) < self.conv_ediff
                 and abs(disp) < self.conv_disp
             ):
                 if opt_type == 'CLIMB':
@@ -272,7 +272,7 @@ class EigenvectorFollow(BaseOptimizer):
                 logger.debug(' converged')
                 if ostep % xyzframerate != 0:
                     geoms.append(molecule.geometry)
-                    energies.append(molecule.energy - refE)
+                    energies.append(molecule.energy - ref_energy)
                     self.write_trajectory(trajectory, geoms, energies)
                 break
 

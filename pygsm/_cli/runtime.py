@@ -191,14 +191,14 @@ def _build_gsm(inpfileq: dict, reactant: Molecule, product: Molecule | None, opt
     options = dict(
         reactant=reactant,
         nnodes=inpfileq['num_nodes'],
-        CONV_TOL=inpfileq['CONV_TOL'],
-        CONV_gmax=inpfileq['CONV_gmax'],
-        CONV_Ediff=inpfileq['CONV_Ediff'],
-        CONV_dE=inpfileq['CONV_dE'],
-        ADD_NODE_TOL=inpfileq['ADD_NODE_TOL'],
+        conv_tol=inpfileq['CONV_TOL'],
+        conv_gmax=inpfileq['CONV_gmax'],
+        conv_ediff=inpfileq['CONV_Ediff'],
+        conv_de=inpfileq['CONV_dE'],
+        add_node_tol=inpfileq['ADD_NODE_TOL'],
         optimizer=optimizer,
         print_level=inpfileq['gsm_print_level'],
-        ID=inpfileq['ID'],
+        string_id=inpfileq['ID'],
         xyz_writer=XYZ_WRITERS[inpfileq['xyz_output_format']],
         output_dir='.',
         mp_cores=inpfileq['mp_cores'],
@@ -209,8 +209,8 @@ def _build_gsm(inpfileq: dict, reactant: Molecule, product: Molecule | None, opt
     gsm_class = SEGSM if inpfileq['gsm_type'] == 'SE_GSM' else SECross
     return gsm_class(
         driving_coords=driving_coordinates,
-        DQMAG_MAX=inpfileq['DQMAG_MAX'],
-        BDIST_RATIO=inpfileq['BDIST_RATIO'],
+        dqmag_max=inpfileq['DQMAG_MAX'],
+        bdist_ratio=inpfileq['BDIST_RATIO'],
         **options,
     )
 
@@ -271,9 +271,9 @@ def main(argv: Sequence[str] | None = None):
     output.printcool(f'Building the reactant object with {inpfileq["coordinate_type"]}')
     reactant = Molecule(
         geom=geoms[0],
-        PES=pes,
+        pes=pes,
         coord_obj=coord_obj1,
-        Form_Hessian=form_hessian,
+        form_hessian=form_hessian,
         frozen_atoms=frozen_indices,
     )
 
@@ -303,11 +303,11 @@ def main(argv: Sequence[str] | None = None):
 
     if not inpfileq['reactant_geom_fixed'] and inpfileq['gsm_type'] != 'SE_Cross':
         output.printcool('REACTANT GEOMETRY NOT FIXED!!! OPTIMIZING')
-        optimizer.optimize(molecule=reactant, refE=reactant.energy, opt_steps=100)
+        optimizer.optimize(molecule=reactant, ref_energy=reactant.energy, opt_steps=100)
 
     if product is not None and not inpfileq['product_geom_fixed']:
         output.printcool('PRODUCT GEOMETRY NOT FIXED!!! OPTIMIZING')
-        optimizer.optimize(molecule=product, refE=reactant.energy, opt_steps=100)
+        optimizer.optimize(molecule=product, ref_energy=reactant.energy, opt_steps=100)
 
     if inpfileq['max_opt_steps'] is None:
         inpfileq['max_opt_steps'] = 3 if inpfileq['gsm_type'] == 'DE_GSM' else 20
@@ -322,16 +322,16 @@ def main(argv: Sequence[str] | None = None):
     try:
         gsm.go_gsm(inpfileq['max_gsm_iters'], inpfileq['max_opt_steps'], _resolve_rtype(inpfileq))
     except GrowthError as error:
-        logger.error(f' GSM stopped: {error} (--max-gsm-iters); the last string is in string_{gsm.ID:03d}.xyz')
+        logger.error(f' GSM stopped: {error} (--max-gsm-iters); the last string is in string_{gsm.string_id:03d}.xyz')
         raise SystemExit(1) from error
     if inpfileq['gsm_type'] == 'SE_Cross':
         post_processing(gsm, analyze_ICs=inpfileq['analyze_ICs'], have_TS=False)
-        manage_xyz.write_xyz(f'meci_{gsm.ID:03d}.xyz', gsm.nodes[gsm.nR].geometry)
+        manage_xyz.write_xyz(f'meci_{gsm.string_id:03d}.xyz', gsm.nodes[gsm.nR].geometry)
         if not gsm.end_early:
-            manage_xyz.write_xyz(f'TSnode_{gsm.ID:03d}.xyz', gsm.nodes[gsm.TSnode].geometry)
+            manage_xyz.write_xyz(f'TSnode_{gsm.string_id:03d}.xyz', gsm.nodes[gsm.TSnode].geometry)
     else:
         post_processing(gsm, analyze_ICs=inpfileq['analyze_ICs'], have_TS=True)
-        manage_xyz.write_xyz(f'TSnode_{gsm.ID:03d}.xyz', gsm.nodes[gsm.TSnode].geometry)
+        manage_xyz.write_xyz(f'TSnode_{gsm.string_id:03d}.xyz', gsm.nodes[gsm.TSnode].geometry)
 
 
 def read_isomers_file(isomers_file):
@@ -373,14 +373,14 @@ def _write_ic_data(gsm, header: str, node_indices) -> None:
     """Write the primitive internal coordinates of the given nodes to IC_data_<ID>.txt, one per line."""
     columns = [gsm.nodes[0].primitive_internal_coordinates]
     columns += [gsm.nodes[n].primitive_internal_values for n in node_indices]
-    with open(f'IC_data_{gsm.ID:03d}.txt', 'w') as handle:
+    with open(f'IC_data_{gsm.string_id:03d}.txt', 'w') as handle:
         handle.write(header + '\n')
         for record in zip(*columns):
             handle.write('\t'.join(str(v) for v in record) + '\n')
 
 
 def post_processing(gsm, analyze_ICs=True, have_TS=True):
-    plot(fx=gsm.energies, x=range(len(gsm.energies)), title=gsm.ID)
+    plot(fx=gsm.energies, x=range(len(gsm.energies)), title=gsm.string_id)
 
     if have_TS:
         minnodeR = np.argmin(gsm.energies[: gsm.TSnode])

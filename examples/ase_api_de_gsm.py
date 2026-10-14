@@ -45,7 +45,7 @@ def run_de_gsm(
     flags = dict(connect=coordinate_type == 'DLC', addtr=coordinate_type == 'TRIC', addcart=coordinate_type == 'HDLC')
 
     # Level of theory and potential energy surface (ground state)
-    lot = ASELoT(calculator=calculator, geom=geom, ID=0)
+    lot = ASELoT(calculator=calculator, geom=geom, string_id=0)
     pes = PES(lot=lot, ad_idx=0, multiplicity=1)
 
     # Topology: reactant bonds plus any bond formed in the product
@@ -62,14 +62,14 @@ def run_de_gsm(
     coords = DelocalizedInternalCoordinates(xyz=reactant.get_positions(), atoms=elements, primitives=prims, **flags)
 
     # Endpoints
-    reactant_mol = Molecule(geom=geom, PES=pes, coord_obj=coords, Form_Hessian=optimizer_method == 'eigenvector_follow')
+    reactant_mol = Molecule(geom=geom, pes=pes, coord_obj=coords, form_hessian=optimizer_method == 'eigenvector_follow')
     product_mol = Molecule.copy_from(reactant_mol, xyz=product.get_positions(), new_node_id=num_nodes - 1)
 
     optimizer_class = {'eigenvector_follow': EigenvectorFollow, 'lbfgs': LBFGS}[optimizer_method]
     optimizer = optimizer_class(
-        Linesearch='NoLineSearch',
-        DMAX=0.1,
-        conv_Ediff=100.0,
+        linesearch='NoLineSearch',
+        dmax=0.1,
+        conv_ediff=100.0,
         conv_gmax=100.0,
         update_hess_in_bg=not (rtype == CLIMB_ONLY or optimizer_method == 'lbfgs'),
     )
@@ -78,18 +78,18 @@ def run_de_gsm(
         reactant=reactant_mol,
         product=product_mol,
         nnodes=num_nodes,
-        CONV_TOL=0.0005,
-        CONV_gmax=100.0,
-        CONV_Ediff=100.0,
-        ADD_NODE_TOL=0.1,
+        conv_tol=0.0005,
+        conv_gmax=100.0,
+        conv_ediff=100.0,
+        add_node_tol=0.1,
         optimizer=optimizer,
         interp_method='DLC',
     )
 
     if optimize_endpoints:
         output.printcool('Optimizing the endpoints')
-        optimizer.optimize(molecule=reactant_mol, refE=reactant_mol.energy, opt_steps=100)
-        optimizer.optimize(molecule=product_mol, refE=product_mol.energy, opt_steps=100)
+        optimizer.optimize(molecule=reactant_mol, ref_energy=reactant_mol.energy, opt_steps=100)
+        optimizer.optimize(molecule=product_mol, ref_energy=product_mol.energy, opt_steps=100)
 
     gsm.go_gsm(max_gsm_iterations, max_opt_steps, rtype=rtype)
     return gsm

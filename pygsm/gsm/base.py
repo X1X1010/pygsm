@@ -49,20 +49,20 @@ class GSM:
     nnodes : number of string nodes.
     driving_coords : driving coordinates for single-ended methods, e.g. ``[('ADD', 1, 11)]``
         (atoms 1-indexed).
-    CONV_TOL : node gradrms convergence threshold.
-    CONV_gmax : node max-gradient convergence threshold.
-    CONV_Ediff : node energy-change convergence threshold.
-    CONV_dE : state energy-difference convergence threshold.
-    ADD_NODE_TOL : gradrms below which the frontier node is converged enough to add the next.
+    conv_tol : node gradrms convergence threshold.
+    conv_gmax : node max-gradient convergence threshold.
+    conv_ediff : node energy-change convergence threshold.
+    conv_de : state energy-difference convergence threshold.
+    add_node_tol : gradrms below which the frontier node is converged enough to add the next.
     growth_direction : 0 grows from both ends, 1 from the reactant, 2 from the product.
-    DQMAG_MAX : max step along the tangent for single-ended methods.
-    DQMAG_MIN : min step along the tangent for single-ended methods.
+    dqmag_max : max step along the tangent for single-ended methods.
+    dqmag_min : min step along the tangent for single-ended methods.
     print_level : diagnostic detail at DEBUG log level.
     xyz_writer : function that writes string files (see ``output_dir``).
     mp_cores : processes used for parallel node updates.
-    BDIST_RATIO : single-ended growth is complete once bdist drops below
-        ``(1 - BDIST_RATIO)`` of its initial value.
-    ID : string id used in file names.
+    bdist_ratio : single-ended growth is complete once bdist drops below
+        ``(1 - bdist_ratio)`` of its initial value.
+    string_id : string id used in file names.
     interp_method : interpolation/reparametrisation method; only ``'DLC'`` is implemented.
     noise : energy noise used when checking for intermediates.
     output_dir : directory for string files (latest string as a restart checkpoint,
@@ -82,19 +82,19 @@ class GSM:
         optimizer,
         nnodes: int = 1,
         driving_coords: list | None = None,
-        CONV_TOL: float = 0.0005,
-        CONV_gmax: float = 0.001,
-        CONV_Ediff: float = 0.1,
-        CONV_dE: float = 0.5,
-        ADD_NODE_TOL: float = 0.1,
+        conv_tol: float = 0.0005,
+        conv_gmax: float = 0.001,
+        conv_ediff: float = 0.1,
+        conv_de: float = 0.5,
+        add_node_tol: float = 0.1,
         growth_direction: int = 0,
-        DQMAG_MAX: float = 0.8,
-        DQMAG_MIN: float = 0.2,
+        dqmag_max: float = 0.8,
+        dqmag_min: float = 0.2,
         print_level: int = 1,
         xyz_writer=write_molden_geoms,
         mp_cores: int = 1,
-        BDIST_RATIO: float = 0.5,
-        ID: int = 0,
+        bdist_ratio: float = 0.5,
+        string_id: int = 0,
         interp_method: str = 'DLC',
         noise: float = 100.0,
         output_dir: str | None = None,
@@ -106,19 +106,19 @@ class GSM:
         self.nodes[0] = reactant
         self.nodes[-1] = product
         self.driving_coords = [] if driving_coords is None else driving_coords
-        self.CONV_TOL = CONV_TOL
-        self.CONV_gmax = CONV_gmax
-        self.CONV_Ediff = CONV_Ediff
-        self.CONV_dE = CONV_dE
-        self.ADD_NODE_TOL = ADD_NODE_TOL
+        self.conv_tol = conv_tol
+        self.conv_gmax = conv_gmax
+        self.conv_ediff = conv_ediff
+        self.conv_de = conv_de
+        self.add_node_tol = add_node_tol
         self.growth_direction = growth_direction
-        self.DQMAG_MAX = DQMAG_MAX
-        self.DQMAG_MIN = DQMAG_MIN
+        self.dqmag_max = dqmag_max
+        self.dqmag_min = dqmag_min
         self.print_level = print_level
         self.xyz_writer = xyz_writer
         self.mp_cores = mp_cores
-        self.BDIST_RATIO = BDIST_RATIO
-        self.ID = ID
+        self.bdist_ratio = bdist_ratio
+        self.string_id = string_id
         self.interp_method = interp_method
         self.noise = noise
         self.output_dir = output_dir
@@ -137,7 +137,7 @@ class GSM:
         self.tscontinue = True  # whether to continue with TS opt or not
         self.found_ts = False
         self.rn3m6 = np.sqrt(3.0 * self.nodes[0].natoms - 6.0)
-        self.gaddmax = self.ADD_NODE_TOL  # self.ADD_NODE_TOL/self.rn3m6;
+        self.gaddmax = self.add_node_tol  # self.add_node_tol/self.rn3m6;
         logger.debug(f' gaddmax: {self.gaddmax}')
         self.ictan = [None] * self.nnodes
         self.active = [False] * self.nnodes
@@ -167,7 +167,7 @@ class GSM:
         if self.output_dir is None:
             return
         os.makedirs(self.output_dir, exist_ok=True)
-        filename = os.path.join(self.output_dir, f'{name}_{self.ID:03d}.xyz')
+        filename = os.path.join(self.output_dir, f'{name}_{self.string_id:03d}.xyz')
         self.xyz_writer(filename, self.geometries, self.energies, self.gradrmss, self.dEs)
 
     @property
@@ -177,11 +177,11 @@ class GSM:
         """
         # Treat GSM with penalty a little different since penalty will increase energy based on energy
         # differences, which might not be great for Climbing Image
-        if not self.is_crossing_search and isinstance(self.nodes[0].PES, PenaltyPES):
+        if not self.is_crossing_search and isinstance(self.nodes[0].pes, PenaltyPES):
             energies = np.asarray([0.0] * self.nnodes)
             for i, node in enumerate(self.nodes):
                 if node is not None:
-                    energies[i] = (node.PES.PES1.energy + node.PES.PES2.energy) / 2.0
+                    energies[i] = (node.pes.pes1.energy + node.pes.pes2.energy) / 2.0
             return int(np.argmax(energies))
         else:
             # make sure TS is not zero or last node
@@ -282,8 +282,8 @@ class GSM:
 
         # get driving coord
         driving_coords = kwargs.get('driving_coords')
-        DQMAG_MAX = kwargs.get('DQMAG_MAX', 0.8)
-        DQMAG_MIN = kwargs.get('DQMAG_MIN', 0.2)
+        dqmag_max = kwargs.get('dqmag_max', 0.8)
+        dqmag_min = kwargs.get('dqmag_min', 0.2)
 
         if nodeP is None:
             if driving_coords is None:
@@ -301,13 +301,13 @@ class GSM:
             sign = -1.0
 
             dqmag_scale = 1.5
-            minmax = DQMAG_MAX - DQMAG_MIN
+            minmax = dqmag_max - dqmag_min
             a = bdist / dqmag_scale
             if a > 1.0:
                 a = 1.0
-            dqmag = sign * (DQMAG_MIN + minmax * a)
-            if dqmag > DQMAG_MAX:
-                dqmag = DQMAG_MAX
+            dqmag = sign * (dqmag_min + minmax * a)
+            if dqmag > dqmag_max:
+                dqmag = dqmag_max
             logger.debug(f' dqmag: {dqmag:4.3f} from bdist: {bdist:4.3f}')
 
             dq0 = dqmag * constraint
@@ -329,7 +329,7 @@ class GSM:
             dq0 = dqmag * constraint
             old_xyz = nodeR.xyz.copy()
             new_xyz = nodeR.coord_obj.newCartesian(old_xyz, dq0)
-            new_node = Molecule.copy_from(MoleculeA=nodeR, xyz=new_xyz, new_node_id=node_id)
+            new_node = Molecule.copy_from(molecule=nodeR, xyz=new_xyz, new_node_id=node_id)
 
         return new_node
 

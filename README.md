@@ -134,14 +134,14 @@ from pygsm.utils import output
 output.setup_logging()                      # pygsm logs; it prints nothing unless you ask
 lot = ASELoT(calculator=calc, geom=geom)    # any ASE calculator
 pes = PES(lot=lot, ad_idx=0, multiplicity=1)
-reactant = Molecule(geom=geom, PES=pes, coord_obj=coords, Form_Hessian=True)
+reactant = Molecule(pes, coords, geom=geom, form_hessian=True)
 product = Molecule.copy_from(reactant, xyz=product_xyz, new_node_id=10)
 gsm = DEGSM(reactant=reactant, product=product, nnodes=11, optimizer=EigenvectorFollow())
 gsm.go_gsm(max_iters=100, opt_steps=3, rtype=2)
 gsm.energies, gsm.geometries, gsm.TSnode     # results
 ```
 Every class takes its settings as constructor arguments (see the class docstrings) and
-keeps them as attributes of the same name; `optimizer.clone(DMAX=0.2)`, `pes.clone(lot=...)`
+keeps them as attributes of the same name; `optimizer.clone(dmax=0.2)`, `pes.clone(lot=...)`
 or `lot.clone(node_id=3)` copy an object with some settings changed. The library writes no
 files unless asked: pass `output_dir=...` to a GSM for the string checkpoint, or
 `trajectory=...` to `optimizer.optimize`. Complete scripts, including building the

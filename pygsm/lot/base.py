@@ -37,7 +37,7 @@ class Lot(Configurable):
     nproc : number of processors.
     do_coupling : compute the derivative coupling.
     node_id : index of the string node this level of theory belongs to.
-    ID : string id.
+    string_id : string id.
     calc_grad : compute gradients.
     """
 
@@ -53,7 +53,7 @@ class Lot(Configurable):
         nproc: int = 1,
         do_coupling: bool = False,
         node_id: int = 0,
-        ID: int = 0,
+        string_id: int = 0,
         calc_grad: bool = True,
     ):
         self.geom = geom
@@ -64,7 +64,7 @@ class Lot(Configurable):
         self.nproc = nproc
         self.do_coupling = do_coupling
         self.node_id = node_id
-        self.ID = ID
+        self.string_id = string_id
         self.calc_grad = calc_grad
 
         # properties

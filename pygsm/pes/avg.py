@@ -16,43 +16,43 @@ class AvgPES(PES):
     # TODO can fix this up so it automatically initializes PES1 and PES2?
     def __init__(
         self,
-        PES1,
-        PES2,
+        pes1,
+        pes2,
         lot,
     ):
-        self.PES1 = PES1.clone(lot=lot)
-        self.PES2 = PES2.clone(lot=lot)
+        self.pes1 = pes1.clone(lot=lot)
+        self.pes2 = pes2.clone(lot=lot)
         self._dE = 1000.0
         self.lot = lot
         self.lot.do_coupling = True
-        self.lot.coupling_states = (PES1.ad_idx, PES2.ad_idx)
+        self.lot.coupling_states = (pes1.ad_idx, pes2.ad_idx)
 
     def get_energy(self, xyz):
-        if self.PES1.multiplicity == self.PES2.multiplicity:
-            assert self.PES2.ad_idx > self.PES1.ad_idx, 'dgrad wrong direction'
-        self.dE = self.PES2.get_energy(xyz) - self.PES1.get_energy(xyz)
-        return 0.5 * (self.PES1.get_energy(xyz) + self.PES2.get_energy(xyz))
+        if self.pes1.multiplicity == self.pes2.multiplicity:
+            assert self.pes2.ad_idx > self.pes1.ad_idx, 'dgrad wrong direction'
+        self.dE = self.pes2.get_energy(xyz) - self.pes1.get_energy(xyz)
+        return 0.5 * (self.pes1.get_energy(xyz) + self.pes2.get_energy(xyz))
 
     def get_gradient(self, xyz, frozen_atoms=None):
-        return 0.5 * (self.PES1.get_gradient(xyz, frozen_atoms) + self.PES2.get_gradient(xyz, frozen_atoms))
+        return 0.5 * (self.pes1.get_gradient(xyz, frozen_atoms) + self.pes2.get_gradient(xyz, frozen_atoms))
 
     def get_coupling(self, xyz, frozen_atoms=None):
-        assert self.PES1.multiplicity == self.PES2.multiplicity, 'coupling is 0'
-        assert self.PES1.ad_idx != self.PES2.ad_idx, 'coupling is 0'
+        assert self.pes1.multiplicity == self.pes2.multiplicity, 'coupling is 0'
+        assert self.pes1.ad_idx != self.pes2.ad_idx, 'coupling is 0'
         return np.reshape(
-            self.lot.get_coupling(xyz, self.PES1.multiplicity, self.PES1.ad_idx, self.PES2.ad_idx, frozen_atoms),
+            self.lot.get_coupling(xyz, self.pes1.multiplicity, self.pes1.ad_idx, self.pes2.ad_idx, frozen_atoms),
             (-1, 1),
         )
 
     def get_dgrad(self, xyz, frozen_atoms=None):
-        if self.PES1.multiplicity == self.PES2.multiplicity:
-            assert self.PES2.ad_idx > self.PES1.ad_idx, 'dgrad wrong direction'
-        return self.PES2.get_gradient(xyz, frozen_atoms) - self.PES1.get_gradient(xyz, frozen_atoms)
+        if self.pes1.multiplicity == self.pes2.multiplicity:
+            assert self.pes2.ad_idx > self.pes1.ad_idx, 'dgrad wrong direction'
+        return self.pes2.get_gradient(xyz, frozen_atoms) - self.pes1.get_gradient(xyz, frozen_atoms)
 
     def get_average_gradient(self, xyz, frozen_atoms=None):
-        if self.PES1.multiplicity == self.PES2.multiplicity:
-            assert self.PES2.ad_idx > self.PES1.ad_idx, 'dgrad wrong direction'
-        return 0.5 * (self.PES2.get_gradient(xyz, frozen_atoms) + self.PES1.get_gradient(xyz, frozen_atoms))
+        if self.pes1.multiplicity == self.pes2.multiplicity:
+            assert self.pes2.ad_idx > self.pes1.ad_idx, 'dgrad wrong direction'
+        return 0.5 * (self.pes2.get_gradient(xyz, frozen_atoms) + self.pes1.get_gradient(xyz, frozen_atoms))
 
     # http://pubs.acs.org/doi/abs/10.1021/acs.jctc.6b00384
     def symmetric_orthogonalization(self, xyz):

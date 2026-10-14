@@ -28,7 +28,7 @@ class BealesCG(BaseOptimizer):
         molecule: Molecule,
         s0_prim,
         gp_prim,
-        refE: float = 0.0,
+        ref_energy: float = 0.0,
         opt_type='BEALES_CG',
         opt_steps: int = 3,
         ictan=None,
@@ -36,13 +36,13 @@ class BealesCG(BaseOptimizer):
         verbose=False,
         trajectory: str | None = None,
     ) -> tuple[list, list]:
-        logger.debug(f' initial E {molecule.energy - refE:5.4f}')
+        logger.debug(f' initial E {molecule.energy - ref_energy:5.4f}')
 
         # stash/initialize some useful attributes
         geoms = []
         energies = []
         geoms.append(molecule.geometry)
-        energies.append(molecule.energy - refE)
+        energies.append(molecule.energy - ref_energy)
         self.initial_step = True
         self.disp = 1000.0
         self.Ediff = 1000.0
@@ -72,7 +72,7 @@ class BealesCG(BaseOptimizer):
 
             if update_hess and self.update_hess_in_bg:
                 if opt_type != 'TS':
-                    self.update_Hessian(molecule, 'BFGS')
+                    self.update_hessian(molecule, 'BFGS')
                 else:
                     raise NotImplementedError
             update_hess = True
@@ -99,8 +99,8 @@ class BealesCG(BaseOptimizer):
             stepsize = np.linalg.norm(d)
             logger.debug(f' stepsize = {stepsize:1.2f}')
             d = d / stepsize  # normalize
-            if stepsize > self.DMAX:
-                stepsize = self.DMAX
+            if stepsize > self.dmax:
+                stepsize = self.dmax
                 logger.debug(f' reducing step, new step = {stepsize:1.2f}')
 
             # store
@@ -115,7 +115,7 @@ class BealesCG(BaseOptimizer):
 
             # line search
             logger.debug(' Linesearch')
-            ls = self.linesearch(
+            ls = self._linesearch(
                 n, x, fx, g, d, stepsize, xp, constraint_steps, self.linesearch_parameters, molecule, verbose
             )
             logger.debug(' Done linesearch')
@@ -129,19 +129,19 @@ class BealesCG(BaseOptimizer):
             if nconstraints > 0:
                 g = g - np.dot(g.T, molecule.constraints) * molecule.constraints
 
-            if ls['step'] > self.DMAX:
+            if ls['step'] > self.dmax:
                 if ls['step'] <= self.abs_max_step:  # absolute max
                     logger.debug(' Increasing DMAX to {}'.format(ls['step']))
-                    self.DMAX = ls['step']
+                    self.dmax = ls['step']
                 else:
-                    self.DMAX = self.abs_max_step
-            elif ls['step'] < self.DMAX:
-                if ls['step'] >= self.DMIN:  # absolute min
+                    self.dmax = self.abs_max_step
+            elif ls['step'] < self.dmax:
+                if ls['step'] >= self.dmin:  # absolute min
                     logger.debug(' Decreasing DMAX to {}'.format(ls['step']))
-                    self.DMAX = ls['step']
-                elif ls['step'] <= self.DMIN:
-                    self.DMAX = self.DMIN
-                    logger.debug(f' Decreasing DMAX to {self.DMIN}')
+                    self.dmax = ls['step']
+                elif ls['step'] <= self.dmin:
+                    self.dmax = self.dmin
+                    logger.debug(f' Decreasing DMAX to {self.dmin}')
 
             # dE
             dEstep = fx - fxp
@@ -175,7 +175,7 @@ class BealesCG(BaseOptimizer):
 
             if ostep % xyzframerate == 0:
                 geoms.append(molecule.geometry)
-                energies.append(molecule.energy - refE)
+                energies.append(molecule.energy - ref_energy)
                 self.write_trajectory(trajectory, geoms, energies)
 
             # save variables for update Hessian!
@@ -188,7 +188,7 @@ class BealesCG(BaseOptimizer):
 
             if self.print_level > 0:
                 logger.info(
-                    f' Opt step: {ostep + 1} E: {fx - refE:5.4f} gradrms: {molecule.gradrms:1.5f} ss: {step:1.3f} DMAX: {self.DMAX:1.3f}'
+                    f' Opt step: {ostep + 1} E: {fx - ref_energy:5.4f} gradrms: {molecule.gradrms:1.5f} ss: {step:1.3f} DMAX: {self.dmax:1.3f}'
                 )
 
             # check for convergence TODO
@@ -201,17 +201,17 @@ class BealesCG(BaseOptimizer):
             dE = molecule.difference_energy if self.opt_cross else None
             if (
                 self.opt_cross
-                and abs(dE) < self.conv_dE
+                and abs(dE) < self.conv_de
                 and molecule.gradrms < self.conv_grms
                 and abs(gmax) < self.conv_gmax
-                and abs(dEstep) < self.conv_Ediff
+                and abs(dEstep) < self.conv_ediff
                 and abs(disp) < self.conv_disp
                 and ls['status'] == 0
             ) or (
                 not self.opt_cross
                 and molecule.gradrms < self.conv_grms
                 and abs(gmax) < self.conv_gmax
-                and abs(dEstep) < self.conv_Ediff
+                and abs(dEstep) < self.conv_ediff
                 and abs(disp) < self.conv_disp
             ):
                 self.converged = True
@@ -220,7 +220,7 @@ class BealesCG(BaseOptimizer):
                 logger.debug(' converged')
                 if ostep % xyzframerate != 0:
                     geoms.append(molecule.geometry)
-                    energies.append(molecule.energy - refE)
+                    energies.append(molecule.energy - ref_energy)
                     self.write_trajectory(trajectory, geoms, energies)
                 break
 

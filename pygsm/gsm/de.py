@@ -54,9 +54,9 @@ class DEGSM(MainGSM):
 
         for i in range(self.nnodes):
             if self.nodes[i] is not None:
-                self.optimizer[i].conv_grms = self.CONV_TOL * 2.0
-        self.optimizer[nR].conv_grms = self.ADD_NODE_TOL
-        self.optimizer[nP].conv_grms = self.ADD_NODE_TOL
+                self.optimizer[i].conv_grms = self.conv_tol * 2.0
+        self.optimizer[nR].conv_grms = self.add_node_tol
+        self.optimizer[nP].conv_grms = self.add_node_tol
         logger.debug(f' conv_tol of node {nR} is {self.optimizer[nR].conv_grms:.4f}')
         logger.debug(f' conv_tol of node {nP} is {self.optimizer[nP].conv_grms:.4f}')
         self.active[nR] = True

@@ -14,8 +14,8 @@ def NoLineSearch(n, x, fx, g, d, step, xp, constraint_step, parameters, molecule
 
     # use these so molecule xyz doesn't change
     logger.debug(' evaluate fx in linesearch')
-    fx = molecule.PES.get_energy(xyz)
-    gx = molecule.PES.get_gradient(xyz, frozen_atoms=molecule.frozen_atoms)
+    fx = molecule.pes.get_energy(xyz)
+    gx = molecule.pes.get_gradient(xyz, frozen_atoms=molecule.frozen_atoms)
     g = molecule.coord_obj.calcGrad(xyz, gx)
 
     result = {'status': 0, 'fx': fx, 'g': g, 'step': step, 'x': x, 'molecule': molecule}
@@ -61,9 +61,9 @@ def backtrack(nconstraints, x, fx, g, d, step, xp, constraint_step, parameters, 
         xyz = molecule.coord_obj.newCartesian(molecule.xyz, x - xp, frozen_atoms=molecule.frozen_atoms, verbose=verbose)
         # Evaluate the function and gradient values.
         # use these so molecule xyz doesn't change
-        fx = molecule.PES.get_energy(xyz)
+        fx = molecule.pes.get_energy(xyz)
 
-        gx = molecule.PES.get_gradient(xyz, frozen_atoms=molecule.frozen_atoms)
+        gx = molecule.pes.get_gradient(xyz, frozen_atoms=molecule.frozen_atoms)
         g = molecule.coord_obj.calcGrad(xyz, gx)
         width = 1.0
 

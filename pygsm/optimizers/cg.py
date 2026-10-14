@@ -18,8 +18,8 @@ logger = logging.getLogger(__name__)
 class ConjugateGradient(BaseOptimizer):
     """Plain conjugate-gradient optimizer."""
 
-    def optimize(self, molecule, refE=0.0, opt_type='UNCONSTRAINED', opt_steps=3, ictan=None):
-        logger.debug(f' initial E {molecule.energy - refE:5.4f}')
+    def optimize(self, molecule, ref_energy=0.0, opt_type='UNCONSTRAINED', opt_steps=3, ictan=None):
+        logger.debug(f' initial E {molecule.energy - ref_energy:5.4f}')
         if opt_type == 'TS':
             raise RuntimeError
 
@@ -27,7 +27,7 @@ class ConjugateGradient(BaseOptimizer):
         geoms = []
         energies = []
         geoms.append(molecule.geometry)
-        energies.append(molecule.energy - refE)
+        energies.append(molecule.energy - ref_energy)
         self.initial_step = True
         self.disp = 1000.0
         self.Ediff = 1000.0
@@ -86,8 +86,8 @@ class ConjugateGradient(BaseOptimizer):
             actual_step = np.linalg.norm(d)
             logger.debug(f' actual_step= {actual_step:1.2f}')
             d = d / actual_step  # normalize
-            if actual_step > self.DMAX:
-                step = self.DMAX
+            if actual_step > self.dmax:
+                step = self.dmax
                 logger.debug(f' reducing step, new step = {step:1.2f}')
             else:
                 step = actual_step
@@ -103,7 +103,7 @@ class ConjugateGradient(BaseOptimizer):
 
             # line search
             logger.debug(' Linesearch')
-            ls = self.linesearch(n, x, fx, g, d, step, xp, gp, constraint_steps, self.linesearch_parameters, molecule)
+            ls = self._linesearch(n, x, fx, g, d, step, xp, gp, constraint_steps, self.linesearch_parameters, molecule)
             logger.debug(' Done linesearch')
 
             # revert to the previous point
@@ -122,13 +122,13 @@ class ConjugateGradient(BaseOptimizer):
 
             # control step size
             if step < p_step:
-                self.DMAX /= 2.0
+                self.dmax /= 2.0
             elif step > p_step:
-                self.DMAX *= 2.0
-            if self.DMAX < 0.01:
-                self.DMAX = 0.01
-            elif self.DMAX > 0.25:
-                self.DMAX = 0.25
+                self.dmax *= 2.0
+            if self.dmax < 0.01:
+                self.dmax = 0.01
+            elif self.dmax > 0.25:
+                self.dmax = 0.25
 
             # dE
             dEstep = fx - fxp
@@ -136,11 +136,11 @@ class ConjugateGradient(BaseOptimizer):
 
             # update molecule xyz
             geoms.append(molecule.geometry)
-            energies.append(molecule.energy - refE)
+            energies.append(molecule.energy - ref_energy)
 
             if self.print_level > 0:
                 logger.info(
-                    f' Opt step: {ostep + 1} E: {fx - refE:5.4f} gradrms: {molecule.gradrms:1.5f} ss: {step:1.3f} DMAX: {self.DMAX:1.3f}'
+                    f' Opt step: {ostep + 1} E: {fx - ref_energy:5.4f} gradrms: {molecule.gradrms:1.5f} ss: {step:1.3f} DMAX: {self.dmax:1.3f}'
                 )
 
             gmax = np.max(g) / units.ANGSTROM_TO_AU
@@ -169,6 +169,6 @@ class ConjugateGradient(BaseOptimizer):
                 if dE != 1000.0:
                     logger.debug(f' difference energy is {dE:5.4f}')
                 g = molecule.gradient.copy()
-                molecule.form_Hessian_in_basis()
+                molecule.form_hessian_in_basis()
 
         return geoms, energies

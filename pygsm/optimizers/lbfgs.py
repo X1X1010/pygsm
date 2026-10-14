@@ -44,7 +44,7 @@ class LBFGS(BaseOptimizer):
     def optimize(
         self,
         molecule: Molecule,
-        refE: float = 0.0,
+        ref_energy: float = 0.0,
         opt_type: str = 'UNCONSTRAINED',
         opt_steps: int = 20,
         maxcor=10,
@@ -54,11 +54,11 @@ class LBFGS(BaseOptimizer):
         trajectory: str | None = None,
     ) -> tuple[list, list]:
         # stash/initialize some useful attributes
-        logger.debug(f' initial E {molecule.energy - refE:5.4f}')
+        logger.debug(f' initial E {molecule.energy - ref_energy:5.4f}')
         geoms = []
         energies = []
         geoms.append(molecule.geometry)
-        energies.append(molecule.energy - refE)
+        energies.append(molecule.energy - ref_energy)
         self.check_inputs(molecule, opt_type, ictan)
         nconstraints = self.get_nconstraints(opt_type)
 
@@ -109,9 +109,9 @@ class LBFGS(BaseOptimizer):
         for ostep in range(opt_steps):
             logger.debug(f' On opt step {ostep + 1} ')
 
-            SCALE = self.SCALEQN
+            SCALE = self.scale_qn
             if molecule.newHess > 0:
-                SCALE = self.SCALEQN * molecule.newHess
+                SCALE = self.scale_qn * molecule.newHess
 
             if self.k != 0:
                 # update vectors s and y:
@@ -141,8 +141,8 @@ class LBFGS(BaseOptimizer):
             actual_step = np.linalg.norm(d)
             logger.debug(f' actual_step= {actual_step:1.5f}')
             d = d / actual_step  # normalize
-            if actual_step > self.DMAX:
-                step = self.DMAX
+            if actual_step > self.dmax:
+                step = self.dmax
                 logger.debug(f' reducing step, new step = {step:1.5f}')
             else:
                 step = actual_step
@@ -160,7 +160,7 @@ class LBFGS(BaseOptimizer):
             self.cstep_prim = block_matrix.dot(molecule.coord_basis, constraint_steps)
 
             # line search
-            ls = self.linesearch(
+            ls = self._linesearch(
                 nconstraints, x, fx, gc, d, step, xp, constraint_steps, self.linesearch_parameters, molecule, verbose
             )
 
@@ -206,15 +206,15 @@ class LBFGS(BaseOptimizer):
                 self.k = 0
                 self.end = 0
                 molecule.newHess = 5
-                if self.DMAX <= self.DMIN:
+                if self.dmax <= self.dmin:
                     logger.debug(' Reached minimum step,exiting')
                     geoms.append(molecule.geometry)
-                    energies.append(molecule.energy - refE)
+                    energies.append(molecule.energy - ref_energy)
                     break
 
-                self.DMAX = ls['step'] / 2
-                if self.DMAX < self.DMIN:
-                    self.DMAX = self.DMIN
+                self.dmax = ls['step'] / 2
+                if self.dmax < self.dmin:
+                    self.dmax = self.dmin
             else:
                 # update molecule xyz
                 xyz = molecule.update_xyz(x - xp)
@@ -223,20 +223,20 @@ class LBFGS(BaseOptimizer):
             flag = True
             if ratio < 0.3 and ls['status'] == 0:  # and abs(dEpre)>0.05:
                 logger.debug(' Reducing DMAX')
-                self.DMAX /= 1.5
-                if self.DMAX < self.DMIN:
-                    self.DMAX = self.DMIN
+                self.dmax /= 1.5
+                if self.dmax < self.dmin:
+                    self.dmax = self.dmin
                 if molecule.newHess < 5:
                     molecule.newHess += 1
                 flag = False
 
-                if opt_type == 'CLIMB' and self.SCALE_CLIMB < 10.0 and opt_type == 'CLIMB':
-                    self.SCALE_CLIMB += 1.0
-                    logger.debug(f'SCALING CLIMB BY {self.SCALE_CLIMB}')
+                if opt_type == 'CLIMB' and self.scale_climb < 10.0 and opt_type == 'CLIMB':
+                    self.scale_climb += 1.0
+                    logger.debug(f'SCALING CLIMB BY {self.scale_climb}')
             elif ratio > 0.3:
                 molecule.newHess -= 1
-                if opt_type == 'CLIMB' and self.SCALE_CLIMB > 1.0:
-                    self.SCALE_CLIMB -= 1.0
+                if opt_type == 'CLIMB' and self.scale_climb > 1.0:
+                    self.scale_climb -= 1.0
 
             # project out the constraints
             gc = g.copy()
@@ -254,35 +254,35 @@ class LBFGS(BaseOptimizer):
                 if ls['status'] == 0:  # passed
                     dgradrms = molecule.gradrms - pgradrms
                     logger.debug(f'dgradrms  {dgradrms}')
-                    if ls['step'] > self.DMAX:
+                    if ls['step'] > self.dmax:
                         if ls['step'] <= self.abs_max_step:  # absolute max
                             logger.debug(' Increasing DMAX to {}'.format(ls['step']))
-                            self.DMAX = ls['step']
+                            self.dmax = ls['step']
                         else:
-                            self.DMAX = self.abs_max_step
-                    elif ls['step'] < self.DMAX:
-                        if ls['step'] >= self.DMIN:  # absolute min
+                            self.dmax = self.abs_max_step
+                    elif ls['step'] < self.dmax:
+                        if ls['step'] >= self.dmin:  # absolute min
                             logger.debug(' Decreasing DMAX to {}'.format(ls['step']))
-                            self.DMAX = ls['step']
-                        elif ls['step'] <= self.DMIN:
-                            self.DMAX = self.DMIN
-                            logger.debug(f' Decreasing DMAX to {self.DMIN}')
-                    elif ratio > 0.85 and ratio < 1.1 and actual_step > self.DMAX and dgradrms < -0.00005:
+                            self.dmax = ls['step']
+                        elif ls['step'] <= self.dmin:
+                            self.dmax = self.dmin
+                            logger.debug(f' Decreasing DMAX to {self.dmin}')
+                    elif ratio > 0.85 and ratio < 1.1 and actual_step > self.dmax and dgradrms < -0.00005:
                         logger.debug(' HERE increasing DMAX')
-                        self.DMAX *= 1.1
-                        if self.abs_max_step < self.DMAX:
-                            self.DMAX = self.abs_max_step
+                        self.dmax *= 1.1
+                        if self.abs_max_step < self.dmax:
+                            self.dmax = self.abs_max_step
                 else:
                     logger.debug('status not zero')
 
             if ostep % xyzframerate == 0:
                 geoms.append(molecule.geometry)
-                energies.append(molecule.energy - refE)
+                energies.append(molecule.energy - ref_energy)
                 self.write_trajectory(trajectory, geoms, energies)
 
             if self.print_level > 0:
                 logger.info(
-                    f' Node: {molecule.node_id} Opt step: {ostep + 1} E: {fx - refE:5.4f} predE: {dEpre:5.4f} ratio: {ratio:1.3f} gradrms: {molecule.gradrms:1.5f} ss: {step:1.3f} DMAX: {self.DMAX:1.3f}'
+                    f' Node: {molecule.node_id} Opt step: {ostep + 1} E: {fx - ref_energy:5.4f} predE: {dEpre:5.4f} ratio: {ratio:1.3f} gradrms: {molecule.gradrms:1.5f} ss: {step:1.3f} DMAX: {self.dmax:1.3f}'
                 )
 
             gmax = float(np.max(np.absolute(gc)))
@@ -291,10 +291,10 @@ class LBFGS(BaseOptimizer):
             self.converged = False
             if (
                 self.opt_cross
-                and abs(dE) < self.conv_dE
+                and abs(dE) < self.conv_de
                 and molecule.gradrms < self.conv_grms
                 and abs(gmax) < self.conv_gmax
-                and abs(dEstep) < self.conv_Ediff
+                and abs(dEstep) < self.conv_ediff
                 and abs(disp) < self.conv_disp
                 and ls['status'] == 0
             ):
@@ -310,7 +310,7 @@ class LBFGS(BaseOptimizer):
                 not self.opt_cross
                 and molecule.gradrms < self.conv_grms
                 and abs(gmax) < self.conv_gmax
-                and abs(dEstep) < self.conv_Ediff
+                and abs(dEstep) < self.conv_ediff
                 and abs(disp) < self.conv_disp
             ):
                 if opt_type == 'CLIMB':
@@ -324,7 +324,7 @@ class LBFGS(BaseOptimizer):
                 logger.debug(' converged')
                 if ostep % xyzframerate != 0:
                     geoms.append(molecule.geometry)
-                    energies.append(molecule.energy - refE)
+                    energies.append(molecule.energy - ref_energy)
                     self.write_trajectory(trajectory, geoms, energies)
                 break
 

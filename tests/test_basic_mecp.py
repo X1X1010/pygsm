@@ -23,7 +23,7 @@ def test_basic_penalty_opt():
     coupling_states = []
 
     lot1 = XTBLoT(
-        ID=0,
+        string_id=0,
         states=[(1, 0)],
         gradient_states=[(1, 0)],
         coupling_states=coupling_states,
@@ -31,7 +31,7 @@ def test_basic_penalty_opt():
     )
 
     lot2 = XTBLoT(
-        ID=1,
+        string_id=1,
         states=[(1, 0)],
         gradient_states=[(1, 0)],
         coupling_states=coupling_states,
@@ -50,7 +50,7 @@ def test_basic_penalty_opt():
         ad_idx=0,
     )
 
-    pes = PenaltyPES(PES1=pes1, PES2=pes2, lot=lot1)
+    pes = PenaltyPES(pes1=pes1, pes2=pes2, lot=lot1)
 
     output.printcool('Building the topology')
     atom_symbols = manage_xyz.get_atoms(geom)
@@ -91,17 +91,17 @@ def test_basic_penalty_opt():
     Form_Hessian = True
     initial = Molecule(
         geom=geom,
-        PES=pes,
+        pes=pes,
         coord_obj=coord_obj1,
-        Form_Hessian=Form_Hessian,
+        form_hessian=Form_Hessian,
     )
 
     optimizer = EigenvectorFollow(
-        Linesearch='backtrack',  # a step size algorithm
-        OPTTHRESH=0.0005,  # The gradrms threshold, this is generally easy to reach for large systems
-        DMAX=0.01,  # The initial max step size, will be adjusted if optimizer is doing well. Max is 0.5
-        conv_Ediff=0.1,  # convergence of difference energy
-        conv_dE=0.1,  # convergence of energy difference between optimization steps
+        linesearch='backtrack',  # a step size algorithm
+        conv_grms=0.0005,  # The gradrms threshold, this is generally easy to reach for large systems
+        dmax=0.01,  # The initial max step size, will be adjusted if optimizer is doing well. Max is 0.5
+        conv_ediff=0.1,  # convergence of difference energy
+        conv_de=0.1,  # convergence of energy difference between optimization steps
         conv_gmax=0.005,  # convergence of max gradient
         opt_cross=True,  # use difference energy criteria to determine if you are at crossing
     )
@@ -109,7 +109,7 @@ def test_basic_penalty_opt():
     print(' MECP optimization')
     _geoms, energies = optimizer.optimize(
         molecule=initial,
-        refE=initial.energy,
+        ref_energy=initial.energy,
         opt_steps=150,  # The max number of optimization steps, use a small number until you have your final sigma
         verbose=True,
         opt_type='UNCONSTRAINED',

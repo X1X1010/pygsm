@@ -27,16 +27,16 @@ class PES(Configurable):
     lot : level of theory that computes the energies and gradients.
     ad_idx : adiabatic index of the state.
     multiplicity : spin multiplicity of the state.
-    FORCE : constant forces between atom pairs in au, e.g. ``[(1, 2, 0.1214)]``;
+    forces : constant forces between atom pairs in au, e.g. ``[(1, 2, 0.1214)]``;
         negative is tensile, positive compressive.
-    RESTRAINTS : harmonic position restraints ``[(atom, k), ...]`` (0-based atom, k in kcal/mol/A^2)
+    restraints : harmonic position restraints ``[(atom, k), ...]`` (0-based atom, k in kcal/mol/A^2)
         holding each atom near its position in the level of theory's input geometry.
     """
 
     @classmethod
-    def create_pes_from(cls, PES, **lot_changes):
+    def create_pes_from(cls, pes, **lot_changes):
         """Copy of ``PES`` on a copy of its level of theory, with ``lot_changes`` (e.g. ``node_id``) applied."""
-        return cls(**{**PES.get_params(), 'lot': PES.lot.clone(**lot_changes)})
+        return cls(**{**pes.get_params(), 'lot': pes.lot.clone(**lot_changes)})
 
     def __init__(
         self,
@@ -44,15 +44,15 @@ class PES(Configurable):
         *,
         ad_idx: int = 0,
         multiplicity: int = 1,
-        FORCE: list | None = None,
-        RESTRAINTS: list | None = None,
+        forces: list | None = None,
+        restraints: list | None = None,
     ):
         self.lot = lot
         self.ad_idx = ad_idx
         self.multiplicity = multiplicity
-        self.FORCE = FORCE
-        self.RESTRAINTS = RESTRAINTS
-        self.reference_xyz = np.array(lot.currentCoords) if RESTRAINTS is not None else None
+        self.forces = forces
+        self.restraints = restraints
+        self.reference_xyz = np.array(lot.currentCoords) if restraints is not None else None
         self._dE = 1000.0
 
     @property
@@ -69,15 +69,15 @@ class PES(Configurable):
 
     def get_energy(self, xyz: np.ndarray) -> float:
         fdE = 0.0
-        if self.FORCE is not None:
-            for i in self.FORCE:
+        if self.forces is not None:
+            for i in self.forces:
                 force = i[2]
                 diff = xyz[i[0]] - xyz[i[1]]
                 d = np.linalg.norm(diff) * units.ANGSTROM_TO_AU  # AU
                 fdE += force * d * units.KCAL_MOL_PER_AU
         kdE = 0.0
-        if self.RESTRAINTS is not None:
-            for i in self.RESTRAINTS:
+        if self.restraints is not None:
+            for i in self.restraints:
                 a = i[0]
                 force = i[1]  # kcal/mol/Ang^2
                 kdE += 0.5 * force * np.sum((xyz[a] - self.reference_xyz[a]) ** 2)
@@ -140,8 +140,8 @@ class PES(Configurable):
 
     def get_gradient(self, xyz: np.ndarray, frozen_atoms: list | None = None) -> np.ndarray:
         grad = self.lot.get_gradient(xyz, self.multiplicity, self.ad_idx, frozen_atoms=frozen_atoms)
-        if self.FORCE is not None:
-            for i in self.FORCE:
+        if self.forces is not None:
+            for i in self.forces:
                 atoms = [i[0], i[1]]
                 force = i[2]
                 diff = xyz[i[0]] - xyz[i[1]]
@@ -155,8 +155,8 @@ class PES(Configurable):
                 for a in atoms:
                     grad[a] += sign * t * diff.T
                     sign *= -1
-        if self.RESTRAINTS is not None:
-            for i in self.RESTRAINTS:
+        if self.restraints is not None:
+            for i in self.restraints:
                 a = i[0]
                 force = i[1]
                 grad[a] += force * (xyz[a] - self.reference_xyz[a]) * units.KCAL_MOL_TO_AU  # Ha/ang

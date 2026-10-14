@@ -17,7 +17,7 @@ def create_lot(inpfileq: dict, geom):
     ]
     do_coupling = inpfileq['PES_type'] == 'Avg_PES'
     lot_options = dict(
-        ID=inpfileq['ID'],
+        string_id=inpfileq['ID'],
         states=inpfileq['states'],
         gradient_states=inpfileq['states'],
         coupling_states=inpfileq['states'] if do_coupling else [],
@@ -36,9 +36,9 @@ def create_lot(inpfileq: dict, geom):
         )
     if inpfileq['EST_Package'] == 'xTB':
         return XTBLoT(
-            xTB_Hamiltonian=inpfileq['xTB_Hamiltonian'],
-            xTB_accuracy=inpfileq['xTB_accuracy'],
-            xTB_electronic_temperature=inpfileq['xTB_electronic_temperature'],
+            hamiltonian=inpfileq['xTB_Hamiltonian'],
+            accuracy=inpfileq['xTB_accuracy'],
+            electronic_temperature=inpfileq['xTB_electronic_temperature'],
             solvent=inpfileq['solvent'],
             **lot_options,
         )
@@ -51,29 +51,29 @@ def choose_pes(lot, inpfileq: dict):
             lot=lot,
             ad_idx=inpfileq['adiabatic_index'][0],
             multiplicity=inpfileq['multiplicity'][0],
-            FORCE=inpfileq['FORCE'],
-            RESTRAINTS=inpfileq['RESTRAINTS'],
+            forces=inpfileq['FORCE'],
+            restraints=inpfileq['RESTRAINTS'],
         )
 
     pes1 = PES(
         lot=lot,
         multiplicity=inpfileq['states'][0][0],
         ad_idx=inpfileq['states'][0][1],
-        FORCE=inpfileq['FORCE'],
-        RESTRAINTS=inpfileq['RESTRAINTS'],
+        forces=inpfileq['FORCE'],
+        restraints=inpfileq['RESTRAINTS'],
     )
     pes2 = PES(
         lot=lot,
         multiplicity=inpfileq['states'][1][0],
         ad_idx=inpfileq['states'][1][1],
-        FORCE=inpfileq['FORCE'],
-        RESTRAINTS=inpfileq['RESTRAINTS'],
+        forces=inpfileq['FORCE'],
+        restraints=inpfileq['RESTRAINTS'],
     )
 
     if inpfileq['PES_type'] == 'Avg_PES':
-        return AvgPES(PES1=pes1, PES2=pes2, lot=lot)
+        return AvgPES(pes1=pes1, pes2=pes2, lot=lot)
     if inpfileq['PES_type'] == 'Penalty_PES':
-        return PenaltyPES(PES1=pes1, PES2=pes2, lot=lot, sigma=inpfileq['sigma'])
+        return PenaltyPES(pes1=pes1, pes2=pes2, lot=lot, sigma=inpfileq['sigma'])
     raise NotImplementedError(f'Unsupported PES type `{inpfileq["PES_type"]}`')
 
 
@@ -91,12 +91,12 @@ def choose_optimizer(inpfileq: dict):
         raise NotImplementedError(f'Optimizer `{inpfileq["optimizer"]}` not implemented') from exc
 
     return opt_class(
-        OPTTHRESH=inpfileq['CONV_TOL'],
+        conv_grms=inpfileq['CONV_TOL'],
         print_level=inpfileq['opt_print_level'],
-        Linesearch=inpfileq['linesearch'],
+        linesearch=inpfileq['linesearch'],
         update_hess_in_bg=update_hess_in_bg,
-        conv_Ediff=inpfileq['conv_Ediff'],
-        conv_dE=inpfileq['conv_dE'],
+        conv_ediff=inpfileq['conv_Ediff'],
+        conv_de=inpfileq['conv_dE'],
         conv_gmax=inpfileq['conv_gmax'],
-        DMAX=inpfileq['DMAX'],
+        dmax=inpfileq['DMAX'],
     )
